@@ -215,5 +215,7 @@ def test_bitwise_ops_return_microseries():
     or_result = s1 | s2
     assert isinstance(and_result, mdf.MicroSeries)
     assert isinstance(or_result, mdf.MicroSeries)
-    assert and_result.equals(mdf.MicroSeries([False, False, True], weights=[1, 2, 3]))
-    assert or_result.equals(mdf.MicroSeries([True, False, True], weights=[1, 2, 3]))
+    expected_and = mdf.MicroSeries([False, False, True], weights=[1, 2, 3])
+    expected_or = mdf.MicroSeries([True, False, True], weights=[1, 2, 3])
+    assert and_result.equals(expected_and)
+    assert or_result.equals(expected_or)
