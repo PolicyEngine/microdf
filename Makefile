@@ -1,4 +1,4 @@
-.PHONY: format lint test
+.PHONY: format lint test install
 
 format:
 	black microdf
@@ -8,3 +8,6 @@ lint:
 
 test:
 	pytest -q
+
+install:
+	pip install -e .
