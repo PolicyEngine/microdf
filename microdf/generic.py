@@ -320,6 +320,12 @@ class MicroSeries(pd.Series):
     def __pow__(self, other):
         return MicroSeries(super().__pow__(other), weights=self.weights)
 
+    def __and__(self, other):
+        return MicroSeries(super().__and__(other), weights=self.weights)
+
+    def __or__(self, other):
+        return MicroSeries(super().__or__(other), weights=self.weights)
+
     # comparators
 
     def __lt__(self, other):

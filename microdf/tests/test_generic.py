@@ -206,3 +206,14 @@ def test_value_subset():
     d = mdf.MicroDataFrame({"x": [1, 2, 3], "y": [1, 2, 2]}, weights=[4, 5, 6])
     d2 = d[d.y > 1]
     assert d2.y.shape == d2.weights.shape
+
+
+def test_bitwise_ops_return_microseries():
+    s1 = mdf.MicroSeries([True, False, True], weights=[1, 2, 3])
+    s2 = mdf.MicroSeries([False, False, True], weights=[1, 2, 3])
+    and_result = s1 & s2
+    or_result = s1 | s2
+    assert isinstance(and_result, mdf.MicroSeries)
+    assert isinstance(or_result, mdf.MicroSeries)
+    assert and_result.equals(mdf.MicroSeries([False, False, True], weights=[1, 2, 3]))
+    assert or_result.equals(mdf.MicroSeries([True, False, True], weights=[1, 2, 3]))
