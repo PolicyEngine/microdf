@@ -320,6 +320,48 @@ class MicroSeries(pd.Series):
     def __pow__(self, other):
         return MicroSeries(super().__pow__(other), weights=self.weights)
 
+    def __xor__(self, other):
+        return MicroSeries(super().__xor__(other), weights=self.weights)
+
+    def __and__(self, other):
+        return MicroSeries(super().__and__(other), weights=self.weights)
+
+    def __or__(self, other):
+        return MicroSeries(super().__or__(other), weights=self.weights)
+
+    def __invert__(self):
+        return MicroSeries(super().__invert__(), weights=self.weights)
+
+    def __radd__(self, other):
+        return MicroSeries(super().__radd__(other), weights=self.weights)
+
+    def __rsub__(self, other):
+        return MicroSeries(super().__rsub__(other), weights=self.weights)
+
+    def __rmul__(self, other):
+        return MicroSeries(super().__rmul__(other), weights=self.weights)
+
+    def __rfloordiv__(self, other):
+        return MicroSeries(super().__rfloordiv__(other), weights=self.weights)
+
+    def __rtruediv__(self, other):
+        return MicroSeries(super().__rtruediv__(other), weights=self.weights)
+
+    def __rmod__(self, other):
+        return MicroSeries(super().__rmod__(other), weights=self.weights)
+
+    def __rpow__(self, other):
+        return MicroSeries(super().__rpow__(other), weights=self.weights)
+
+    def __rand__(self, other):
+        return MicroSeries(super().__rand__(other), weights=self.weights)
+
+    def __ror__(self, other):
+        return MicroSeries(super().__ror__(other), weights=self.weights)
+
+    def __rxor__(self, other):
+        return MicroSeries(super().__rxor__(other), weights=self.weights)
+
     # comparators
 
     def __lt__(self, other):

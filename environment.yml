@@ -4,6 +4,7 @@ channels:
 dependencies:
 - codecov
 - flake8
+- black
 - matplotlib
 - numpy
 - pandas
