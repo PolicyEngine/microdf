@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="microdf-python",
-    version="0.4.3",
+    version="0.4.4",
     description="Survey microdata as DataFrames.",
     url="http://github.com/PSLmodels/microdf",
     author="Max Ghenis",
