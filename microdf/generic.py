@@ -346,7 +346,7 @@ class MicroSeries(pd.Series):
             axis=axis,
             inplace=inplace,
             *args,
-            **kwargs
+            **kwargs,
         )
         if not inplace:
             return MicroSeries(res, weights=self.weights)

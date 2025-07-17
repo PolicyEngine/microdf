@@ -99,7 +99,7 @@ def add_vat(
     base_income="aftertax_income",
     incidence=VAT_INCIDENCE,
     name="vat",
-    **kwargs
+    **kwargs,
 ):
     """Add value added tax based on incidence estimate from Tax Policy Center.
 
@@ -125,7 +125,7 @@ def add_carbon_tax(
     base_income="aftertax_income",
     incidence=CARBON_TAX_INCIDENCE,
     name="carbon_tax",
-    **kwargs
+    **kwargs,
 ):
     """Add carbon tax based on incidence estimate from the US Treasury
     Department.
@@ -152,7 +152,7 @@ def add_ftt(
     base_income="aftertax_income",
     incidence=FTT_INCIDENCE,
     name="ftt",
-    **kwargs
+    **kwargs,
 ):
     """Add financial transaction tax based on incidence estimate from Tax
     Policy Center.
