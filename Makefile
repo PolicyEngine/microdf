@@ -14,7 +14,7 @@ lint:
 	flake8
 
 test:
-	pytest -q
+	pytest -q --cov=microdf --cov-report=xml
 
 install:
 	pip install -e .

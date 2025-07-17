@@ -1,6 +1,7 @@
 """Test script for enhanced decile_rank functionality."""
 
 import numpy as np
+
 from microdf import MicroSeries
 
 

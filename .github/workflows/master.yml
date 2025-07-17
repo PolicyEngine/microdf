@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest" 
+      - name: Install dependencies
+        run: |
+          uv pip install -e ".[dev]"
+      - name: Run tests
+        run: make test
+
+  deploy-docs:
+    name: Build and deploy documentation
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.repository == 'PSLmodels/microdf'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - name: Install dependencies
+        run: |
+          uv pip install -e ".[dev,docs]"
+      - name: Build Jupyter Book
+        shell: bash -l {0}
+        run: |
+          jb build docs/.
+      - name: Check documentation build
+        run: |
+          for notebook in $(find docs/_build/jupyter_execute -name "*.ipynb"); do
+            if grep -q '"output_type": "error"' "$notebook"; then
+              echo "Error found in $notebook"
+              cat "$notebook"
+              exit 1
+            fi
+          done
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages  # The branch the action should deploy to.
+          FOLDER: docs/_build/html  # The folder the action should deploy.
+  
+  publish-to-pypi:
+    name: Publish to PyPI
+    needs: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for all tags and branches
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package
+        run: make install
+      - name: Build package
+        run: python -m build
+      - name: Publish a git tag
+        run: ".github/publish-git-tag.sh || true"
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI }}
+          skip-existing: true
