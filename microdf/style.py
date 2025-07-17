@@ -17,9 +17,9 @@ def set_plot_style(dpi: int = DPI):
         import matplotlib.font_manager as fm
     except ImportError:
         raise ImportError(
-            "The function you've called requires extra dependencies. " +
-            "Please install microdf with the 'charts' extra by running " +
-            "'pip install microdf[charts]'"
+            "The function you've called requires extra dependencies. "
+            + "Please install microdf with the 'charts' extra by running "
+            + "'pip install microdf[charts]'"
         )
 
     sns.set_style("white")

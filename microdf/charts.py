@@ -22,9 +22,9 @@ def quantile_pct_chg_plot(df1, df2, col1, col2, w1=None, w2=None, q=None):
         import matplotlib.pyplot as plt
     except ImportError:
         raise ImportError(
-            "The function you've called requires extra dependencies. " +
-            "Please install microdf with the 'charts' extra by running " +
-            "'pip install microdf[charts]'"
+            "The function you've called requires extra dependencies. "
+            + "Please install microdf with the 'charts' extra by running "
+            + "'pip install microdf[charts]'"
         )
 
     if q is None:
@@ -41,9 +41,7 @@ def quantile_pct_chg_plot(df1, df2, col1, col2, w1=None, w2=None, q=None):
     )
     # Plot.
     fig, ax = plt.subplots()
-    markerline, stemlines, baseline = ax.stem(
-        df.index_newline, df.pct_chg
-    )
+    markerline, stemlines, baseline = ax.stem(df.index_newline, df.pct_chg)
     plt.setp(baseline, color="gray", linewidth=0)
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
     ax.yaxis.set_major_formatter(mpl.ticker.PercentFormatter(xmax=100))

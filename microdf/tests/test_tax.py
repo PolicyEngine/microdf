@@ -32,9 +32,7 @@ def test_tax():
     res_e2_avoidance = mdf.tax_from_mtrs(
         INCOME, BRACKETS, RATES, avoidance_elasticity=2
     )
-    pd.testing.assert_series_equal(
-        res_e2_avoidance, pd.Series(EXPECTED_E2_AVOIDANCE)
-    )
+    pd.testing.assert_series_equal(res_e2_avoidance, pd.Series(EXPECTED_E2_AVOIDANCE))
     # Try with flat avoidance elasticity of 2.
     EXPECTED_E2_AVOIDANCE_FLAT = [
         0,

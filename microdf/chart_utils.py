@@ -20,13 +20,11 @@ def currency_format(currency="USD", suffix=""):
         import matplotlib as mpl
     except ImportError:
         raise ImportError(
-            "The function you've called requires extra dependencies. " +
-            "Please install microdf with the 'charts' extra by running " +
-            "'pip install microdf[charts]'"
+            "The function you've called requires extra dependencies. "
+            + "Please install microdf with the 'charts' extra by running "
+            + "'pip install microdf[charts]'"
         )
 
     prefix = {"USD": "$", "GBP": "£"}[currency]
 
-    return mpl.ticker.FuncFormatter(
-        lambda x, _: prefix + format(int(x), ",") + suffix
-    )
+    return mpl.ticker.FuncFormatter(lambda x, _: prefix + format(int(x), ",") + suffix)
