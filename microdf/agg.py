@@ -53,8 +53,8 @@ def agg(
     reform: pd.DataFrame,
     groupby: str,
     metrics: list,
-    base_metrics: Optional[list],
-    reform_metrics: Optional[list],
+    base_metrics: Optional[list] = None,
+    reform_metrics: Optional[list] = None,
 ) -> pd.DataFrame:
     """Aggregates differences between base and reform.
 
