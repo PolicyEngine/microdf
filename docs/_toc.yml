@@ -4,7 +4,6 @@ sections:
 - file: examples
   sections:
   - file: agg
-  - file: charts
   - file: custom_taxes
   - file: demo
   - file: gini
