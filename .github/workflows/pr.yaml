@@ -21,7 +21,7 @@ jobs:
           version: "latest"
       - name: Install dependencies
         run: |
-          uv pip install -e ".[dev]"
+          uv pip install -e ".[dev]" --system
       - name: Lint
         run: make lint
 
@@ -45,7 +45,7 @@ jobs:
           version: "latest"
       - name: Install dependencies
         run: |
-          uv pip install -e ".[dev]"
+          uv pip install -e ".[dev]" --system
       - name: Run tests with coverage
         run: make test
       - name: Upload coverage to Codecov
@@ -71,7 +71,7 @@ jobs:
           version: "latest"
       - name: Install dependencies
         run: |
-          uv pip install -e ".[dev,docs]"
+          uv pip install -e ".[dev,docs]" --system
       - name: Build Jupyter Book
         run: |
           jb build docs/.
