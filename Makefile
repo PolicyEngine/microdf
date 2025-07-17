@@ -1,7 +1,8 @@
 .PHONY: format lint test install
 
 format:
-	black microdf
+	linecheck . --fix
+	black . -l 79
 
 lint:
 	flake8

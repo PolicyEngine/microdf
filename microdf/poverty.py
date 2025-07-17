@@ -15,7 +15,9 @@ def fpl(people: int):
     return 7820 + 4320 * people
 
 
-def poverty_rate(df: pd.DataFrame, income: str, threshold: str, w: str = None) -> float:
+def poverty_rate(
+    df: pd.DataFrame, income: str, threshold: str, w: str = None
+) -> float:
     """Calculate poverty rate, i.e., the population share with income
        below their poverty threshold.
 
@@ -61,7 +63,9 @@ def deep_poverty_rate(
     return (pov * df[w]).sum() / df[w].sum()
 
 
-def poverty_gap(df: pd.DataFrame, income: str, threshold: str, w: str = None) -> float:
+def poverty_gap(
+    df: pd.DataFrame, income: str, threshold: str, w: str = None
+) -> float:
     """Calculate poverty gap, i.e., the total gap between income and poverty
        thresholds for all people in poverty.
 

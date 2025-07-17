@@ -163,7 +163,9 @@ def add_weighted_quantiles(df, col, w):
     # "Null out" negatives using -1, since integer arrays can't be NaN.
     df[col_pctile] = np.where(df[col] >= 0, df[col_pctile], 0)
     # Reduce top record, otherwise it's incorrectly rounded up.
-    df[col_pctile] = np.where(df[col_pctile] >= 99.99999, 99.99999, df[col_pctile])
+    df[col_pctile] = np.where(
+        df[col_pctile] >= 99.99999, 99.99999, df[col_pctile]
+    )
     df[col + "_percentile"] = np.ceil(df[col_pctile]).astype(int)
     df[col + "_2percentile"] = 2 * np.ceil(df[col_pctile] / 2).astype(int)
     df[col + "_ventile"] = 5 * np.ceil(df[col_pctile] / 5).astype(int)

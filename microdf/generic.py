@@ -246,8 +246,9 @@ class MicroSeries(pd.Series):
     @vector_function
     def cumsum(self) -> pd.Series:
         logger.warning(
-            "cumsum() returns cumulative sums of weighted values as a regular pandas Series. "
-            "The original weights have already been applied and cannot be reused with the cumulative results."
+            "cumsum() returns cumulative sums of weighted values as a regular "
+            "pandas Series. The original weights have already been applied and "
+            "cannot be reused with the cumulative results."
         )
         return pd.Series(self * self.weights).cumsum()
 
@@ -257,7 +258,8 @@ class MicroSeries(pd.Series):
         if weights_sum == 0:
             raise ZeroDivisionError(
                 "Cannot calculate rank with zero total weight. "
-                "All weights in the MicroSeries are zero, which would result in division by zero."
+                "All weights in the MicroSeries are zero, which would result "
+                "in division by zero."
             )
 
         order = np.argsort(self.values)
@@ -271,25 +273,29 @@ class MicroSeries(pd.Series):
     @vector_function
     def decile_rank(self):
         return MicroSeries(
-            np.minimum(np.ceil(self.rank(pct=True) * 10), 10), weights=self.weights
+            np.minimum(np.ceil(self.rank(pct=True) * 10), 10),
+            weights=self.weights,
         )
 
     @vector_function
     def quintile_rank(self):
         return MicroSeries(
-            np.minimum(np.ceil(self.rank(pct=True) * 5), 5), weights=self.weights
+            np.minimum(np.ceil(self.rank(pct=True) * 5), 5),
+            weights=self.weights,
         )
 
     @vector_function
     def quartile_rank(self):
         return MicroSeries(
-            np.minimum(np.ceil(self.rank(pct=True) * 4), 4), weights=self.weights
+            np.minimum(np.ceil(self.rank(pct=True) * 4), 4),
+            weights=self.weights,
         )
 
     @vector_function
     def percentile_rank(self):
         return MicroSeries(
-            np.minimum(np.ceil(self.rank(pct=True) * 100), 100), weights=self.weights
+            np.minimum(np.ceil(self.rank(pct=True) * 100), 100),
+            weights=self.weights,
         )
 
     def groupby(self, *args, **kwargs):
@@ -304,9 +310,16 @@ class MicroSeries(pd.Series):
         res = MicroSeries(res, weights=self.weights.copy(deep))
         return res
 
-    def clip(self, lower=None, upper=None, axis=None, inplace=False, *args, **kwargs):
+    def clip(
+        self, lower=None, upper=None, axis=None, inplace=False, *args, **kwargs
+    ):
         res = super().clip(
-            lower=lower, upper=upper, axis=axis, inplace=inplace, *args, **kwargs
+            lower=lower,
+            upper=upper,
+            axis=axis,
+            inplace=inplace,
+            *args,
+            **kwargs
         )
         if not inplace:
             return MicroSeries(res, weights=self.weights)
@@ -483,7 +496,9 @@ class MicroSeriesGroupBy(pd.core.groupby.generic.SeriesGroupBy):
     def _init(self):
         def _weighted_agg(name) -> Callable:
             def via_micro_series(row, *args, **kwargs):
-                return getattr(MicroSeries(row.a, weights=row.w), name)(*args, **kwargs)
+                return getattr(MicroSeries(row.a, weights=row.w), name)(
+                    *args, **kwargs
+                )
 
             fn = getattr(MicroSeries, name)
 
@@ -535,7 +550,9 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                 def fn(*args, **kwargs):
                     return MicroDataFrame(
                         {
-                            col: getattr(getattr(self, col), name)(*args, **kwargs)
+                            col: getattr(getattr(self, col), name)(
+                                *args, **kwargs
+                            )
                             for col in self.columns
                         }
                     )
@@ -549,7 +566,9 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                 def fn(*args, **kwargs):
                     return MicroDataFrame(
                         {
-                            col: getattr(getattr(self, col), name)(*args, **kwargs)
+                            col: getattr(getattr(self, col), name)(
+                                *args, **kwargs
+                            )
                             for col in self.columns
                         }
                     )

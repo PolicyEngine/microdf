@@ -70,7 +70,9 @@ def top_x_pct_share(df, col, top_x_pct, w=None, groupby=None):
 
     if groupby is None:
         return _top_x_pct_share(df, col, top_x_pct, w)
-    return df.groupby(groupby).apply(lambda x: _top_x_pct_share(x, col, top_x_pct, w))
+    return df.groupby(groupby).apply(
+        lambda x: _top_x_pct_share(x, col, top_x_pct, w)
+    )
 
 
 def bottom_x_pct_share(df, col, bottom_x_pct, w=None, groupby=None):

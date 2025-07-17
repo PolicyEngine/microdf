@@ -54,7 +54,9 @@ def tax_from_mtrs(
         or avoidance_elasticity == 0
         or avoidance_elasticity_flat == 0
     ), "Cannot supply multiple avoidance parameters."
-    assert avoidance_elasticity >= 0, "Provide nonnegative avoidance_elasticity."
+    assert (
+        avoidance_elasticity >= 0
+    ), "Provide nonnegative avoidance_elasticity."
     df_tax = pd.DataFrame({"brackets": brackets, "rates": rates})
     df_tax["base_tax"] = (
         df_tax.brackets.sub(df_tax.brackets.shift(fill_value=0))

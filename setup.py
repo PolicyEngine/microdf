@@ -14,12 +14,8 @@ setup(
         "pandas",
     ],
     extras_require={
-      "taxcalc": ["taxcalc"],
-      "charts": [
-        "seaborn",
-        "matplotlib",
-        "matplotlib-label-lines"
-      ]
+        "taxcalc": ["taxcalc"],
+        "charts": ["seaborn", "matplotlib", "matplotlib-label-lines"],
     },
     zip_safe=False,
 )

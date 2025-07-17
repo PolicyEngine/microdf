@@ -27,4 +27,6 @@ def currency_format(currency="USD", suffix=""):
 
     prefix = {"USD": "$", "GBP": "£"}[currency]
 
-    return mpl.ticker.FuncFormatter(lambda x, _: prefix + format(int(x), ",") + suffix)
+    return mpl.ticker.FuncFormatter(
+        lambda x, _: prefix + format(int(x), ",") + suffix
+    )
