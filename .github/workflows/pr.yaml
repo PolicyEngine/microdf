@@ -71,7 +71,7 @@ jobs:
           version: "latest"
       - name: Install dependencies
         run: |
-          uv pip install -e ".[dev,docs]" --system
+          uv pip install -e ".[dev,docs,taxcalc]" --system
       - name: Build Jupyter Book
         run: |
           jb build docs/.
