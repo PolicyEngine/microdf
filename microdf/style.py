@@ -12,9 +12,9 @@ def set_plot_style(dpi: int = DPI):
     :type dpi: int, optional
     """
     try:
-        import seaborn as sns
         import matplotlib as mpl
         import matplotlib.font_manager as fm
+        import seaborn as sns
     except ImportError:
         raise ImportError(
             "The function you've called requires extra dependencies. "

@@ -3,7 +3,6 @@ import pytest
 
 import microdf as mdf
 
-
 X = [1, 5, 2]
 Y = [0, -6, 3]
 W = [4, 1, 1]

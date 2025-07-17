@@ -1,10 +1,11 @@
-from typing import Callable, Union
-from functools import wraps
-import warnings
 import copy
+import logging
+import warnings
+from functools import wraps
+from typing import Callable, Union
+
 import numpy as np
 import pandas as pd
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -247,8 +248,8 @@ class MicroSeries(pd.Series):
     def cumsum(self) -> pd.Series:
         logger.warning(
             "cumsum() returns cumulative sums of weighted values as a regular "
-            "pandas Series. The original weights have already been applied and "
-            "cannot be reused with the cumulative results."
+            "pandas Series. The original weights have already been applied "
+            "and cannot be reused with the cumulative results."
         )
         return pd.Series(self * self.weights).cumsum()
 

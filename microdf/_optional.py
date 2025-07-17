@@ -3,7 +3,6 @@ import importlib
 import types
 import warnings
 
-
 # Adapted from:
 # https://github.com/pandas-dev/pandas/blob/master/pandas/compat/_optional.py
 

@@ -1,5 +1,7 @@
-import pandas as pd
 import inspect
+
+import pandas as pd
+
 import microdf as mdf
 
 

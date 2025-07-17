@@ -1,7 +1,8 @@
-from microdf.generic import MicroDataFrame, MicroSeries
 import numpy as np
-import microdf as mdf
 import pandas as pd
+
+import microdf as mdf
+from microdf.generic import MicroDataFrame, MicroSeries
 
 
 def test_df_init():

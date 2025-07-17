@@ -2,7 +2,6 @@ import pytest
 
 import microdf as mdf
 
-
 try:
     import taxcalc as tc
 

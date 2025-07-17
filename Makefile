@@ -2,9 +2,13 @@
 
 format:
 	linecheck . --fix
+	isort --profile black microdf/
 	black . -l 79
 
 lint:
+	linecheck .
+	isort --check-only --profile black microdf/
+	black . -l 79 --check
 	flake8
 
 test:

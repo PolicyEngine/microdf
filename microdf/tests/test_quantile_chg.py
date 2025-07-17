@@ -2,7 +2,6 @@ import pandas as pd
 
 import microdf as mdf
 
-
 V1 = [1, 2, 3]
 V2 = [4, 5, 6]
 W1 = [7, 8, 9]

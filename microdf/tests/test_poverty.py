@@ -1,7 +1,7 @@
-import microdf as mdf
-
 import numpy as np
 import pandas as pd
+
+import microdf as mdf
 
 df = pd.DataFrame(
     {

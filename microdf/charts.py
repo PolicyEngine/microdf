@@ -17,9 +17,9 @@ def quantile_pct_chg_plot(df1, df2, col1, col2, w1=None, w2=None, q=None):
 
     """
     try:
-        import seaborn as sns
         import matplotlib as mpl
         import matplotlib.pyplot as plt
+        import seaborn as sns
     except ImportError:
         raise ImportError(
             "The function you've called requires extra dependencies. "

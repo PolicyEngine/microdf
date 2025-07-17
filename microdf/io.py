@@ -1,7 +1,8 @@
 import io
 import zipfile
-import requests
+
 import pandas as pd
+import requests
 
 HEADER = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) "
