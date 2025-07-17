@@ -1,4 +1,8 @@
-- bump: minor
+- bump: patch
   changes:
     added:
-    - Created pyproject.toml file.
+    - Create pyproject.toml and uv.lock files to move away from setup.py.
+    - Create unified workflow files.
+    - Fix documentation errors.
+    - Ensure MicroSeries functions return MicroSeries objects.
+    - Fix unary operations to not require `other`.
