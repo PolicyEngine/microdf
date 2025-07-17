@@ -11,14 +11,14 @@ except ImportError:
 
 
 def test_calc_df():
-    """ """
+    """"""
     if not _HAVE_TAXCALC:
         pytest.skip("taxcalc is not installed")
     mdf.calc_df()
 
 
 def test_static_baseline_calc():
-    """ """
+    """"""
     if not _HAVE_TAXCALC:
         pytest.skip("taxcalc is not installed")
     recs = tc.Records.cps_constructor()

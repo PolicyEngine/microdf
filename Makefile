@@ -3,11 +3,13 @@
 format:
 	linecheck . --fix
 	isort --profile black microdf/
+	docformatter --wrap-summaries 79 --wrap-descriptions 79 --in-place --recursive microdf/
 	black . -l 79
 
 lint:
 	linecheck .
 	isort --check-only --profile black microdf/
+	docformatter --wrap-summaries 79 --wrap-descriptions 79 --check --recursive microdf/
 	black . -l 79 --check
 	flake8
 

@@ -5,6 +5,7 @@ dependencies:
 - codecov
 - flake8
 - black
+- docformatter
 - matplotlib
 - numpy
 - pandas

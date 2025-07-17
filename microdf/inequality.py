@@ -18,7 +18,6 @@ def gini(df, col, w=None, negatives=None, groupby=None):
         Defaults to None, which leaves negative values as they are.
     :param groupby: Column, or list of columns, to group by.
     :returns: A float, the Gini index.
-
     """
 
     def _gini(df, col, w=None, negatives=None):
@@ -59,7 +58,6 @@ def top_x_pct_share(df, col, top_x_pct, w=None, groupby=None):
     :param w: Column representing weight in df.
     :param groupby: Column, or list of columns, to group by.
     :returns: The share of w-weighted val held by the top x%.
-
     """
 
     def _top_x_pct_share(df, col, top_x_pct, w=None):
@@ -84,7 +82,6 @@ def bottom_x_pct_share(df, col, bottom_x_pct, w=None, groupby=None):
     :param w: Column representing weight in df.
     :param groupby: Column, or list of columns, to group by.
     :returns: The share of w-weighted val held by the bottom x%.
-
     """
     return 1 - top_x_pct_share(df, col, 1 - bottom_x_pct, w, groupby)
 
@@ -97,7 +94,6 @@ def bottom_50_pct_share(df, col, w=None, groupby=None):
     :param w: Column representing weight in df.
     :param groupby: Column, or list of columns, to group by.
     :returns: The share of w-weighted val held by the bottom 50%.
-
     """
     return bottom_x_pct_share(df, col, 0.5, w, groupby)
 
@@ -110,7 +106,6 @@ def top_50_pct_share(df, col, w=None, groupby=None):
     :param w: Column representing weight in df.
     :param groupby: Column, or list of columns, to group by.
     :returns: The share of w-weighted val held by the top 50%.
-
     """
     return top_x_pct_share(df, col, 0.5, w, groupby)
 
@@ -123,7 +118,6 @@ def top_10_pct_share(df, col, w=None, groupby=None):
     :param w: Column representing weight in df.
     :param groupby: Column, or list of columns, to group by.
     :returns: The share of w-weighted val held by the top 10%.
-
     """
     return top_x_pct_share(df, col, 0.1, w, groupby)
 
@@ -136,7 +130,6 @@ def top_1_pct_share(df, col, w=None, groupby=None):
     :param w: Column representing weight in df.
     :param groupby: Column, or list of columns, to group by.
     :returns: The share of w-weighted val held by the top 1%.
-
     """
     return top_x_pct_share(df, col, 0.01, w, groupby)
 
@@ -149,7 +142,6 @@ def top_0_1_pct_share(df, col, w=None, groupby=None):
     :param w: Column representing weight in df.
     :param groupby: Column, or list of columns, to group by.
     :returns: The share of w-weighted val held by the top 0.1%.
-
     """
     return top_x_pct_share(df, col, 0.001, w, groupby)
 
@@ -161,9 +153,8 @@ def t10_b50(df, col, w=None, groupby=None):
     :param col: Name of column in df representing value.
     :param w: Column representing weight in df.
     :param groupby: Column, or list of columns, to group by.
-    :returns: The share of w-weighted val held by the top 10% divided by
-        the share of w-weighted val held by the bottom 50%.
-
+    :returns: The share of w-weighted val held by the top 10% divided by the
+        share of w-weighted val held by the bottom 50%.
     """
     t10 = top_10_pct_share(df, col, w, groupby)
     b50 = bottom_50_pct_share(df, col, w, groupby)

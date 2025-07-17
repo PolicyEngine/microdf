@@ -3,14 +3,13 @@ import pandas as pd
 
 
 def mtr(val, brackets, rates):
-    """Calculates the marginal tax rate applied to a value depending on a
-    tax schedule.
+    """Calculates the marginal tax rate applied to a value depending on a tax
+    schedule.
 
     :param val: Value to assess tax on, e.g. wealth or income (list or Series).
     :param brackets: Left side of each bracket (list or Series).
     :param rates: Rate corresponding to each bracket.
     :returns: Series of the size of val representing the marginal tax rate.
-
     """
     df_tax = pd.DataFrame({"brackets": brackets, "rates": rates})
     df_tax["base_tax"] = (
@@ -37,17 +36,14 @@ def tax_from_mtrs(
     :param brackets: Left side of each bracket (list or Series).
     :param rates: Rate corresponding to each bracket.
     :param avoidance_rate: Constant avoidance/evasion rate in percentage terms.
-                        Defaults to zero.
-    :param avoidance_elasticity: Avoidance/evasion elasticity.
-                              Response of log taxable value with respect
-                              to tax rate.
-                              Defaults to zero. Should be positive.
-    :param avoidance_elasticity_flat: Response of taxable value with respect
-                                   to tax rate.
-                                   Use avoidance_elasticity in most cases.
-                                   Defaults to zero. Should be positive.
+        Defaults to zero.
+    :param avoidance_elasticity: Avoidance/evasion elasticity. Response of log
+        taxable value with respect to tax rate. Defaults to zero. Should be
+        positive.
+    :param avoidance_elasticity_flat: Response of taxable value with respect to
+        tax rate. Use avoidance_elasticity in most cases. Defaults to zero.
+        Should be positive.
     :returns: Series of tax liabilities with the same size as val.
-
     """
     assert (
         avoidance_rate == 0

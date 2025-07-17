@@ -19,11 +19,9 @@ def read_stata_zip(url: str, **kwargs) -> pd.DataFrame:
     Pending native support in
     https://github.com/pandas-dev/pandas/issues/26599.
 
-    :param url: URL string of .zip file containing a single
-            .dta file.
-    :param **kwargs: Arguments passed to pandas.read_stata().
+    :param url: URL string of .zip file containing a single .dta file. :param
+        **kwargs: Arguments passed to pandas.read_stata().
     :returns: DataFrame.
-
     """
     r = requests.get(url, headers=HEADER)
     data = io.BytesIO(r.content)

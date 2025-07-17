@@ -1,5 +1,5 @@
-"""
-Functions and data for estimating taxes outside the income tax system.
+"""Functions and data for estimating taxes outside the income tax system.
+
 Examples include value added tax, financial transaction tax, and carbon tax.
 """
 
@@ -48,10 +48,10 @@ def add_custom_tax(
 
     :param df: DataFrame.
     :param segment_income: Income measure used to segment tax units into
-            quantiles.
+        quantiles.
     :param w: Weight used to segment into quantiles (either s006 or XTOT_m).
     :param base_income: Income measure by which incidence is multiplied to
-            estimate liability.
+        estimate liability.
     :param incidence: pandas Series indexed on the floor of an income
         percentile, with values for the tax rate.
     :param name: Name of the column to add.
@@ -59,13 +59,12 @@ def add_custom_tax(
         liabilities are calculated only based on the incidence schedule.
         (Default value = None)
     :param ratio: Ratio to adjust the tax by, compared to the original tax.
-        This acts as a multiplier for the incidence argument.
-        (Default value = None)
+        This acts as a multiplier for the incidence argument. (Default value =
+        None)
     :param verbose: Whether to print the tax adjustment factor if needed.
         Defaults to True.
     :returns: Nothing. Adds the column name to df representing the tax
         liability. df is also sorted by segment_income.
-
     """
     if ratio is not None:
         incidence = incidence * ratio
@@ -110,11 +109,9 @@ def add_vat(
     :param w: Default value = "XTOT_m")
     :param base_income: Default value = "aftertax_income")
     :param incidence: Default value = VAT_INCIDENCE)
-    :param name: Default value = "vat")
-    :param **kwargs: Other arguments passed to add_custom_tax().
-    :returns: Nothing. Adds vat to df.
-        df is also sorted by tpc_eci.
-
+    :param name: Default value = "vat") :param **kwargs: Other arguments passed
+        to add_custom_tax().
+    :returns: Nothing. Adds vat to df. df is also sorted by tpc_eci.
     """
     add_custom_tax(
         df, segment_income, w, base_income, incidence, name, **kwargs
@@ -139,11 +136,9 @@ def add_carbon_tax(
     :param w: Default value = "XTOT_m")
     :param base_income: Default value = "aftertax_income")
     :param incidence: Default value = CARBON_TAX_INCIDENCE)
-    :param name: Default value = "carbon_tax")
-    :param **kwargs: Other arguments passed to add_custom_tax().
-    :returns: Nothing. Adds carbon_tax to df.
-        df is also sorted by tpc_eci.
-
+    :param name: Default value = "carbon_tax") :param **kwargs: Other arguments
+        passed to add_custom_tax().
+    :returns: Nothing. Adds carbon_tax to df. df is also sorted by tpc_eci.
     """
     add_custom_tax(
         df, segment_income, w, base_income, incidence, name, **kwargs
@@ -168,11 +163,9 @@ def add_ftt(
     :param w: Default value = "XTOT_m")
     :param base_income: Default value = "aftertax_income")
     :param incidence: Default value = FTT_INCIDENCE)
-    :param name: Default value = "ftt")
-    :param **kwargs: Other arguments passed to add_custom_tax().
-    :returns: Nothing. Adds ftt to df.
-        df is also sorted by tpc_eci.
-
+    :param name: Default value = "ftt") :param **kwargs: Other arguments passed
+        to add_custom_tax().
+    :returns: Nothing. Adds ftt to df. df is also sorted by tpc_eci.
     """
     add_custom_tax(
         df, segment_income, w, base_income, incidence, name, **kwargs

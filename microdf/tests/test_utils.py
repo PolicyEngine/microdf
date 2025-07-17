@@ -4,7 +4,7 @@ import microdf as mdf
 
 
 def test_cartesian_product():
-    """ """
+    """"""
     res = mdf.cartesian_product(
         {"a": [1, 2, 3], "b": ["val1", "val2"], "c": [100, 101]}
     )
@@ -32,7 +32,7 @@ def test_cartesian_product():
 
 
 def test_flatten():
-    """ """
+    """"""
     L = [[[1, 2, 3], [4, 5]], 6]
     res = list(mdf.flatten(L))
     EXPECTED = [1, 2, 3, 4, 5, 6]

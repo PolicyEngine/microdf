@@ -10,7 +10,6 @@ def ordinal_label(n):
 
     :param n: Number.
     :returns: Ordinal label, e.g., 1st, 3rd, 24th, etc.
-
     """
     n = int(n)
     ix = (n / 10 % 10 != 1) * (n % 10 < 4) * n % 10
@@ -22,7 +21,6 @@ def dedup_list(lst):
 
     :param lst: List.
     :returns: List with duplicate items removed from lst.
-
     """
     return list(set(lst))
 
@@ -32,9 +30,8 @@ def listify(x, dedup=True):
 
     :param x: A single item or a list
     :param dedup: Default value = True)
-    :returns: x if x is a list, otherwise [x]. Also flattens the list
-            and removes Nones.
-
+    :returns: x if x is a list, otherwise [x]. Also flattens the list and
+        removes Nones.
     """
     if not isinstance(x, list):
         x = [x]
@@ -62,13 +59,12 @@ def flatten(lst):
 
 
 def cartesian_product(d):
-    """Produces a DataFrame as a Cartesian product of dictionary
-        keys and values.
+    """Produces a DataFrame as a Cartesian product of dictionary keys and
+    values.
 
-    :param d: Dictionary where each item's key corresponds to a column
-           name, and each value is a list of values.
+    :param d: Dictionary where each item's key corresponds to a column name,
+        and each value is a list of values.
     :returns: DataFrame with a Cartesian product of each dictionary item.
-
     """
     index = pd.MultiIndex.from_product(d.values(), names=d.keys())
     return pd.DataFrame(index=index).reset_index()

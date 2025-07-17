@@ -6,9 +6,9 @@ import microdf as mdf
 
 
 def concat(*args, **kwargs):
-    """Concatenates MicroDataFrame objects, preserving weights.
-    If concatenating horizontally, the first set of weights are used.
-    All args and kwargs are passed to pd.concat.
+    """Concatenates MicroDataFrame objects, preserving weights. If
+    concatenating horizontally, the first set of weights are used. All args and
+    kwargs are passed to pd.concat.
 
     :return: MicroDataFrame with concatenated weights.
     :rtype: mdf.MicroDataFrame

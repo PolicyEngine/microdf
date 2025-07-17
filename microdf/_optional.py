@@ -34,10 +34,9 @@ def import_optional_dependency(
     raise_on_missing: bool = True,
     on_version: str = "raise",
 ):
-    """Import an optional dependency.
-    By default, if a dependency is missing an ImportError with a nice
-    message will be raised. If a dependency is present, but too old,
-    we raise.
+    """Import an optional dependency. By default, if a dependency is missing an
+    ImportError with a nice message will be raised. If a dependency is present,
+    but too old, we raise.
 
     :param name: The module name. This should be top-level only, so that the
         version may be checked.

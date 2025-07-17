@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 class MicroSeries(pd.Series):
     def __init__(self, *args, weights: np.array = None, **kwargs):
-        """A Series-inheriting class for weighted microdata.
-        Weights can be provided at initialisation, or using set_weights.
+        """A Series-inheriting class for weighted microdata. Weights can be
+        provided at initialisation, or using set_weights.
 
         :param weights: Array of weights.
         :type weights: np.array
@@ -80,7 +80,7 @@ class MicroSeries(pd.Series):
 
     @scalar_function
     def mean(self) -> float:
-        """Calculates the weighted mean of the MicroSeries
+        """Calculates the weighted mean of the MicroSeries.
 
         :returns: The weighted mean.
         :rtype: float
@@ -236,9 +236,8 @@ class MicroSeries(pd.Series):
     def t10_b50(self) -> float:
         """Calculates ratio between the top 10% and bottom 50% shares.
 
-        :returns: The weighted share held by the top 10% divided by
-            the weighted share held by the bottom 50%.
-
+        :returns: The weighted share held by the top 10% divided by the
+            weighted share held by the bottom 50%.
         """
         t10 = self.top_10_pct_share()
         b50 = self.bottom_50_pct_share()
@@ -272,7 +271,34 @@ class MicroSeries(pd.Series):
         return MicroSeries(ranks, index=self.index, weights=self.weights)
 
     @vector_function
-    def decile_rank(self):
+    def decile_rank(self, negatives_in_zero=False):
+        """Calculate decile ranks (1-10) with optional zero decile for
+        negatives.
+
+        :param negatives_in_zero: If True, negative values are assigned to
+            decile 0. If False (default), all values are ranked 1-10.
+        :type negatives_in_zero: bool
+        :returns: MicroSeries with decile ranks
+        :rtype: MicroSeries
+        """
+        if negatives_in_zero:
+            negative_mask = self < 0
+            if negative_mask.any():
+                non_negative_values = self[~negative_mask]
+                if len(non_negative_values) > 0:
+                    non_neg_ranks = non_negative_values.rank(pct=True)
+                    deciles = np.minimum(np.ceil(non_neg_ranks * 10), 10)
+                else:
+                    deciles = np.array([])
+
+                result = np.zeros(len(self))
+                result[negative_mask] = 0
+                if len(deciles) > 0:
+                    result[~negative_mask] = deciles
+
+                return MicroSeries(result, weights=self.weights)
+
+        # Default behavior: rank all values 1-10
         return MicroSeries(
             np.minimum(np.ceil(self.rank(pct=True) * 10), 10),
             weights=self.weights,
@@ -581,9 +607,8 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
 
 class MicroDataFrame(pd.DataFrame):
     def __init__(self, *args, weights=None, **kwargs):
-        """A DataFrame-inheriting class for weighted microdata.
-        Weights can be provided at initialisation, or using set_weights or
-        set_weight_col.
+        """A DataFrame-inheriting class for weighted microdata. Weights can be
+        provided at initialisation, or using set_weights or set_weight_col.
 
         :param weights: Array of weights.
         :type weights: np.array
@@ -632,8 +657,8 @@ class MicroDataFrame(pd.DataFrame):
             setattr(self, name, get_fn(name))
 
     def get_args_as_micro_series(*kwarg_names: tuple) -> Callable:
-        """Decorator for auto-parsing column names into MicroSeries objects.
-        If given, kwarg_names limits arguments checked to keyword arguments
+        """Decorator for auto-parsing column names into MicroSeries objects. If
+        given, kwarg_names limits arguments checked to keyword arguments
         specified.
 
         :param arg_names: argument names to restrict to.
@@ -686,8 +711,8 @@ class MicroDataFrame(pd.DataFrame):
                 self._link_weights(column)
 
     def set_weights(self, weights) -> None:
-        """Sets the weights for the MicroDataFrame. If a string is received,
-        it will be assumed to be the column name of the weight column.
+        """Sets the weights for the MicroDataFrame. If a string is received, it
+        will be assumed to be the column name of the weight column.
 
         :param weights: Array of weights.
         :type weights: np.array
@@ -752,9 +777,8 @@ class MicroDataFrame(pd.DataFrame):
 
     @get_args_as_micro_series()
     def groupby(self, by: Union[str, list], *args, **kwargs):
-        """
-        Returns a GroupBy object with MicroSeriesGroupBy objects for
-        each column
+        """Returns a GroupBy object with MicroSeriesGroupBy objects for each
+        column.
 
         :param by: column to group by
         :type by: Union[str, list]
@@ -777,8 +801,8 @@ class MicroDataFrame(pd.DataFrame):
 
     @get_args_as_micro_series()
     def poverty_rate(self, income: str, threshold: str) -> float:
-        """Calculate poverty rate, i.e., the population share with income
-        below their poverty threshold.
+        """Calculate poverty rate, i.e., the population share with income below
+        their poverty threshold.
 
         :param income: Column indicating income.
         :type income: str
@@ -839,8 +863,8 @@ class MicroDataFrame(pd.DataFrame):
     @get_args_as_micro_series()
     def squared_poverty_gap(self, income: str, threshold: str) -> float:
         """Calculate squared poverty gap, i.e., the total squared gap between
-        income and poverty thresholds for all people in poverty.
-        Also known as the poverty severity index.
+        income and poverty thresholds for all people in poverty. Also known as
+        the poverty severity index.
 
         :param income: Column indicating income.
         :type income: str
@@ -859,8 +883,7 @@ class MicroDataFrame(pd.DataFrame):
         income: Union[MicroSeries, str],
         threshold: Union[MicroSeries, str],
     ) -> int:
-        """
-        Calculates the number of entities with income below a poverty
+        """Calculates the number of entities with income below a poverty
         threshold.
 
         :param income: income array or column name
