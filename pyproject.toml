@@ -24,6 +24,8 @@ dev = [
     "flake8-pyproject",
     "black",
     "docformatter",
+    "isort",
+    "linecheck",
     "matplotlib",
     "pip",
     "pytest",
