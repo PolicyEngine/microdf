@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Max Ghenis", email = "max@ubicenter.org" }
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
     "numpy",
     "pandas",
