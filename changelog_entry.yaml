@@ -5,4 +5,4 @@
     - Create unified workflow files.
     - Fix documentation errors.
     - Ensure MicroSeries functions return MicroSeries objects.
-    - Fix unary operations to not require `other`.
+    - Fix unary operations to not require `other`. 
