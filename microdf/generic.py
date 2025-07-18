@@ -454,6 +454,10 @@ class MicroSeries(pd.Series):
     def __rxor__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__rxor__(other), weights=self.weights)
 
+    def sqrt(self) -> "MicroSeries":
+        sqrt_values = np.sqrt(self.values)
+        return MicroSeries(sqrt_values, index=self.index, weights=self.weights)
+
     # comparators
 
     def __lt__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
