@@ -12,3 +12,8 @@
     - Ensure MicroSeries functions return MicroSeries objects.
     - Fix unary operations to not require `other`.
   date: 2025-07-18 10:50:26
+- bump: patch
+  changes:
+    changed:
+    - Deleted visualization functionality.
+  date: 2025-07-18 12:53:43

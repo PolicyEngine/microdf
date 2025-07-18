@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [0.4.7] - 2025-07-18 12:53:43
+
+### Changed
+
+- Deleted visualization functionality.
+
 ## [0.4.6] - 2025-07-18 10:50:26
 
 ### Added
@@ -21,5 +27,6 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 
 
+[0.4.7]: https://github.com/PolicyEngine/microcalibrate/compare/0.4.6...0.4.7
 [0.4.6]: https://github.com/PolicyEngine/microcalibrate/compare/0.4.5...0.4.6
 
