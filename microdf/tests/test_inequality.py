@@ -1,9 +1,9 @@
-import microdf as mdf
-
 import pandas as pd
 
+import microdf as mdf
 
-def test_top_pct():
+
+def test_top_pct() -> None:
     x = list(range(1, 11))  # 1 to 10. Sum = 10 * 11 / 2 = 55.
     df = pd.DataFrame({"x": x})
     ms = mdf.MicroSeries(x)

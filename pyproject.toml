@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "microdf"
+version = "0.4.5"
+description = "Survey microdata as DataFrames"
+readme = "README.md"
+authors = [
+    { name = "Max Ghenis", email = "max@ubicenter.org" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pandas",
+]
+
+[project.optional-dependencies]
+dev = [
+    "codecov",
+    "flake8",
+    "flake8-pyproject",
+    "black",
+    "docformatter",
+    "isort",
+    "linecheck",
+    "matplotlib",
+    "pip",
+    "pytest",
+    "pytest-cov",
+    "seaborn",
+    "setuptools",
+]
+docs = [
+    "jupyter_book",
+]
+taxcalc = [
+    "taxcalc",
+]
+charts = [
+    "seaborn",
+    "matplotlib",
+    "matplotlib-label-lines",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["microdf*"]
+
+[tool.isort]
+profile = "black"
+line_length = 79
+
+[tool.black]
+line-length = 79
+target-version = ["py311"]
+
+[tool.flake8]
+max-line-length = 79
+extend-ignore = ["E203", "W503"]

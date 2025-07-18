@@ -1,3 +1,5 @@
+import pandas as pd
+
 import microdf as mdf
 
 # See
@@ -5,7 +7,7 @@ import microdf as mdf
 # for a comparison of income measures used here.
 
 
-def cash_income(df):
+def cash_income(df: pd.DataFrame) -> pd.Series:
     """Calculates income after taxes and cash transfers.
 
     Defined as aftertax_income minus non-cash benefits.
@@ -22,7 +24,6 @@ def cash_income(df):
             * vet_ben
             * wic_ben
     :returns: A pandas Series with the cash income for each row in df.
-
     """
     return (
         df.aftertax_income
@@ -38,27 +39,25 @@ def cash_income(df):
     )
 
 
-def tpc_eci(df):
+def tpc_eci(df: pd.DataFrame) -> pd.Series:
     """Approximates Tax Policy Center's Expanded Cash Income measure.
 
     Subtracts WIC, housing assistance, veteran's benefits, Medicare, and
-    Medicaid from expanded_income. ECI adds income measures not modeled in
-    Tax-Calculator, so these are ignored and will create a discrepancy
-    compared to TPC's ECI.
+    Medicaid from expanded_income. ECI adds income measures not modeled in Tax-
+    Calculator, so these are ignored and will create a discrepancy compared to
+    TPC's ECI.
 
     :param df: DataFrame with columns from Tax-Calculator.
     :returns: pandas Series with TPC's ECI.
-
     """
     return df.expanded_income - df[mdf.ECI_REMOVE_COLS].sum(axis=1)
 
 
-def market_income(df):
-    """Approximates CBO's market income concept, which is income
-        before social insurance, means-tested transfers, and taxes.
+def market_income(df: pd.DataFrame) -> pd.Series:
+    """Approximates CBO's market income concept, which is income before social
+    insurance, means-tested transfers, and taxes.
 
     :param df: DataFrame with expanded_income and benefits.
     :returns: pandas Series of the same length as df.
-
     """
     return df.expanded_income - df[mdf.BENS].sum(axis=1)

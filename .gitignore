@@ -13,3 +13,7 @@
 docs/_build
 
 .vscode/settings.json
+
+# Codecov coverage reports
+*.xml
+.coverage

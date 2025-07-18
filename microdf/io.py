@@ -1,14 +1,14 @@
 import io
 import zipfile
-import requests
+
 import pandas as pd
+import requests
 
 HEADER = {
-    "User-Agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) " +
-    "AppleWebKit/537.36 (KHTML, like Gecko) " +
-    "Chrome/50.0.2661.102 Safari/537.36"
-    }
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) "
+    + "AppleWebKit/537.36 (KHTML, like Gecko) "
+    + "Chrome/50.0.2661.102 Safari/537.36"
+}
 
 
 def read_stata_zip(url: str, **kwargs) -> pd.DataFrame:
@@ -19,11 +19,9 @@ def read_stata_zip(url: str, **kwargs) -> pd.DataFrame:
     Pending native support in
     https://github.com/pandas-dev/pandas/issues/26599.
 
-    :param url: URL string of .zip file containing a single
-            .dta file.
-    :param **kwargs: Arguments passed to pandas.read_stata().
+    :param url: URL string of .zip file containing a single .dta file. :param
+        **kwargs: Arguments passed to pandas.read_stata().
     :returns: DataFrame.
-
     """
     r = requests.get(url, headers=HEADER)
     data = io.BytesIO(r.content)

@@ -1,16 +1,17 @@
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 
 
-def mtr(val, brackets, rates):
-    """Calculates the marginal tax rate applied to a value depending on a
-    tax schedule.
+def mtr(val: pd.Series, brackets: pd.Series, rates: pd.Series) -> pd.Series:
+    """Calculates the marginal tax rate applied to a value depending on a tax
+    schedule.
 
     :param val: Value to assess tax on, e.g. wealth or income (list or Series).
     :param brackets: Left side of each bracket (list or Series).
     :param rates: Rate corresponding to each bracket.
     :returns: Series of the size of val representing the marginal tax rate.
-
     """
     df_tax = pd.DataFrame({"brackets": brackets, "rates": rates})
     df_tax["base_tax"] = (
@@ -24,30 +25,27 @@ def mtr(val, brackets, rates):
 
 
 def tax_from_mtrs(
-    val,
-    brackets,
-    rates,
-    avoidance_rate=0,
-    avoidance_elasticity=0,
-    avoidance_elasticity_flat=0,
-):
+    val: pd.Series,
+    brackets: pd.Series,
+    rates: pd.Series,
+    avoidance_rate: Optional[float] = 0,
+    avoidance_elasticity: Optional[float] = 0,
+    avoidance_elasticity_flat: Optional[float] = 0,
+) -> pd.Series:
     """Calculates tax liability based on a marginal tax rate schedule.
 
     :param val: Value to assess tax on, e.g. wealth or income (list or Series).
     :param brackets: Left side of each bracket (list or Series).
     :param rates: Rate corresponding to each bracket.
     :param avoidance_rate: Constant avoidance/evasion rate in percentage terms.
-                        Defaults to zero.
-    :param avoidance_elasticity: Avoidance/evasion elasticity.
-                              Response of log taxable value with respect
-                              to tax rate.
-                              Defaults to zero. Should be positive.
-    :param avoidance_elasticity_flat: Response of taxable value with respect
-                                   to tax rate.
-                                   Use avoidance_elasticity in most cases.
-                                   Defaults to zero. Should be positive.
+        Defaults to zero.
+    :param avoidance_elasticity: Avoidance/evasion elasticity. Response of log
+        taxable value with respect to tax rate. Defaults to zero. Should be
+        positive.
+    :param avoidance_elasticity_flat: Response of taxable value with respect to
+        tax rate. Use avoidance_elasticity in most cases. Defaults to zero.
+        Should be positive.
     :returns: Series of tax liabilities with the same size as val.
-
     """
     assert (
         avoidance_rate == 0

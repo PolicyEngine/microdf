@@ -6,8 +6,8 @@ import pytest
 from microdf._optional import VERSIONS, import_optional_dependency
 
 
-def test_import_optional():
-    """ """
+def test_import_optional() -> None:
+    """"""
     match = "Missing .*notapackage.* pip .* conda .* notapackage"
     with pytest.raises(ImportError, match=match):
         import_optional_dependency("notapackage")
@@ -16,14 +16,14 @@ def test_import_optional():
     assert result is None
 
 
-def test_xlrd_version_fallback():
-    """ """
+def test_xlrd_version_fallback() -> None:
+    """"""
     pytest.importorskip("xlrd")
     import_optional_dependency("xlrd")
 
 
-def test_bad_version():
-    """ """
+def test_bad_version() -> None:
+    """"""
     name = "fakemodule"
     module = types.ModuleType(name)
     module.__version__ = "0.9.0"
@@ -43,8 +43,8 @@ def test_bad_version():
     assert result is module
 
 
-def test_no_version_raises():
-    """ """
+def test_no_version_raises() -> None:
+    """"""
     name = "fakemodule"
     module = types.ModuleType(name)
     sys.modules[name] = module

@@ -1,9 +1,18 @@
 import numpy as np
+import pandas as pd
 
 import microdf as mdf
 
 
-def quantile_pct_chg_plot(df1, df2, col1, col2, w1=None, w2=None, q=None):
+def quantile_pct_chg_plot(
+    df1: pd.DataFrame,
+    df2: pd.DataFrame,
+    col1: str,
+    col2: str,
+    w1: str = None,
+    w2: str = None,
+    q: np.ndarray = None,
+):
     """Create stem plot with percent change in decile boundaries.
 
     :param df1: DataFrame with first set of values.
@@ -14,17 +23,16 @@ def quantile_pct_chg_plot(df1, df2, col1, col2, w1=None, w2=None, q=None):
     :param w2: Name of weight column in df2.
     :param q: Quantiles. Defaults to decile boundaries.
     :returns: Axis.
-
     """
     try:
-        import seaborn as sns
         import matplotlib as mpl
         import matplotlib.pyplot as plt
+        import seaborn as sns
     except ImportError:
         raise ImportError(
-            "The function you've called requires extra dependencies. " +
-            "Please install microdf with the 'charts' extra by running " +
-            "'pip install microdf[charts]'"
+            "The function you've called requires extra dependencies. "
+            + "Please install microdf with the 'charts' extra by running "
+            + "'pip install microdf[charts]'"
         )
 
     if q is None:
@@ -41,9 +49,7 @@ def quantile_pct_chg_plot(df1, df2, col1, col2, w1=None, w2=None, q=None):
     )
     # Plot.
     fig, ax = plt.subplots()
-    markerline, stemlines, baseline = ax.stem(
-        df.index_newline, df.pct_chg
-    )
+    markerline, stemlines, baseline = ax.stem(df.index_newline, df.pct_chg)
     plt.setp(baseline, color="gray", linewidth=0)
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
     ax.yaxis.set_major_formatter(mpl.ticker.PercentFormatter(xmax=100))

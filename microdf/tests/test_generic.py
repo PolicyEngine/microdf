@@ -1,10 +1,11 @@
-from microdf.generic import MicroDataFrame, MicroSeries
 import numpy as np
-import microdf as mdf
 import pandas as pd
 
+import microdf as mdf
+from microdf.generic import MicroDataFrame, MicroSeries
 
-def test_df_init():
+
+def test_df_init() -> None:
     arr = np.array([0, 1, 1])
     w = np.array([3, 0, 9])
     df = mdf.MicroDataFrame({"a": arr}, weights=w)
@@ -22,7 +23,7 @@ def test_df_init():
     assert df.a.mean() == np.average(arr, weights=w)
 
 
-def test_series_getitem():
+def test_series_getitem() -> None:
     arr = np.array([0, 1, 1])
     w = np.array([3, 0, 9])
     s = mdf.MicroSeries(arr, weights=w)
@@ -31,7 +32,7 @@ def test_series_getitem():
     assert s[1:3].sum() == np.sum(arr[1:3] * w[1:3])
 
 
-def test_sum():
+def test_sum() -> None:
     arr = np.array([0, 1, 1])
     w = np.array([3, 0, 9])
     series = mdf.MicroSeries(arr, weights=w)
@@ -54,7 +55,7 @@ def test_sum():
         pass
 
 
-def test_mean():
+def test_mean() -> None:
     arr = np.array([3, 0, 2])
     w = np.array([4, 1, 1])
     series = mdf.MicroSeries(arr, weights=w)
@@ -75,7 +76,7 @@ def test_mean():
         pass
 
 
-def test_poverty_count():
+def test_poverty_count() -> None:
     arr = np.array([10000, 20000, 50000])
     w = np.array([1123, 1144, 2211])
     df = MicroDataFrame(weights=w)
@@ -84,7 +85,7 @@ def test_poverty_count():
     assert df.poverty_count("income", "threshold") == w[0]
 
 
-def test_median():
+def test_median() -> None:
     # 1, 2, 3, 4, *4*, 4, 5, 5, 5
     arr = np.array([1, 2, 3, 4, 5])
     w = np.array([1, 1, 1, 3, 3])
@@ -92,17 +93,17 @@ def test_median():
     assert series.median() == 4
 
 
-def test_unweighted_groupby():
+def test_unweighted_groupby() -> None:
     df = mdf.MicroDataFrame({"x": [1, 2], "y": [3, 4], "z": [5, 6]})
     assert (df.groupby("x").z.sum().values == np.array([5.0, 6.0])).all()
 
 
-def test_multiple_groupby():
+def test_multiple_groupby() -> None:
     df = mdf.MicroDataFrame({"x": [1, 2], "y": [3, 4], "z": [5, 6]})
     assert (df.groupby(["x", "y"]).z.sum() == np.array([5, 6])).all()
 
 
-def test_concat():
+def test_concat() -> None:
     df1 = mdf.MicroDataFrame({"x": [1, 2]}, weights=[3, 4])
     df2 = mdf.MicroDataFrame({"y": [5, 6]}, weights=[7, 8])
     # Verify that pd.concat returns DataFrame (probably no way to fix this).
@@ -120,19 +121,19 @@ def test_concat():
     assert mdf_wide.weights.equals(df1.weights)
 
 
-def test_set_index():
+def test_set_index() -> None:
     d = mdf.MicroDataFrame(dict(x=[1, 2, 3]), weights=[4, 5, 6])
     assert d.x.__class__ == MicroSeries
     d.index = [1, 2, 3]
     assert d.x.__class__ == MicroSeries
 
 
-def test_reset_index():
+def test_reset_index() -> None:
     d = mdf.MicroDataFrame(dict(x=[1, 2, 3]), weights=[4, 5, 6])
     assert d.reset_index().__class__ == MicroDataFrame
 
 
-def test_cumsum():
+def test_cumsum() -> None:
     s = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
     assert np.array_equal(s.cumsum().values, [4, 14, 32])
 
@@ -143,7 +144,7 @@ def test_cumsum():
     assert np.array_equal(s.cumsum().values, [18, 22, 32])
 
 
-def test_rank():
+def test_rank() -> None:
     s = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
     assert np.array_equal(s.rank().values, [4, 9, 15])
 
@@ -154,22 +155,22 @@ def test_rank():
     assert np.array_equal(s.rank().values, [9, 4, 15])
 
 
-def test_percentile_rank():
+def test_percentile_rank() -> None:
     s = mdf.MicroSeries([4, 2, 3, 1], weights=[20, 40, 20, 20])
     assert np.array_equal(s.percentile_rank().values, [100, 60, 80, 20])
 
 
-def test_quartile_rank():
+def test_quartile_rank() -> None:
     s = mdf.MicroSeries([4, 2, 3], weights=[25, 50, 25])
     assert np.array_equal(s.quartile_rank().values, [4, 2, 3])
 
 
-def test_quintile_rank():
+def test_quintile_rank() -> None:
     s = mdf.MicroSeries([4, 2, 3], weights=[20, 60, 20])
     assert np.array_equal(s.quintile_rank().values, [5, 3, 4])
 
 
-def test_decile_rank_rank():
+def test_decile_rank_rank() -> None:
     s = mdf.MicroSeries(
         [5, 4, 3, 2, 1, 6, 7, 8, 9],
         weights=[10, 20, 10, 10, 10, 10, 10, 10, 10, 10],
@@ -177,7 +178,7 @@ def test_decile_rank_rank():
     assert np.array_equal(s.decile_rank().values, [6, 5, 3, 2, 1, 7, 8, 9, 10])
 
 
-def test_copy_equals():
+def test_copy_equals() -> None:
     d = mdf.MicroDataFrame(
         {"x": [1, 2], "y": [3, 4], "z": [5, 6]}, weights=[7, 8]
     )
@@ -191,7 +192,7 @@ def test_copy_equals():
     assert not d.x.equals(d_copy_diff_weights.x)
 
 
-def test_subset():
+def test_subset() -> None:
     df = mdf.MicroDataFrame(
         {"x": [1, 2], "y": [3, 4], "z": [5, 6]}, weights=[7, 8]
     )
@@ -202,13 +203,13 @@ def test_subset():
     assert not df[["x", "y"]].equals(df_no_z_diff_weights)
 
 
-def test_value_subset():
+def test_value_subset() -> None:
     d = mdf.MicroDataFrame({"x": [1, 2, 3], "y": [1, 2, 2]}, weights=[4, 5, 6])
     d2 = d[d.y > 1]
     assert d2.y.shape == d2.weights.shape
 
 
-def test_bitwise_ops_return_microseries():
+def test_bitwise_ops_return_microseries() -> None:
     s1 = mdf.MicroSeries([True, False, True], weights=[1, 2, 3])
     s2 = mdf.MicroSeries([False, False, True], weights=[1, 2, 3])
     and_result = s1 & s2
@@ -221,7 +222,7 @@ def test_bitwise_ops_return_microseries():
     assert or_result.equals(expected_or)
 
 
-def test_additional_ops_return_microseries():
+def test_additional_ops_return_microseries() -> None:
     s = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
     radd = 1 + s
     xor = s ^ mdf.MicroSeries([0, 1, 0], weights=[4, 5, 6])

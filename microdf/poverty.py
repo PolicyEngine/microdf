@@ -2,15 +2,14 @@ import numpy as np
 import pandas as pd
 
 
-def fpl(people: int):
+def fpl(people: int) -> float:
     """Calculates the federal poverty guideline for a household of a certain
-       size.
+    size.
 
     :param XTOT: The number of people in the household.
-    :param people: returns: The federal poverty guideline for the contiguous
-      48 states.
+    :param people: returns: The federal poverty guideline for the contiguous 48
+        states.
     :returns: The federal poverty guideline for the contiguous 48 states.
-
     """
     return 7820 + 4320 * people
 
@@ -18,8 +17,8 @@ def fpl(people: int):
 def poverty_rate(
     df: pd.DataFrame, income: str, threshold: str, w: str = None
 ) -> float:
-    """Calculate poverty rate, i.e., the population share with income
-       below their poverty threshold.
+    """Calculate poverty rate, i.e., the population share with income below
+    their poverty threshold.
 
     :param df: DataFrame with income, threshold, and possibly weight columns
         for each person/household.
@@ -43,7 +42,7 @@ def deep_poverty_rate(
     df: pd.DataFrame, income: str, threshold: str, w: str = None
 ) -> float:
     """Calculate deep poverty rate, i.e., the population share with income
-       below half their poverty threshold.
+    below half their poverty threshold.
 
     :param df: DataFrame with income, threshold, and possibly weight columns
         for each person/household.
@@ -67,7 +66,7 @@ def poverty_gap(
     df: pd.DataFrame, income: str, threshold: str, w: str = None
 ) -> float:
     """Calculate poverty gap, i.e., the total gap between income and poverty
-       thresholds for all people in poverty.
+    thresholds for all people in poverty.
 
     :param df: DataFrame with income, threshold, and possibly weight columns
         for each household (data should represent households, not persons).
@@ -91,8 +90,8 @@ def squared_poverty_gap(
     df: pd.DataFrame, income: str, threshold: str, w: str = None
 ) -> float:
     """Calculate squared poverty gap, i.e., the total squared gap between
-       income and poverty thresholds for all people in poverty.
-       Also known as poverty severity index.
+    income and poverty thresholds for all people in poverty. Also known as
+    poverty severity index.
 
     :param df: DataFrame with income, threshold, and possibly weight columns
         for each household (data should represent households, not persons).
@@ -117,7 +116,7 @@ def deep_poverty_gap(
     df: pd.DataFrame, income: str, threshold: str, w: str = None
 ) -> float:
     """Calculate deep poverty gap, i.e., the total gap between income and
-       halved poverty thresholds for all people in deep poverty.
+    halved poverty thresholds for all people in deep poverty.
 
     :param df: DataFrame with income, threshold, and possibly weight columns
         for each household (data should represent households, not persons).

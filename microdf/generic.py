@@ -1,15 +1,19 @@
-from typing import Callable, Union
-from functools import wraps
-import warnings
 import copy
+import logging
+import warnings
+from functools import wraps
+from typing import Callable, List, Optional, Union
+
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 class MicroSeries(pd.Series):
     def __init__(self, *args, weights: np.array = None, **kwargs):
-        """A Series-inheriting class for weighted microdata.
-        Weights can be provided at initialisation, or using set_weights.
+        """A Series-inheriting class for weighted microdata. Weights can be
+        provided at initialisation, or using set_weights.
 
         :param weights: Array of weights.
         :type weights: np.array
@@ -76,7 +80,7 @@ class MicroSeries(pd.Series):
 
     @scalar_function
     def mean(self) -> float:
-        """Calculates the weighted mean of the MicroSeries
+        """Calculates the weighted mean of the MicroSeries.
 
         :returns: The weighted mean.
         :rtype: float
@@ -121,7 +125,7 @@ class MicroSeries(pd.Series):
         return self.quantile(0.5)
 
     @scalar_function
-    def gini(self, negatives: str = None) -> float:
+    def gini(self, negatives: Optional[str] = None) -> float:
         """Calculates Gini index.
 
         :param negatives: An optional string indicating how to treat negative
@@ -172,7 +176,7 @@ class MicroSeries(pd.Series):
         return top_x_pct_sum / total_sum
 
     @scalar_function
-    def bottom_x_pct_share(self, bottom_x_pct) -> float:
+    def bottom_x_pct_share(self, bottom_x_pct: float) -> float:
         """Calculates bottom x% share.
 
         :param bottom_x_pct: Decimal between 0 and 1 of the top %, e.g. 0.1,
@@ -232,9 +236,8 @@ class MicroSeries(pd.Series):
     def t10_b50(self) -> float:
         """Calculates ratio between the top 10% and bottom 50% shares.
 
-        :returns: The weighted share held by the top 10% divided by
-            the weighted share held by the bottom 50%.
-
+        :returns: The weighted share held by the top 10% divided by the
+            weighted share held by the bottom 50%.
         """
         t10 = self.top_10_pct_share()
         b50 = self.bottom_50_pct_share()
@@ -242,181 +245,274 @@ class MicroSeries(pd.Series):
 
     @vector_function
     def cumsum(self) -> pd.Series:
+        logger.warning(
+            "cumsum() returns cumulative sums of weighted values as a regular "
+            "pandas Series. The original weights have already been applied "
+            "and cannot be reused with the cumulative results."
+        )
         return pd.Series(self * self.weights).cumsum()
 
     @vector_function
-    def rank(self, pct=False) -> pd.Series:
+    def rank(self, pct: Optional[bool] = False) -> pd.Series:
+        weights_sum = self.weights.values.sum()
+        if weights_sum == 0:
+            raise ZeroDivisionError(
+                "Cannot calculate rank with zero total weight. "
+                "All weights in the MicroSeries are zero, which would result "
+                "in division by zero."
+            )
+
         order = np.argsort(self.values)
         inverse_order = np.argsort(order)
         ranks = np.array(self.weights.values)[order].cumsum()[inverse_order]
         if pct:
-            ranks /= self.weights.values.sum()
-            np.where(ranks > 1.0, 1.0, ranks)
-        return pd.Series(ranks, index=self.index)
+            ranks /= weights_sum
+            ranks = np.where(ranks > 1.0, 1.0, ranks)
+        return MicroSeries(ranks, index=self.index, weights=self.weights)
 
     @vector_function
-    def decile_rank(self):
-        return MicroSeries(np.minimum(np.ceil(self.rank(pct=True) * 10), 10))
+    def decile_rank(self, negatives_in_zero: Optional[bool] = False):
+        """Calculate decile ranks (1-10) with optional zero decile for
+        negatives.
+
+        :param negatives_in_zero: If True, negative values are assigned to
+            decile 0. If False (default), all values are ranked 1-10.
+        :type negatives_in_zero: bool
+        :returns: MicroSeries with decile ranks
+        :rtype: MicroSeries
+        """
+        if negatives_in_zero:
+            negative_mask = self < 0
+            if negative_mask.any():
+                non_negative_values = self[~negative_mask]
+                if len(non_negative_values) > 0:
+                    non_neg_ranks = non_negative_values.rank(pct=True)
+                    deciles = np.minimum(np.ceil(non_neg_ranks * 10), 10)
+                else:
+                    deciles = np.array([])
+
+                result = np.zeros(len(self))
+                result[negative_mask] = 0
+                if len(deciles) > 0:
+                    result[~negative_mask] = deciles
+
+                return MicroSeries(result, weights=self.weights)
+
+        # Default behavior: rank all values 1-10
+        return MicroSeries(
+            np.minimum(np.ceil(self.rank(pct=True) * 10), 10),
+            weights=self.weights,
+        )
 
     @vector_function
-    def quintile_rank(self):
-        return MicroSeries(np.minimum(np.ceil(self.rank(pct=True) * 5), 5))
+    def quintile_rank(self) -> "MicroSeries":
+        return MicroSeries(
+            np.minimum(np.ceil(self.rank(pct=True) * 5), 5),
+            weights=self.weights,
+        )
 
     @vector_function
-    def quartile_rank(self):
-        return MicroSeries(np.minimum(np.ceil(self.rank(pct=True) * 4), 4))
+    def quartile_rank(self) -> "MicroSeries":
+        return MicroSeries(
+            np.minimum(np.ceil(self.rank(pct=True) * 4), 4),
+            weights=self.weights,
+        )
 
     @vector_function
-    def percentile_rank(self):
-        return MicroSeries(np.minimum(np.ceil(self.rank(pct=True) * 100), 100))
+    def percentile_rank(self) -> "MicroSeries":
+        return MicroSeries(
+            np.minimum(np.ceil(self.rank(pct=True) * 100), 100),
+            weights=self.weights,
+        )
 
-    def groupby(self, *args, **kwargs):
+    def groupby(self, *args, **kwargs) -> "MicroSeriesGroupBy":
         gb = super().groupby(*args, **kwargs)
         gb.__class__ = MicroSeriesGroupBy
         gb._init()
         gb.weights = pd.Series(self.weights).groupby(*args, **kwargs)
         return gb
 
-    def copy(self, deep=True):
+    def copy(self, deep: Optional[bool] = True):
         res = super().copy(deep)
         res = MicroSeries(res, weights=self.weights.copy(deep))
         return res
 
-    def equals(self, other) -> bool:
+    def clip(
+        self,
+        lower: Optional[float] = None,
+        upper: Optional[float] = None,
+        axis: Optional[int] = None,
+        inplace: Optional[bool] = False,
+        *args,
+        **kwargs,
+    ) -> "MicroSeries":
+        res = super().clip(
+            lower=lower,
+            upper=upper,
+            axis=axis,
+            inplace=inplace,
+            *args,
+            **kwargs,
+        )
+        if not inplace:
+            return MicroSeries(res, weights=self.weights)
+        return self
+
+    def round(
+        self, decimals: Optional[int] = 0, *args, **kwargs
+    ) -> "MicroSeries":
+        res = super().round(decimals=decimals, *args, **kwargs)
+        return MicroSeries(res, weights=self.weights)
+
+    def equals(self, other: "MicroSeries") -> bool:
         equal_values = super().equals(other)
         equal_weights = self.weights.equals(other.weights)
         return equal_values and equal_weights
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self, key: Union[str, int, slice, List, np.ndarray]
+    ) -> Union["MicroSeries", pd.Series]:
         result = super().__getitem__(key)
         if isinstance(result, pd.Series):
             weights = self.weights.__getitem__(key)
             return MicroSeries(result, weights=weights)
         return result
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> "MicroSeries":
         return MicroSeries(super().__getattr__(name), weights=self.weights)
 
     # operators
 
-    def __add__(self, other):
+    def __add__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__add__(other), weights=self.weights)
 
-    def __sub__(self, other):
+    def __sub__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__sub__(other), weights=self.weights)
 
-    def __mul__(self, other):
+    def __mul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__mul__(other), weights=self.weights)
 
-    def __floordiv__(self, other):
+    def __floordiv__(
+        self, other: Union[int, float, pd.Series]
+    ) -> "MicroSeries":
         return MicroSeries(super().__floordiv__(other), weights=self.weights)
 
-    def __truediv__(self, other):
+    def __truediv__(
+        self, other: Union[int, float, pd.Series]
+    ) -> "MicroSeries":
         return MicroSeries(super().__truediv__(other), weights=self.weights)
 
-    def __mod__(self, other):
+    def __mod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__mod__(other), weights=self.weights)
 
-    def __pow__(self, other):
+    def __pow__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__pow__(other), weights=self.weights)
 
-    def __xor__(self, other):
+    def __xor__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__xor__(other), weights=self.weights)
 
-    def __and__(self, other):
+    def __and__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__and__(other), weights=self.weights)
 
-    def __or__(self, other):
+    def __or__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__or__(other), weights=self.weights)
 
-    def __invert__(self):
+    def __invert__(self) -> "MicroSeries":
         return MicroSeries(super().__invert__(), weights=self.weights)
 
-    def __radd__(self, other):
+    def __radd__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__radd__(other), weights=self.weights)
 
-    def __rsub__(self, other):
+    def __rsub__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__rsub__(other), weights=self.weights)
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__rmul__(other), weights=self.weights)
 
-    def __rfloordiv__(self, other):
+    def __rfloordiv__(
+        self, other: Union[int, float, pd.Series]
+    ) -> "MicroSeries":
         return MicroSeries(super().__rfloordiv__(other), weights=self.weights)
 
-    def __rtruediv__(self, other):
+    def __rtruediv__(
+        self, other: Union[int, float, pd.Series]
+    ) -> "MicroSeries":
         return MicroSeries(super().__rtruediv__(other), weights=self.weights)
 
-    def __rmod__(self, other):
+    def __rmod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__rmod__(other), weights=self.weights)
 
-    def __rpow__(self, other):
+    def __rpow__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__rpow__(other), weights=self.weights)
 
-    def __rand__(self, other):
+    def __rand__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__rand__(other), weights=self.weights)
 
-    def __ror__(self, other):
+    def __ror__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__ror__(other), weights=self.weights)
 
-    def __rxor__(self, other):
+    def __rxor__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__rxor__(other), weights=self.weights)
 
     # comparators
 
-    def __lt__(self, other):
+    def __lt__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__lt__(other), weights=self.weights)
 
-    def __le__(self, other):
+    def __le__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__le__(other), weights=self.weights)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__eq__(other), weights=self.weights)
 
-    def __ne__(self, other):
+    def __ne__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__ne__(other), weights=self.weights)
 
-    def __ge__(self, other):
+    def __ge__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__ge__(other), weights=self.weights)
 
-    def __gt__(self, other):
+    def __gt__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__gt__(other), weights=self.weights)
 
     # assignment operators
 
-    def __iadd__(self, other):
+    def __iadd__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__iadd__(other), weights=self.weights)
 
-    def __isub__(self, other):
+    def __isub__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__isub__(other), weights=self.weights)
 
-    def __imul__(self, other):
+    def __imul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__imul__(other), weights=self.weights)
 
-    def __ifloordiv__(self, other):
+    def __ifloordiv__(
+        self, other: Union[int, float, pd.Series]
+    ) -> "MicroSeries":
         return MicroSeries(super().__ifloordiv__(other), weights=self.weights)
 
-    def __idiv__(self, other):
+    def __idiv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__idiv__(other), weights=self.weights)
 
-    def __itruediv__(self, other):
+    def __itruediv__(
+        self, other: Union[int, float, pd.Series]
+    ) -> "MicroSeries":
         return MicroSeries(super().__itruediv__(other), weights=self.weights)
 
-    def __imod__(self, other):
+    def __imod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__imod__(other), weights=self.weights)
 
-    def __ipow__(self, other):
+    def __ipow__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__ipow__(other), weights=self.weights)
 
     # other
 
-    def __neg__(self, other):
-        return MicroSeries(super().__neg__(other), weights=self.weights)
+    def __neg__(self) -> "MicroSeries":
+        return MicroSeries(super().__neg__(), weights=self.weights)
 
-    def __pos__(self, other):
-        return MicroSeries(super().__pos__(other), weights=self.weights)
+    def __pos__(self) -> "MicroSeries":
+        return MicroSeries(super().__pos__(), weights=self.weights)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return pd.DataFrame(
             dict(value=self.values, weight=self.weights.values)
         ).__repr__()
@@ -456,7 +552,9 @@ class MicroSeriesGroupBy(pd.core.groupby.generic.SeriesGroupBy):
             fn = getattr(MicroSeries, name)
 
             @wraps(fn)
-            def _weighted_agg_fn(*args, **kwargs):
+            def _weighted_agg_fn(
+                *args, **kwargs
+            ) -> Union[pd.Series, pd.DataFrame]:
                 arrays = self.apply(np.array)
                 weights = self.weights.apply(np.array)
                 df = pd.DataFrame(dict(a=arrays, w=weights))
@@ -489,7 +587,7 @@ class MicroSeriesGroupBy(pd.core.groupby.generic.SeriesGroupBy):
 
 
 class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
-    def _init(self, by: Union[str, list]):
+    def _init(self, by: Union[str, List]):
         self.columns = list(self.obj.columns)
         if isinstance(by, list):
             for column in by:
@@ -515,8 +613,8 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
             setattr(self, fn_name, get_fn(fn_name))
         for fn_name in MicroSeries.VECTOR_FUNCTIONS:
 
-            def get_fn(name):
-                def fn(*args, **kwargs):
+            def get_fn(name) -> Callable:
+                def fn(*args, **kwargs) -> Union[pd.Series, pd.DataFrame]:
                     return MicroDataFrame(
                         {
                             col: getattr(getattr(self, col), name)(
@@ -533,9 +631,8 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
 
 class MicroDataFrame(pd.DataFrame):
     def __init__(self, *args, weights=None, **kwargs):
-        """A DataFrame-inheriting class for weighted microdata.
-        Weights can be provided at initialisation, or using set_weights or
-        set_weight_col.
+        """A DataFrame-inheriting class for weighted microdata. Weights can be
+        provided at initialisation, or using set_weights or set_weight_col.
 
         :param weights: Array of weights.
         :type weights: np.array
@@ -546,11 +643,11 @@ class MicroDataFrame(pd.DataFrame):
         self._link_all_weights()
         self.override_df_functions()
 
-    def override_df_functions(self):
+    def override_df_functions(self) -> None:
         for name in MicroSeries.FUNCTIONS:
 
-            def get_fn(name):
-                def fn(*args, **kwargs):
+            def get_fn(name) -> Callable:
+                def fn(*args, **kwargs) -> Union[pd.Series, pd.DataFrame]:
                     is_array = len(args) > 0 and hasattr(args[0], "__len__")
                     if (
                         name in MicroSeries.SCALAR_FUNCTIONS
@@ -584,17 +681,19 @@ class MicroDataFrame(pd.DataFrame):
             setattr(self, name, get_fn(name))
 
     def get_args_as_micro_series(*kwarg_names: tuple) -> Callable:
-        """Decorator for auto-parsing column names into MicroSeries objects.
-        If given, kwarg_names limits arguments checked to keyword arguments
+        """Decorator for auto-parsing column names into MicroSeries objects. If
+        given, kwarg_names limits arguments checked to keyword arguments
         specified.
 
         :param arg_names: argument names to restrict to.
         :type arg_names: str
         """
 
-        def arg_series_decorator(fn):
+        def arg_series_decorator(fn) -> Callable:
             @wraps(fn)
-            def series_function(self, *args, **kwargs):
+            def series_function(
+                self, *args, **kwargs
+            ) -> Union[pd.Series, pd.DataFrame]:
                 new_args = []
                 new_kwargs = {}
                 if len(kwarg_names) == 0:
@@ -620,26 +719,26 @@ class MicroDataFrame(pd.DataFrame):
 
         return arg_series_decorator
 
-    def __setitem__(self, *args, **kwargs):
+    def __setitem__(self, *args, **kwargs) -> None:
         super().__setitem__(*args, **kwargs)
         self._link_all_weights()
 
-    def _link_weights(self, column):
+    def _link_weights(self, column) -> None:
         # self[column] = ... triggers __setitem__, which forces pd.Series
         # this workaround avoids that
         self[column].__class__ = MicroSeries
         self[column].set_weights(self.weights)
 
-    def _link_all_weights(self):
+    def _link_all_weights(self) -> None:
         if self.weights is None:
             self.set_weights(np.ones((len(self))))
         for column in self.columns:
             if column != self.weights_col:
                 self._link_weights(column)
 
-    def set_weights(self, weights) -> None:
-        """Sets the weights for the MicroDataFrame. If a string is received,
-        it will be assumed to be the column name of the weight column.
+    def set_weights(self, weights: np.ndarray) -> None:
+        """Sets the weights for the MicroDataFrame. If a string is received, it
+        will be assumed to be the column name of the weight column.
 
         :param weights: Array of weights.
         :type weights: np.array
@@ -665,7 +764,9 @@ class MicroDataFrame(pd.DataFrame):
         self.weight_col = column
         self._link_all_weights()
 
-    def __getitem__(self, key):
+    def __getitem__(
+        self, key: Union[str, List]
+    ) -> Union[pd.Series, pd.DataFrame]:
         result = super().__getitem__(key)
         if isinstance(result, pd.DataFrame):
             try:
@@ -675,21 +776,21 @@ class MicroDataFrame(pd.DataFrame):
             return MicroDataFrame(result, weights=weights)
         return result
 
-    def catch_series_relapse(self):
+    def catch_series_relapse(self) -> None:
         for col in self.columns:
             if self[col].__class__ == pd.Series:
                 self._link_weights(col)
 
-    def __setattr__(self, key, value):
+    def __setattr__(self, key, value) -> None:
         super().__setattr__(key, value)
         self.catch_series_relapse()
 
-    def reset_index(self):
+    def reset_index(self) -> "MicroDataFrame":
         res = super().reset_index()
         res = MicroDataFrame(res, weights=self.weights)
         return res
 
-    def copy(self, deep=True):
+    def copy(self, deep: Optional[bool] = True) -> "MicroDataFrame":
         res = super().copy(deep)
         # This changes the original columns to Series. Undo it:
         for col in self.columns:
@@ -697,19 +798,20 @@ class MicroDataFrame(pd.DataFrame):
         res = MicroDataFrame(res, weights=self.weights.copy(deep))
         return res
 
-    def equals(self, other) -> bool:
+    def equals(self, other: "MicroDataFrame") -> bool:
         equal_values = super().equals(other)
         equal_weights = self.weights.equals(other.weights)
         return equal_values and equal_weights
 
     @get_args_as_micro_series()
-    def groupby(self, by: Union[str, list], *args, **kwargs):
-        """
-        Returns a GroupBy object with MicroSeriesGroupBy objects for
-        each column
+    def groupby(
+        self, by: Union[str, List], *args, **kwargs
+    ) -> "MicroDataFrameGroupBy":
+        """Returns a GroupBy object with MicroSeriesGroupBy objects for each
+        column.
 
         :param by: column to group by
-        :type by: Union[str, list]
+        :type by: Union[str, List]
 
         return: DataFrameGroupBy object with columns using weights
         rtype: DataFrameGroupBy
@@ -729,8 +831,8 @@ class MicroDataFrame(pd.DataFrame):
 
     @get_args_as_micro_series()
     def poverty_rate(self, income: str, threshold: str) -> float:
-        """Calculate poverty rate, i.e., the population share with income
-        below their poverty threshold.
+        """Calculate poverty rate, i.e., the population share with income below
+        their poverty threshold.
 
         :param income: Column indicating income.
         :type income: str
@@ -791,8 +893,8 @@ class MicroDataFrame(pd.DataFrame):
     @get_args_as_micro_series()
     def squared_poverty_gap(self, income: str, threshold: str) -> float:
         """Calculate squared poverty gap, i.e., the total squared gap between
-        income and poverty thresholds for all people in poverty.
-        Also known as the poverty severity index.
+        income and poverty thresholds for all people in poverty. Also known as
+        the poverty severity index.
 
         :param income: Column indicating income.
         :type income: str
@@ -802,7 +904,7 @@ class MicroDataFrame(pd.DataFrame):
         :rtype: float
         """
         gaps = (threshold - income)[threshold > income]
-        squared_gaps = gaps ** 2
+        squared_gaps = gaps**2
         return squared_gaps.sum()
 
     @get_args_as_micro_series()
@@ -811,8 +913,7 @@ class MicroDataFrame(pd.DataFrame):
         income: Union[MicroSeries, str],
         threshold: Union[MicroSeries, str],
     ) -> int:
-        """
-        Calculates the number of entities with income below a poverty
+        """Calculates the number of entities with income below a poverty
         threshold.
 
         :param income: income array or column name
@@ -827,7 +928,7 @@ class MicroDataFrame(pd.DataFrame):
         in_poverty = income < threshold
         return in_poverty.sum()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         df = pd.DataFrame(self)
         df["weight"] = self.weights
         return df[[df.columns[-1]] + list(df.columns[:-1])].__repr__()

@@ -1,5 +1,5 @@
 from .agg import agg, combine_base_reform, pctchg_base_reform
-from .chart_utils import dollar_format, currency_format
+from .chart_utils import currency_format, dollar_format
 from .charts import quantile_pct_chg_plot
 from .concat import concat
 from .constants import (
@@ -25,6 +25,7 @@ from .custom_taxes import (
     add_ftt,
     add_vat,
 )
+from .generic import MicroDataFrame, MicroSeries
 from .income_measures import cash_income, market_income, tpc_eci
 from .inequality import (
     bottom_50_pct_share,
@@ -32,19 +33,19 @@ from .inequality import (
     gini,
     t10_b50,
     top_0_1_pct_share,
-    top_10_pct_share,
     top_1_pct_share,
+    top_10_pct_share,
     top_50_pct_share,
     top_x_pct_share,
 )
 from .io import read_stata_zip
 from .poverty import (
-    fpl,
-    poverty_rate,
-    deep_poverty_rate,
-    poverty_gap,
-    squared_poverty_gap,
     deep_poverty_gap,
+    deep_poverty_rate,
+    fpl,
+    poverty_gap,
+    poverty_rate,
+    squared_poverty_gap,
 )
 from .style import AXIS_COLOR, DPI, GRID_COLOR, TITLE_COLOR, set_plot_style
 from .tax import mtr, tax_from_mtrs
@@ -72,7 +73,6 @@ from .weighted import (
     weighted_quantile,
     weighted_sum,
 )
-from .generic import MicroDataFrame, MicroSeries
 
 name = "microdf"
 __version__ = "0.1.0"

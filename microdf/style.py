@@ -4,7 +4,7 @@ GRID_COLOR = "#eeeeee"  # Previously lighter #f5f5f5.
 DPI = 200
 
 
-def set_plot_style(dpi: int = DPI):
+def set_plot_style(dpi: int = DPI) -> None:
     """Set plot style.
 
     :param dpi: DPI for saving and displaying figures, defaults to microdf.DPI
@@ -12,14 +12,14 @@ def set_plot_style(dpi: int = DPI):
     :type dpi: int, optional
     """
     try:
-        import seaborn as sns
         import matplotlib as mpl
         import matplotlib.font_manager as fm
+        import seaborn as sns
     except ImportError:
         raise ImportError(
-            "The function you've called requires extra dependencies. " +
-            "Please install microdf with the 'charts' extra by running " +
-            "'pip install microdf[charts]'"
+            "The function you've called requires extra dependencies. "
+            + "Please install microdf with the 'charts' extra by running "
+            + "'pip install microdf[charts]'"
         )
 
     sns.set_style("white")

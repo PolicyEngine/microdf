@@ -1,39 +1,48 @@
+import warnings
+from typing import List, Optional, Union
+
 import numpy as np
 import pandas as pd
-import warnings
 
 import microdf as mdf
 
 
-def weight(df, col, w=None):
+def weight(
+    df: pd.DataFrame, col: Union[str, List[str]], w: Optional[str] = None
+) -> pd.Series:
     """Calculates the weighted value of a column in a DataFrame.
 
     :param df: A pandas DataFrame.
-    :param col: A string indicating the column in the DataFrame to weight.
-        Can also be a list of column strings.
+    :param col: A string indicating the column in the DataFrame to weight. Can
+        also be a list of column strings.
     :param w: Weight column.
     :returns: A pandas Series multiplying the column by its weight.
-
     """
     if w is None:
         return df[col]
     return df[col].multiply(df[w], axis="index")
 
 
-def weighted_sum(df, col, w=None, groupby=None):
+def weighted_sum(
+    df: pd.DataFrame,
+    col: Union[str, List[str]],
+    w: Optional[str] = None,
+    groupby: Optional[str] = None,
+) -> pd.Series:
     """Calculates the weighted sum of a column in a DataFrame.
 
     :param df: A pandas DataFrame.
-    :param col: A string indicating the column in the DataFrame.
-        Can also be a list of column strings.
+    :param col: A string indicating the column in the DataFrame. Can also be a
+        list of column strings.
     :param w: Weight column.
     :param groupby: Groupby column.
     :returns: The weighted sum of a DataFrame's column.
-
     """
 
-    def _weighted_sum(df, col, w):
-        """ For weighted sum with provided weight. """
+    def _weighted_sum(
+        df: pd.DataFrame, col: Union[str, List[str]], w: Optional[str]
+    ) -> float:
+        """For weighted sum with provided weight."""
         return weight(df, col, w).sum()
 
     if groupby is None:
@@ -46,20 +55,26 @@ def weighted_sum(df, col, w=None, groupby=None):
     return df.groupby(groupby).apply(lambda x: _weighted_sum(x, col, w))
 
 
-def weighted_mean(df, col, w=None, groupby=None):
+def weighted_mean(
+    df: pd.DataFrame,
+    col: Union[str, List[str]],
+    w: Optional[str] = None,
+    groupby: Optional[str] = None,
+) -> pd.Series:
     """Calculates the weighted mean of a column in a DataFrame.
 
     :param df: A pandas DataFrame.
-    :param col: A string indicating the column in the DataFrame.
-        Can also be a list of column strings.
+    :param col: A string indicating the column in the DataFrame. Can also be a
+        list of column strings.
     :param w: Weight column.
     :param groupby: Groupby column.
     :returns: The weighted mean of a DataFrame's column.
-
     """
 
-    def _weighted_mean(df, col, w=None):
-        """ For weighted mean with provided weight. """
+    def _weighted_mean(
+        df: pd.DataFrame, col: Union[str, List[str]], w: Optional[str]
+    ) -> float:
+        """For weighted mean with provided weight."""
         return weighted_sum(df, col, w) / df[w].sum()
 
     if groupby is None:
@@ -72,7 +87,9 @@ def weighted_mean(df, col, w=None, groupby=None):
     return df.groupby(groupby).apply(lambda x: _weighted_mean(x, col, w))
 
 
-def weighted_quantile(df: pd.DataFrame, col: str, w: str, quantiles: np.array):
+def weighted_quantile(
+    df: pd.DataFrame, col: str, w: str, quantiles: np.array
+) -> np.array:
     """Calculates weighted quantiles of a set of values.
 
     Doesn't exactly match unweighted quantiles of stacked values.
@@ -107,18 +124,24 @@ def weighted_quantile(df: pd.DataFrame, col: str, w: str, quantiles: np.array):
     return np.interp(quantiles, weighted_quantiles, values)
 
 
-def weighted_median(df, col, w=None, groupby=None):
+def weighted_median(
+    df: pd.DataFrame,
+    col: Union[str, List[str]],
+    w: Optional[str] = None,
+    groupby: Optional[str] = None,
+) -> pd.Series:
     """Calculates the weighted median of a column in a DataFrame.
 
     :param df: A pandas DataFrame containing Tax-Calculator data.
     :param col: A string indicating the column in the DataFrame.
     :param w: Weight column.
     :returns: The weighted median of a DataFrame's column.
-
     """
 
-    def _weighted_median(df, col, w):
-        """ For weighted median with provided weight. """
+    def _weighted_median(
+        df: pd.DataFrame, col: Union[str, List[str]], w: Optional[str]
+    ) -> float:
+        """For weighted median with provided weight."""
         return weighted_quantile(df, col, w, 0.5)
 
     if groupby is None:
@@ -131,10 +154,11 @@ def weighted_median(df, col, w=None, groupby=None):
     return df.groupby(groupby).apply(lambda x: _weighted_median(x, col, w))
 
 
-def add_weighted_quantiles(df, col, w):
-    """Adds weighted quantiles of a column to a DataFrame.
-    This will be deprecated in the next minor release. Please use
-    MicroSeries.rank instead.
+def add_weighted_quantiles(
+    df: pd.DataFrame, col: Union[str, List[str]], w: Optional[str] = None
+) -> None:
+    """Adds weighted quantiles of a column to a DataFrame. This will be
+    deprecated in the next minor release. Please use MicroSeries.rank instead.
 
     Adds columns for each of these types of quantiles to a DataFrame:
     * *_percentile_exact: Exact percentile.
@@ -174,7 +198,15 @@ def add_weighted_quantiles(df, col, w):
     df[col + "_quartile"] = np.ceil(df[col_pctile] / 25).astype(int)
 
 
-def quantile_chg(df1, df2, col1, col2, w1=None, w2=None, q=None):
+def quantile_chg(
+    df1: pd.DataFrame,
+    df2: pd.DataFrame,
+    col1: str,
+    col2: str,
+    w1: Optional[str] = None,
+    w2: Optional[str] = None,
+    q: Optional[np.ndarray] = None,
+) -> pd.DataFrame:
     """Create table with two sets of quantiles.
 
     :param df1: DataFrame with first set of values.
@@ -184,10 +216,8 @@ def quantile_chg(df1, df2, col1, col2, w1=None, w2=None, q=None):
     :param w1: Name of weight column in df1.
     :param w2: Name of weight column in df2.
     :param q: Quantiles. Defaults to decile boundaries.
-    :returns: DataFrame with two rows and a column for each quantile.
-        Column labels are "xth percentile" and a label is added
-        to the median.
-
+    :returns: DataFrame with two rows and a column for each quantile. Column
+        labels are "xth percentile" and a label is added to the median.
     """
     if q is None:
         q = np.arange(0.1, 1, 0.1)

@@ -1,12 +1,15 @@
-import pandas as pd
 import inspect
+
+import pandas as pd
+
 import microdf as mdf
+from microdf.generic import MicroDataFrame
 
 
-def concat(*args, **kwargs):
-    """Concatenates MicroDataFrame objects, preserving weights.
-    If concatenating horizontally, the first set of weights are used.
-    All args and kwargs are passed to pd.concat.
+def concat(*args, **kwargs) -> "MicroDataFrame":
+    """Concatenates MicroDataFrame objects, preserving weights. If
+    concatenating horizontally, the first set of weights are used. All args and
+    kwargs are passed to pd.concat.
 
     :return: MicroDataFrame with concatenated weights.
     :rtype: mdf.MicroDataFrame

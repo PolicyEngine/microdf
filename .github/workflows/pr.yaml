@@ -1,0 +1,86 @@
+name: Pull request
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - name: Install dependencies
+        run: |
+          uv pip install -e ".[dev]" --system
+      - name: Lint
+        run: make lint
+
+  test:
+    name: Test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - name: Install dependencies
+        run: |
+          uv pip install -e ".[dev,taxcalc]" --system
+      - name: Run tests with coverage
+        run: make test
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+          verbose: true
+
+  build-docs:
+    name: Test documentation build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - name: Install dependencies
+        run: |
+          uv pip install -e ".[dev,docs,taxcalc]" --system
+      - name: Build Jupyter Book
+        run: |
+          jb build docs/.
+      - name: Check documentation build
+        run: |
+          for notebook in $(find docs/_build/jupyter_execute -name "*.ipynb"); do
+            if grep -q '"output_type": "error"' "$notebook"; then
+              echo "Error found in $notebook"
+              cat "$notebook"
+              exit 1
+            fi
+          done
