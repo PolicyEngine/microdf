@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Deleted visualization functionality.
