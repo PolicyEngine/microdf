@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 
 import microdf as mdf
-from microdf.microdataframe import MicroDataFrame, MicroDataFrameGroupBy
-from microdf.microseries import MicroSeries, MicroSeriesGroupBy
+from microdf.microdataframe import MicroDataFrame
+from microdf.microseries import MicroSeries
 
 
 def test_df_init() -> None:
