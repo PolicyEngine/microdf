@@ -512,6 +512,27 @@ class MicroSeries(pd.Series):
     def __pos__(self) -> "MicroSeries":
         return MicroSeries(super().__pos__(), weights=self.weights)
 
+    def astype(
+        self,
+        dtype,
+        copy: Optional[bool] = True,
+        errors: Optional[str] = "raise",
+    ) -> "MicroSeries":
+        """Convert MicroSeries to specified data type while preserving weights.
+
+        :param dtype: Data type to convert to. Can be numpy dtype or Python
+            type.
+        :param copy: Whether to make a copy of the data (default True).
+        :param errors: How to handle conversion errors (default "raise").
+        :return: New MicroSeries with converted data type and preserved
+            weights.
+        """
+        converted_series = super().astype(dtype, copy=copy, errors=errors)
+        return MicroSeries(
+            converted_series,
+            weights=self.weights.copy() if copy else self.weights,
+        )
+
     def __repr__(self) -> str:
         return pd.DataFrame(
             dict(value=self.values, weight=self.weights.values)
@@ -927,6 +948,27 @@ class MicroDataFrame(pd.DataFrame):
         """
         in_poverty = income < threshold
         return in_poverty.sum()
+
+    def astype(
+        self,
+        dtype,
+        copy: Optional[bool] = True,
+        errors: Optional[str] = "raise",
+    ) -> "MicroDataFrame":
+        """Convert MicroDataFrame to specified data type while preserving
+        weights.
+
+        :param dtype: Data type to convert to. Can be numpy dtype, Python type,
+            or dict.
+        :param copy: Whether to make a copy of the data (default True).
+        :param errors: How to handle conversion errors (default "raise").
+        :return: New MicroDataFrame with converted data types and preserved
+            weights.
+        """
+        converted_df = super().astype(dtype, copy=copy, errors=errors)
+        return MicroDataFrame(
+            converted_df, weights=self.weights.copy() if copy else self.weights
+        )
 
     def __repr__(self) -> str:
         df = pd.DataFrame(self)
