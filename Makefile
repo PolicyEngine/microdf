@@ -17,7 +17,7 @@ test:
 	pytest -q --cov=microdf --cov-report=xml
 
 install:
-	pip install -e .
+	pip install -e ".[dev]"
 
 changelog:
 	build-changelog changelog.yaml --output changelog.yaml --update-last-date --start-from 0.4.5 --append-file changelog_entry.yaml
