@@ -3,7 +3,7 @@ import inspect
 import pandas as pd
 
 import microdf as mdf
-from microdf.generic import MicroDataFrame
+from microdf.microdataframe import MicroDataFrame
 
 
 def concat(*args, **kwargs) -> "MicroDataFrame":

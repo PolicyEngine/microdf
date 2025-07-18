@@ -3,3 +3,4 @@
     added:
     - Add astype and sqrt methods to MicroSeries and MicroDataFrame.
     - Support in-place reset_index.
+    - Split generic.py into microdataframe.py and microseries.py.
