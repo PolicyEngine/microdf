@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Optional
 
 import pandas as pd
 import taxcalc
