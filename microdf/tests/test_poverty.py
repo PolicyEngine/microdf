@@ -13,7 +13,7 @@ df = pd.DataFrame(
 md = mdf.MicroDataFrame(df[["income", "threshold"]], weights=df.weight)
 
 
-def test_poverty_rate():
+def test_poverty_rate() -> None:
     # Unweighted
     assert np.allclose(mdf.poverty_rate(df, "income", "threshold"), 3 / 4)
     # Weighted
@@ -23,7 +23,7 @@ def test_poverty_rate():
     assert np.allclose(md.poverty_rate("income", "threshold"), 6 / 10)
 
 
-def test_deep_poverty_rate():
+def test_deep_poverty_rate() -> None:
     # Unweighted
     assert np.allclose(mdf.deep_poverty_rate(df, "income", "threshold"), 2 / 4)
     # Weighted
@@ -33,7 +33,7 @@ def test_deep_poverty_rate():
     assert np.allclose(md.deep_poverty_rate("income", "threshold"), 3 / 10)
 
 
-def test_poverty_gap():
+def test_poverty_gap() -> None:
     # Unweighted
     assert np.allclose(mdf.poverty_gap(df, "income", "threshold"), 25 + 10 + 5)
     # Weighted
@@ -44,7 +44,7 @@ def test_poverty_gap():
     assert np.allclose(md.poverty_gap("income", "threshold"), RES)
 
 
-def test_squared_poverty_gap():
+def test_squared_poverty_gap() -> None:
     # Unweighted
     assert np.allclose(
         mdf.squared_poverty_gap(df, "income", "threshold"),
@@ -59,7 +59,7 @@ def test_squared_poverty_gap():
     assert np.allclose(md.squared_poverty_gap("income", "threshold"), RES)
 
 
-def test_deep_poverty_gap():
+def test_deep_poverty_gap() -> None:
     # Unweighted
     assert np.allclose(
         mdf.deep_poverty_gap(df, "income", "threshold"), 17.5 + 5 + 0 + 0

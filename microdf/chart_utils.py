@@ -1,4 +1,9 @@
-def dollar_format(suffix=""):
+from typing import Optional
+
+from matplotlib.ticker import FuncFormatter
+
+
+def dollar_format(suffix: Optional[str] = "") -> "FuncFormatter":
     """Dollar formatter for matplotlib.
 
     :param suffix: Suffix to append, e.g. 'B'. Defaults to ''.
@@ -7,7 +12,9 @@ def dollar_format(suffix=""):
     return currency_format(currency="USD", suffix=suffix)
 
 
-def currency_format(currency="USD", suffix=""):
+def currency_format(
+    currency: Optional[str] = "USD", suffix: Optional[str] = ""
+) -> "FuncFormatter":
     """Currency formatter for matplotlib.
 
     :param currency: Name of the currency, e.g. 'USD', 'GBP'.

@@ -5,7 +5,7 @@ import pytest
 import microdf as mdf
 
 
-def test_tax():
+def test_tax() -> None:
     """"""
     # Consider a MTR schedule of 0% up to 10,000, then 10% after that.
     BRACKETS = [0, 10e3]

@@ -1,3 +1,5 @@
+import pandas as pd
+
 import microdf as mdf
 
 # See
@@ -5,7 +7,7 @@ import microdf as mdf
 # for a comparison of income measures used here.
 
 
-def cash_income(df):
+def cash_income(df: pd.DataFrame) -> pd.Series:
     """Calculates income after taxes and cash transfers.
 
     Defined as aftertax_income minus non-cash benefits.
@@ -37,7 +39,7 @@ def cash_income(df):
     )
 
 
-def tpc_eci(df):
+def tpc_eci(df: pd.DataFrame) -> pd.Series:
     """Approximates Tax Policy Center's Expanded Cash Income measure.
 
     Subtracts WIC, housing assistance, veteran's benefits, Medicare, and
@@ -51,7 +53,7 @@ def tpc_eci(df):
     return df.expanded_income - df[mdf.ECI_REMOVE_COLS].sum(axis=1)
 
 
-def market_income(df):
+def market_income(df: pd.DataFrame) -> pd.Series:
     """Approximates CBO's market income concept, which is income before social
     insurance, means-tested transfers, and taxes.
 

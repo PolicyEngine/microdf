@@ -1,4 +1,5 @@
 import warnings
+from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -6,7 +7,9 @@ import pandas as pd
 import microdf as mdf
 
 
-def weight(df, col, w=None):
+def weight(
+    df: pd.DataFrame, col: Union[str, List[str]], w: Optional[str] = None
+) -> pd.Series:
     """Calculates the weighted value of a column in a DataFrame.
 
     :param df: A pandas DataFrame.
@@ -20,7 +23,12 @@ def weight(df, col, w=None):
     return df[col].multiply(df[w], axis="index")
 
 
-def weighted_sum(df, col, w=None, groupby=None):
+def weighted_sum(
+    df: pd.DataFrame,
+    col: Union[str, List[str]],
+    w: Optional[str] = None,
+    groupby: Optional[str] = None,
+) -> pd.Series:
     """Calculates the weighted sum of a column in a DataFrame.
 
     :param df: A pandas DataFrame.
@@ -31,7 +39,9 @@ def weighted_sum(df, col, w=None, groupby=None):
     :returns: The weighted sum of a DataFrame's column.
     """
 
-    def _weighted_sum(df, col, w):
+    def _weighted_sum(
+        df: pd.DataFrame, col: Union[str, List[str]], w: Optional[str]
+    ) -> float:
         """For weighted sum with provided weight."""
         return weight(df, col, w).sum()
 
@@ -45,7 +55,12 @@ def weighted_sum(df, col, w=None, groupby=None):
     return df.groupby(groupby).apply(lambda x: _weighted_sum(x, col, w))
 
 
-def weighted_mean(df, col, w=None, groupby=None):
+def weighted_mean(
+    df: pd.DataFrame,
+    col: Union[str, List[str]],
+    w: Optional[str] = None,
+    groupby: Optional[str] = None,
+) -> pd.Series:
     """Calculates the weighted mean of a column in a DataFrame.
 
     :param df: A pandas DataFrame.
@@ -56,7 +71,9 @@ def weighted_mean(df, col, w=None, groupby=None):
     :returns: The weighted mean of a DataFrame's column.
     """
 
-    def _weighted_mean(df, col, w=None):
+    def _weighted_mean(
+        df: pd.DataFrame, col: Union[str, List[str]], w: Optional[str]
+    ) -> float:
         """For weighted mean with provided weight."""
         return weighted_sum(df, col, w) / df[w].sum()
 
@@ -70,7 +87,9 @@ def weighted_mean(df, col, w=None, groupby=None):
     return df.groupby(groupby).apply(lambda x: _weighted_mean(x, col, w))
 
 
-def weighted_quantile(df: pd.DataFrame, col: str, w: str, quantiles: np.array):
+def weighted_quantile(
+    df: pd.DataFrame, col: str, w: str, quantiles: np.array
+) -> np.array:
     """Calculates weighted quantiles of a set of values.
 
     Doesn't exactly match unweighted quantiles of stacked values.
@@ -105,7 +124,12 @@ def weighted_quantile(df: pd.DataFrame, col: str, w: str, quantiles: np.array):
     return np.interp(quantiles, weighted_quantiles, values)
 
 
-def weighted_median(df, col, w=None, groupby=None):
+def weighted_median(
+    df: pd.DataFrame,
+    col: Union[str, List[str]],
+    w: Optional[str] = None,
+    groupby: Optional[str] = None,
+) -> pd.Series:
     """Calculates the weighted median of a column in a DataFrame.
 
     :param df: A pandas DataFrame containing Tax-Calculator data.
@@ -114,7 +138,9 @@ def weighted_median(df, col, w=None, groupby=None):
     :returns: The weighted median of a DataFrame's column.
     """
 
-    def _weighted_median(df, col, w):
+    def _weighted_median(
+        df: pd.DataFrame, col: Union[str, List[str]], w: Optional[str]
+    ) -> float:
         """For weighted median with provided weight."""
         return weighted_quantile(df, col, w, 0.5)
 
@@ -128,7 +154,9 @@ def weighted_median(df, col, w=None, groupby=None):
     return df.groupby(groupby).apply(lambda x: _weighted_median(x, col, w))
 
 
-def add_weighted_quantiles(df, col, w):
+def add_weighted_quantiles(
+    df: pd.DataFrame, col: Union[str, List[str]], w: Optional[str] = None
+) -> None:
     """Adds weighted quantiles of a column to a DataFrame. This will be
     deprecated in the next minor release. Please use MicroSeries.rank instead.
 
@@ -170,7 +198,15 @@ def add_weighted_quantiles(df, col, w):
     df[col + "_quartile"] = np.ceil(df[col_pctile] / 25).astype(int)
 
 
-def quantile_chg(df1, df2, col1, col2, w1=None, w2=None, q=None):
+def quantile_chg(
+    df1: pd.DataFrame,
+    df2: pd.DataFrame,
+    col1: str,
+    col2: str,
+    w1: Optional[str] = None,
+    w2: Optional[str] = None,
+    q: Optional[np.ndarray] = None,
+) -> pd.DataFrame:
     """Create table with two sets of quantiles.
 
     :param df1: DataFrame with first set of values.

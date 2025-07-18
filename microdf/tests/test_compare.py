@@ -6,7 +6,12 @@ import pandas as pd
 import microdf as mdf
 
 
-def differences(actual, expected, f_actual, f_expected):
+def differences(
+    actual: pd.DataFrame,
+    expected: pd.DataFrame,
+    f_actual: str,
+    f_expected: str,
+) -> None:
     """Check for differences between results in afilename and efilename files.
 
     :param actual: Actual DataFrame.
@@ -25,7 +30,7 @@ def differences(actual, expected, f_actual, f_expected):
         raise ValueError(msg.format(f_actual, f_actual, f_expected))
 
 
-def test_percentile_agg_compare(tests_path):
+def test_percentile_agg_compare(tests_path: str) -> None:
     """
     :param tests_path: Folder path to write test results.
     """

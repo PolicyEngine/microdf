@@ -1,7 +1,7 @@
 import microdf as mdf
 
 
-def test_read_stata_zip():
+def test_read_stata_zip() -> None:
     """"""
     SCF2016 = "https://www.federalreserve.gov/econres/files/scfp2016s.zip"
     COLS = ["wgt", "networth"]

@@ -4,7 +4,7 @@ GRID_COLOR = "#eeeeee"  # Previously lighter #f5f5f5.
 DPI = 200
 
 
-def set_plot_style(dpi: int = DPI):
+def set_plot_style(dpi: int = DPI) -> None:
     """Set plot style.
 
     :param dpi: DPI for saving and displaying figures, defaults to microdf.DPI

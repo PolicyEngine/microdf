@@ -1,9 +1,10 @@
 import collections
+from typing import Dict, List, Optional, Union
 
 import pandas as pd
 
 
-def ordinal_label(n):
+def ordinal_label(n: int) -> str:
     """Creates ordinal label from number.
 
     Adapted from https://stackoverflow.com/a/20007730/1840471.
@@ -16,7 +17,7 @@ def ordinal_label(n):
     return "%d%s" % (n, "tsnrhtdd"[ix::4])
 
 
-def dedup_list(lst):
+def dedup_list(lst: List) -> List:
     """Remove duplicate items from a list.
 
     :param lst: List.
@@ -25,7 +26,9 @@ def dedup_list(lst):
     return list(set(lst))
 
 
-def listify(x, dedup=True):
+def listify(
+    x: Union[str, List[str]], dedup: Optional[bool] = True
+) -> List[str]:
     """Return x as a list, if it isn't one already.
 
     :param x: A single item or a list
@@ -42,7 +45,7 @@ def listify(x, dedup=True):
     return res
 
 
-def flatten(lst):
+def flatten(lst: List) -> None:
     """Flatten list. From https://stackoverflow.com/a/2158532/1840471.
 
     :param lst: List.
@@ -58,7 +61,7 @@ def flatten(lst):
             yield el
 
 
-def cartesian_product(d):
+def cartesian_product(d: Dict) -> pd.DataFrame:
     """Produces a DataFrame as a Cartesian product of dictionary keys and
     values.
 

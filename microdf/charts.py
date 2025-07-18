@@ -1,9 +1,18 @@
 import numpy as np
+import pandas as pd
 
 import microdf as mdf
 
 
-def quantile_pct_chg_plot(df1, df2, col1, col2, w1=None, w2=None, q=None):
+def quantile_pct_chg_plot(
+    df1: pd.DataFrame,
+    df2: pd.DataFrame,
+    col1: str,
+    col2: str,
+    w1: str = None,
+    w2: str = None,
+    q: np.ndarray = None,
+):
     """Create stem plot with percent change in decile boundaries.
 
     :param df1: DataFrame with first set of values.

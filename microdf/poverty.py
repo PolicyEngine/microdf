@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-def fpl(people: int):
+def fpl(people: int) -> float:
     """Calculates the federal poverty guideline for a household of a certain
     size.
 

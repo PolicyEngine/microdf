@@ -18,19 +18,19 @@ dfg["g"] = ["a"] * 3 + ["b"] * 3
 mdg = mdf.MicroDataFrame(dfg[["x", "y", "g"]], weights=W)
 
 
-def test_weighted_quantile():
+def test_weighted_quantile() -> None:
     Q = [0, 0.5, 1]
     mdf.weighted_quantile(df, "x", "w", Q).tolist()
 
 
-def test_weighted_median():
+def test_weighted_median() -> None:
     assert mdf.weighted_median(df, "x") == 2
     mdf.weighted_median(df, "x", "w")
     # Test with groups.
     mdf.weighted_median(dfg, "x", "w", "g")
 
 
-def test_weighted_mean():
+def test_weighted_mean() -> None:
     # Test umweighted.
     assert mdf.weighted_mean(df, "x") == 8 / 3
     # Test weighted.
@@ -42,7 +42,7 @@ def test_weighted_mean():
     mdf.weighted_mean(dfg, ["x", "y"], "w", "g")
 
 
-def test_weighted_sum():
+def test_weighted_sum() -> None:
     # Test unweighted.
     assert mdf.weighted_sum(df, "x") == 8
     # Test weighted.
@@ -54,7 +54,7 @@ def test_weighted_sum():
     mdf.weighted_sum(dfg, ["x", "y"], "w", "g")
 
 
-def test_gini():
+def test_gini() -> None:
     # Test nothing breaks.
     ms.gini()
     # Unweighted.
@@ -69,6 +69,6 @@ def test_gini():
     assert ms.gini() == mdf.gini(df, "x", "w")
 
 
-def test_add_weighted_quantiles():
+def test_add_weighted_quantiles() -> None:
     with pytest.deprecated_call():
         mdf.add_weighted_quantiles(df, "x", "w")

@@ -3,7 +3,7 @@ import pandas as pd
 import microdf as mdf
 
 
-def test_cartesian_product():
+def test_cartesian_product() -> None:
     """"""
     res = mdf.cartesian_product(
         {"a": [1, 2, 3], "b": ["val1", "val2"], "c": [100, 101]}
@@ -31,7 +31,7 @@ def test_cartesian_product():
     pd.testing.assert_frame_equal(res, EXPECTED)
 
 
-def test_flatten():
+def test_flatten() -> None:
     """"""
     L = [[[1, 2, 3], [4, 5]], 6]
     res = list(mdf.flatten(L))

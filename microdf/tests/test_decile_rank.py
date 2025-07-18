@@ -5,7 +5,7 @@ import numpy as np
 from microdf import MicroSeries
 
 
-def test_decile_rank():
+def test_decile_rank() -> None:
     """Test the enhanced decile_rank method with assert statements."""
     print("Running enhanced decile_rank tests...")
 

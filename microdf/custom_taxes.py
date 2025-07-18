@@ -3,6 +3,8 @@
 Examples include value added tax, financial transaction tax, and carbon tax.
 """
 
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 
@@ -34,16 +36,16 @@ FTT_INCIDENCE /= 100
 
 
 def add_custom_tax(
-    df,
-    segment_income,
-    w,
-    base_income,
-    incidence,
-    name,
-    total=None,
-    ratio=None,
-    verbose=True,
-):
+    df: pd.DataFrame,
+    segment_income: str,
+    w: str,
+    base_income: str,
+    incidence: pd.Series,
+    name: str,
+    total: Optional[float] = None,
+    ratio: Optional[float] = None,
+    verbose: Optional[bool] = True,
+) -> None:
     """Add a custom tax based on incidence analysis driven by percentiles.
 
     :param df: DataFrame.
@@ -93,14 +95,14 @@ def add_custom_tax(
 
 
 def add_vat(
-    df,
-    segment_income="tpc_eci",
-    w="XTOT_m",
-    base_income="aftertax_income",
-    incidence=VAT_INCIDENCE,
-    name="vat",
+    df: pd.DataFrame,
+    segment_income: Optional[str] = "tpc_eci",
+    w: Optional[str] = "XTOT_m",
+    base_income: Optional[str] = "aftertax_income",
+    incidence: Optional[pd.Series] = VAT_INCIDENCE,
+    name: Optional[str] = "vat",
     **kwargs,
-):
+) -> None:
     """Add value added tax based on incidence estimate from Tax Policy Center.
 
     :param df: DataFrame with columns for tpc_eci, XTOT_m, and aftertax_income.
@@ -119,14 +121,14 @@ def add_vat(
 
 
 def add_carbon_tax(
-    df,
-    segment_income="tpc_eci",
-    w="XTOT_m",
-    base_income="aftertax_income",
-    incidence=CARBON_TAX_INCIDENCE,
-    name="carbon_tax",
+    df: pd.DataFrame,
+    segment_income: Optional[str] = "tpc_eci",
+    w: Optional[str] = "XTOT_m",
+    base_income: Optional[str] = "aftertax_income",
+    incidence: Optional[pd.Series] = CARBON_TAX_INCIDENCE,
+    name: Optional[str] = "carbon_tax",
     **kwargs,
-):
+) -> None:
     """Add carbon tax based on incidence estimate from the US Treasury
     Department.
 
@@ -146,14 +148,14 @@ def add_carbon_tax(
 
 
 def add_ftt(
-    df,
-    segment_income="tpc_eci",
-    w="XTOT_m",
-    base_income="aftertax_income",
-    incidence=FTT_INCIDENCE,
-    name="ftt",
+    df: pd.DataFrame,
+    segment_income: Optional[str] = "tpc_eci",
+    w: Optional[str] = "XTOT_m",
+    base_income: Optional[str] = "aftertax_income",
+    incidence: Optional[pd.Series] = FTT_INCIDENCE,
+    name: Optional[str] = "ftt",
     **kwargs,
-):
+) -> None:
     """Add financial transaction tax based on incidence estimate from Tax
     Policy Center.
 

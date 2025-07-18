@@ -2,6 +2,7 @@ import distutils.version
 import importlib
 import types
 import warnings
+from typing import Optional, Union
 
 # Adapted from:
 # https://github.com/pandas-dev/pandas/blob/master/pandas/compat/_optional.py
@@ -30,10 +31,10 @@ def _get_version(module: types.ModuleType) -> str:
 
 def import_optional_dependency(
     name: str,
-    extra: str = "",
-    raise_on_missing: bool = True,
-    on_version: str = "raise",
-):
+    extra: Optional[str] = "",
+    raise_on_missing: Optional[bool] = True,
+    on_version: Optional[str] = "raise",
+) -> Union[types.ModuleType, None]:
     """Import an optional dependency. By default, if a dependency is missing an
     ImportError with a nice message will be raised. If a dependency is present,
     but too old, we raise.

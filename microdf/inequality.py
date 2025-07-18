@@ -1,9 +1,18 @@
+from typing import List, Optional, Union
+
 import numpy as np
+import pandas as pd
 
 import microdf as mdf
 
 
-def gini(df, col, w=None, negatives=None, groupby=None):
+def gini(
+    df: pd.DataFrame,
+    col: str,
+    w: Optional[str] = None,
+    negatives: Optional[str] = None,
+    groupby: Optional[Union[str, List[str]]] = None,
+) -> float:
     """Calculates Gini index.
 
     :param df: DataFrame.
@@ -20,7 +29,12 @@ def gini(df, col, w=None, negatives=None, groupby=None):
     :returns: A float, the Gini index.
     """
 
-    def _gini(df, col, w=None, negatives=None):
+    def _gini(
+        df: pd.DataFrame,
+        col: str,
+        w: Optional[str] = None,
+        negatives: Optional[str] = None,
+    ) -> float:
         # Requires float numpy arrays (not pandas Series or lists) to work.
         x = np.array(df[col]).astype("float")
         if negatives == "zero":
@@ -49,7 +63,13 @@ def gini(df, col, w=None, negatives=None, groupby=None):
     return df.groupby(groupby).apply(lambda x: _gini(x, col, w, negatives))
 
 
-def top_x_pct_share(df, col, top_x_pct, w=None, groupby=None):
+def top_x_pct_share(
+    df: pd.DataFrame,
+    col: str,
+    top_x_pct: float,
+    w: Optional[str] = None,
+    groupby: Optional[Union[str, List[str]]] = None,
+) -> float:
     """Calculates top x% share.
 
     :param df: DataFrame.
@@ -60,7 +80,9 @@ def top_x_pct_share(df, col, top_x_pct, w=None, groupby=None):
     :returns: The share of w-weighted val held by the top x%.
     """
 
-    def _top_x_pct_share(df, col, top_x_pct, w=None):
+    def _top_x_pct_share(
+        df: pd.DataFrame, col: str, top_x_pct: float, w: Optional[str] = None
+    ) -> float:
         threshold = mdf.weighted_quantile(df, col, w, 1 - top_x_pct)
         top_x_pct_sum = mdf.weighted_sum(df[df[col] >= threshold], col, w)
         total_sum = mdf.weighted_sum(df, col, w)
@@ -73,7 +95,13 @@ def top_x_pct_share(df, col, top_x_pct, w=None, groupby=None):
     )
 
 
-def bottom_x_pct_share(df, col, bottom_x_pct, w=None, groupby=None):
+def bottom_x_pct_share(
+    df: pd.DataFrame,
+    col: str,
+    bottom_x_pct: float,
+    w: Optional[str] = None,
+    groupby: Optional[Union[str, List[str]]] = None,
+) -> float:
     """Calculates bottom x% share.
 
     :param df: DataFrame.
@@ -86,7 +114,12 @@ def bottom_x_pct_share(df, col, bottom_x_pct, w=None, groupby=None):
     return 1 - top_x_pct_share(df, col, 1 - bottom_x_pct, w, groupby)
 
 
-def bottom_50_pct_share(df, col, w=None, groupby=None):
+def bottom_50_pct_share(
+    df: pd.DataFrame,
+    col: str,
+    w: Optional[str] = None,
+    groupby: Optional[Union[str, List[str]]] = None,
+) -> float:
     """Calculates bottom 50% share.
 
     :param df: DataFrame.
@@ -98,7 +131,12 @@ def bottom_50_pct_share(df, col, w=None, groupby=None):
     return bottom_x_pct_share(df, col, 0.5, w, groupby)
 
 
-def top_50_pct_share(df, col, w=None, groupby=None):
+def top_50_pct_share(
+    df: pd.DataFrame,
+    col: str,
+    w: Optional[str] = None,
+    groupby: Optional[Union[str, List[str]]] = None,
+) -> float:
     """Calculates top 50% share.
 
     :param df: DataFrame.
@@ -110,7 +148,12 @@ def top_50_pct_share(df, col, w=None, groupby=None):
     return top_x_pct_share(df, col, 0.5, w, groupby)
 
 
-def top_10_pct_share(df, col, w=None, groupby=None):
+def top_10_pct_share(
+    df: pd.DataFrame,
+    col: str,
+    w: Optional[str] = None,
+    groupby: Optional[Union[str, List[str]]] = None,
+) -> float:
     """Calculates top 10% share.
 
     :param df: DataFrame.
@@ -122,7 +165,12 @@ def top_10_pct_share(df, col, w=None, groupby=None):
     return top_x_pct_share(df, col, 0.1, w, groupby)
 
 
-def top_1_pct_share(df, col, w=None, groupby=None):
+def top_1_pct_share(
+    df: pd.DataFrame,
+    col: str,
+    w: Optional[str] = None,
+    groupby: Optional[Union[str, List[str]]] = None,
+) -> float:
     """Calculates top 1% share.
 
     :param df: DataFrame.
@@ -134,7 +182,12 @@ def top_1_pct_share(df, col, w=None, groupby=None):
     return top_x_pct_share(df, col, 0.01, w, groupby)
 
 
-def top_0_1_pct_share(df, col, w=None, groupby=None):
+def top_0_1_pct_share(
+    df: pd.DataFrame,
+    col: str,
+    w: Optional[str] = None,
+    groupby: Optional[Union[str, List[str]]] = None,
+) -> float:
     """Calculates top 0.1% share.
 
     :param df: DataFrame.
@@ -146,7 +199,12 @@ def top_0_1_pct_share(df, col, w=None, groupby=None):
     return top_x_pct_share(df, col, 0.001, w, groupby)
 
 
-def t10_b50(df, col, w=None, groupby=None):
+def t10_b50(
+    df: pd.DataFrame,
+    col: str,
+    w: Optional[str] = None,
+    groupby: Optional[Union[str, List[str]]] = None,
+) -> float:
     """Calculates ratio between the top 10% and bottom 50% shares.
 
     :param df: DataFrame.

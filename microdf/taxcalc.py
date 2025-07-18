@@ -1,8 +1,15 @@
+from typing import List, Optional, Union
+
+import pandas as pd
+import taxcalc
+
 import microdf as mdf
 from microdf._optional import import_optional_dependency
 
 
-def static_baseline_calc(recs, year):
+def static_baseline_calc(
+    recs: pd.DataFrame, year: int
+) -> "taxcalc.Calculator":
     """Creates a static Calculator object.
 
     :param recs: Records object.
@@ -16,7 +23,13 @@ def static_baseline_calc(recs, year):
     return calc
 
 
-def add_weighted_metrics(df, metric_vars, w="s006", divisor=1e6, suffix="_m"):
+def add_weighted_metrics(
+    df: pd.DataFrame,
+    metric_vars: list,
+    w: str = "s006",
+    divisor: float = 1e6,
+    suffix: str = "_m",
+) -> None:
     """Adds weighted metrics in millions to a Tax-Calculator pandas DataFrame.
 
     Columns are renamed to *_m.
@@ -36,7 +49,9 @@ def add_weighted_metrics(df, metric_vars, w="s006", divisor=1e6, suffix="_m"):
         df[metric_var + suffix] = df[metric_var] * df[w + suffix]
 
 
-def n65(age_head, age_spouse, elderly_dependents):
+def n65(
+    age_head: pd.Series, age_spouse: pd.Series, elderly_dependents: pd.Series
+) -> pd.Series:
     """Calculates number of people in the tax unit age 65 or older.
 
     :param age_head: Series representing age_head from taxcalc data.
@@ -53,14 +68,14 @@ def n65(age_head, age_spouse, elderly_dependents):
 
 
 def calc_df(
-    records=None,
-    policy=None,
-    year=2020,
-    reform=None,
-    group_vars=None,
-    metric_vars=None,
-    group_n65=False,
-):
+    records: Optional[pd.DataFrame] = None,
+    policy: Optional[taxcalc.Policy] = None,
+    year: int = 2020,
+    reform: Optional[dict] = None,
+    group_vars: Optional[list] = None,
+    metric_vars: Optional[list] = None,
+    group_n65: Optional[bool] = False,
+) -> pd.DataFrame:
     """Creates a pandas DataFrame for given Tax-Calculator data.
 
     s006 is always included, and RECID is used as an index.
@@ -131,7 +146,7 @@ def calc_df(
     return df.set_index("RECID")
 
 
-def recalculate(df):
+def recalculate(df: pd.DataFrame) -> None:
     """Recalculates fields in the DataFrame for after components have changed.
 
     :param df: DataFrame for use in microdf.

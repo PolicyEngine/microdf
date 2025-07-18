@@ -1,8 +1,10 @@
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 
 
-def mtr(val, brackets, rates):
+def mtr(val: pd.Series, brackets: pd.Series, rates: pd.Series) -> pd.Series:
     """Calculates the marginal tax rate applied to a value depending on a tax
     schedule.
 
@@ -23,13 +25,13 @@ def mtr(val, brackets, rates):
 
 
 def tax_from_mtrs(
-    val,
-    brackets,
-    rates,
-    avoidance_rate=0,
-    avoidance_elasticity=0,
-    avoidance_elasticity_flat=0,
-):
+    val: pd.Series,
+    brackets: pd.Series,
+    rates: pd.Series,
+    avoidance_rate: Optional[float] = 0,
+    avoidance_elasticity: Optional[float] = 0,
+    avoidance_elasticity_flat: Optional[float] = 0,
+) -> pd.Series:
     """Calculates tax liability based on a marginal tax rate schedule.
 
     :param val: Value to assess tax on, e.g. wealth or income (list or Series).

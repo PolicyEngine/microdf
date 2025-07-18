@@ -1,16 +1,19 @@
+from typing import List, Optional, Union
+
 import numpy as np
+import pandas as pd
 
 import microdf as mdf
 
 
 def ubi_or_bens(
-    df,
-    ben_cols,
-    max_ubi="max_ubi",
-    ubi="ubi",
-    bens="bens",
-    update_income_measures=None,
-):
+    df: pd.DataFrame,
+    ben_cols: Union[str, List[str]],
+    max_ubi: str = "max_ubi",
+    ubi: str = "ubi",
+    bens: str = "bens",
+    update_income_measures: Optional[List[str]] = None,
+) -> None:
     """Calculates whether a tax unit will take UBI or benefits, and adjusts
     values accordingly.
 
