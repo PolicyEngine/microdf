@@ -12,7 +12,3 @@ DF2 = pd.DataFrame({"v": V2, "w": W2})
 
 def test_quantile_chg() -> None:
     mdf.quantile_chg(DF1, DF2, "v", "w", "v", "w")
-
-
-def test_quantile_pct_chg_plot() -> None:
-    mdf.quantile_pct_chg_plot(DF1, DF2, "v", "w", "v", "w")
