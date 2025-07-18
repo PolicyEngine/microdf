@@ -23,7 +23,6 @@ from .custom_taxes import (
     add_ftt,
     add_vat,
 )
-from .generic import MicroDataFrame, MicroSeries
 from .income_measures import cash_income, market_income, tpc_eci
 from .inequality import (
     bottom_50_pct_share,
@@ -37,6 +36,8 @@ from .inequality import (
     top_x_pct_share,
 )
 from .io import read_stata_zip
+from .microdataframe import MicroDataFrame, MicroDataFrameGroupBy
+from .microseries import MicroSeries, MicroSeriesGroupBy
 from .poverty import (
     deep_poverty_gap,
     deep_poverty_rate,
@@ -79,11 +80,6 @@ __all__ = [
     "combine_base_reform",
     "pctchg_base_reform",
     "agg",
-    # chart_utils.py
-    "dollar_format",
-    "currency_format",
-    # charts.py
-    "quantile_pct_chg_plot",
     # concat.py
     "concat",
     # constants.py
@@ -130,12 +126,6 @@ __all__ = [
     "poverty_gap",
     "squared_poverty_gap",
     "deep_poverty_gap",
-    # style.py
-    "AXIS_COLOR",
-    "DPI",
-    "GRID_COLOR",
-    "TITLE_COLOR",
-    "set_plot_style",
     # tax.py
     "mtr",
     "tax_from_mtrs",
@@ -161,7 +151,10 @@ __all__ = [
     "weighted_median",
     "add_weighted_quantiles",
     "quantile_chg",
-    # generic.py
+    # microseries.py
     "MicroSeries",
+    "MicroSeriesGroupBy",
+    # microdataframe.py
     "MicroDataFrame",
+    "MicroDataFrameGroupBy",
 ]
