@@ -810,10 +810,62 @@ class MicroDataFrame(pd.DataFrame):
         super().__setattr__(key, value)
         self.catch_series_relapse()
 
-    def reset_index(self) -> "MicroDataFrame":
-        res = super().reset_index()
-        res = MicroDataFrame(res, weights=self.weights)
-        return res
+    def reset_index(
+        self,
+        level: Optional[int] = None,
+        drop: Optional[bool] = False,
+        inplace: Optional[bool] = False,
+        col_level: Optional[int] = 0,
+        col_fill: Optional[str] = "",
+        allow_duplicates: Optional[bool] = None,
+        names: Optional[List[str]] = None,
+    ) -> Union["MicroDataFrame", None]:
+        """Reset the index of the MicroDataFrame.
+
+        This method supports all parameters of pandas DataFrame.reset_index(),
+        including the 'inplace' parameter.
+
+        :param level: Only remove the given levels from the index. Removes all
+            levels by default.
+        :param drop: Do not try to insert index into dataframe columns. This
+            resets the index to the default integer index.
+        :param inplace: Modify the DataFrame in place (do not create a new
+            object).
+        :param col_level: If the columns have multiple levels, determines which
+            level the labels are inserted into.
+        :param col_fill: If the columns have multiple levels, determines how
+            the other levels are named.
+        :param allow_duplicates: Allow duplicate column labels to be created.
+        :param names: Using the given string, rename the DataFrame column which
+            contains the index data.
+        :return: MicroDataFrame with reset index or None if inplace=True.
+        """
+        if inplace:
+            weights_backup = self.weights.copy()
+            # Perform in-place reset on the parent DataFrame
+            super().reset_index(
+                level=level,
+                drop=drop,
+                inplace=True,
+                col_level=col_level,
+                col_fill=col_fill,
+                allow_duplicates=allow_duplicates,
+                names=names,
+            )
+            self.weights = weights_backup
+            self._link_all_weights()
+            return None
+        else:
+            res = super().reset_index(
+                level=level,
+                drop=drop,
+                inplace=False,
+                col_level=col_level,
+                col_fill=col_fill,
+                allow_duplicates=allow_duplicates,
+                names=names,
+            )
+            return MicroDataFrame(res, weights=self.weights)
 
     def copy(self, deep: Optional[bool] = True) -> "MicroDataFrame":
         res = super().copy(deep)
