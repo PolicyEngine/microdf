@@ -16,33 +16,30 @@
     document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
     document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
   </script>
-  <!-- 
-    this give us a css class that will be invisible only if js is disabled 
-  -->
-  <noscript>
-    <style>
-      .pst-js-only { display: none !important; }
-
-    </style>
-  </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
-<link href="_static/styles/pydata-sphinx-theme.css?digest=26a4bc78f4c0ddb94549" rel="stylesheet" />
+  <link href="_static/styles/theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
 
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=a3416100" />
+  
+  <link href="_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=dfe6caa3a7d634c4db9b" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=eba8b062" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=13237357" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css?v=4fa983c6" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
   
-  <!-- So that users can add custom icons -->
-  <script src="_static/scripts/fontawesome.js?digest=26a4bc78f4c0ddb94549"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=26a4bc78f4c0ddb94549" />
-<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=26a4bc78f4c0ddb94549" />
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
+  <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
     <script src="_static/documentation_options.js?v=9eb32ce0"></script>
     <script src="_static/doctools.js?v=9a2dae69"></script>
@@ -64,10 +61,9 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="microdf demo" href="demo.html" />
-    <link rel="prev" title="microdf charts" href="charts.html" />
+    <link rel="prev" title="The agg function" href="agg.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="" />
   </head>
   
   
@@ -83,8 +79,19 @@
     <i class="fa-solid fa-arrow-up"></i>Back to top</button>
 
   
-  <dialog id="pst-search-dialog">
-    
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
 <form class="bd-search d-flex align-items-center"
       action="search.html"
       method="get">
@@ -92,6 +99,7 @@
   <input type="search"
          class="form-control"
          name="q"
+         id="search-input"
          placeholder="Search this book..."
          aria-label="Search this book..."
          autocomplete="off"
@@ -99,8 +107,8 @@
          autocapitalize="off"
          spellcheck="false"/>
   <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
-</form>
-  </dialog>
+</form></div>
+  </div>
 
   <div class="pst-async-banner-revealer d-none">
   <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
@@ -116,8 +124,7 @@
       
       
       
-      <dialog id="pst-primary-sidebar-modal"></dialog>
-      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+      <div class="bd-sidebar-primary bd-sidebar">
         
 
   
@@ -147,17 +154,21 @@
     
     
     <img src="_static/microdf_logo.png" class="logo__image only-light" alt="microdf documentation - Home"/>
-    <img src="_static/microdf_logo.png" class="logo__image only-dark pst-js-only" alt="microdf documentation - Home"/>
+    <script>document.write(`<img src="_static/microdf_logo.png" class="logo__image only-dark" alt="microdf documentation - Home"/>`);</script>
   
   
 </a></div>
         <div class="sidebar-primary-item">
 
-<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
- <i class="fa-solid fa-magnifying-glass"></i>
- <span class="search-button__default-text">Search</span>
- <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
-</button></div>
+ <script>
+ document.write(`
+   <button class="btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script></div>
         <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
     <div class="bd-toc-item navbar-nav active">
         
@@ -171,7 +182,6 @@
         <ul class="current nav bd-sidenav">
 <li class="toctree-l1 current active has-children"><a class="reference internal" href="examples.html">Examples</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="agg.html">The <code class="docutils literal notranslate"><span class="pre">agg</span></code> function</a></li>
-<li class="toctree-l2"><a class="reference internal" href="charts.html"><code class="docutils literal notranslate"><span class="pre">microdf</span></code> charts</a></li>
 <li class="toctree-l2 current active"><a class="current reference internal" href="#">Custom taxes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="demo.html"><code class="docutils literal notranslate"><span class="pre">microdf</span></code> demo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="gini.html"><code class="docutils literal notranslate"><span class="pre">gini</span></code> example</a></li>
@@ -381,16 +391,24 @@
 
 
 
-<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
-  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
-  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
-  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
-</button>
+<script>
+document.write(`
+  <button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="theme-switch fa-solid fa-sun fa-lg" data-mode="light"></i>
+    <i class="theme-switch fa-solid fa-moon fa-lg" data-mode="dark"></i>
+    <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"></i>
+  </button>
+`);
+</script>
 
 
-<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+<script>
+document.write(`
+  <button class="btn btn-sm pst-navbar-icon search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
     <i class="fa-solid fa-magnifying-glass fa-lg"></i>
-</button>
+  </button>
+`);
+</script>
 <button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
     <span class="fa-solid fa-list"></span>
 </button>
@@ -433,24 +451,11 @@
 <h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">#</a></h2>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
-<span class="kn">import</span> <span class="nn">taxcalc</span> <span class="k">as</span> <span class="nn">tc</span>
-<span class="kn">import</span> <span class="nn">microdf</span> <span class="k">as</span> <span class="nn">mdf</span>
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output traceback highlight-ipythontb notranslate"><div class="highlight"><pre><span></span><span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">ModuleNotFoundError</span><span class="g g-Whitespace">                       </span>Traceback (most recent call last)
-<span class="n">Cell</span> <span class="n">In</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">line</span> <span class="mi">4</span>
-<span class="g g-Whitespace">      </span><span class="mi">1</span> <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="g g-Whitespace">      </span><span class="mi">2</span> <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="ne">----&gt; </span><span class="mi">4</span> <span class="kn">import</span> <span class="nn">taxcalc</span> <span class="k">as</span> <span class="nn">tc</span>
-<span class="g g-Whitespace">      </span><span class="mi">5</span> <span class="kn">import</span> <span class="nn">microdf</span> <span class="k">as</span> <span class="nn">mdf</span>
-
-<span class="ne">ModuleNotFoundError</span>: No module named &#39;taxcalc&#39;
+<span class="kn">import</span><span class="w"> </span><span class="nn">taxcalc</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">microdf</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mdf</span>
 </pre></div>
 </div>
 </div>
@@ -458,6 +463,11 @@
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tc</span><span class="o">.</span><span class="n">__version__</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;5.0.4&#39;
 </pre></div>
 </div>
 </div>
@@ -472,6 +482,15 @@
                  <span class="n">mdf</span><span class="o">.</span><span class="n">ECI_REMOVE_COLS</span><span class="p">,</span>
                  <span class="n">metric_vars</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;XTOT&#39;</span><span class="p">])</span>
 <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;mcare_ben&#39;, &#39;e02300&#39;, &#39;expanded_income&#39;, &#39;e02400&#39;, &#39;other_ben&#39;,
+       &#39;ssi_ben&#39;, &#39;XTOT&#39;, &#39;aftertax_income&#39;, &#39;wic_ben&#39;, &#39;mcaid_ben&#39;, &#39;s006&#39;,
+       &#39;housing_ben&#39;, &#39;vet_ben&#39;, &#39;tanf_ben&#39;, &#39;snap_ben&#39;, &#39;market_income&#39;,
+       &#39;bens&#39;, &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;],
+      dtype=&#39;object&#39;)
 </pre></div>
 </div>
 </div>
@@ -492,6 +511,15 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;mcare_ben&#39;, &#39;e02300&#39;, &#39;expanded_income&#39;, &#39;e02400&#39;, &#39;other_ben&#39;,
+       &#39;ssi_ben&#39;, &#39;XTOT&#39;, &#39;aftertax_income&#39;, &#39;wic_ben&#39;, &#39;mcaid_ben&#39;, &#39;s006&#39;,
+       &#39;housing_ben&#39;, &#39;vet_ben&#39;, &#39;tanf_ben&#39;, &#39;snap_ben&#39;, &#39;market_income&#39;,
+       &#39;bens&#39;, &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;, &#39;tpc_eci&#39;, &#39;vat&#39;],
+      dtype=&#39;object&#39;)
+</pre></div>
+</div>
+</div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -499,6 +527,197 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>mcare_ben</th>
+      <th>e02300</th>
+      <th>expanded_income</th>
+      <th>e02400</th>
+      <th>other_ben</th>
+      <th>ssi_ben</th>
+      <th>XTOT</th>
+      <th>aftertax_income</th>
+      <th>wic_ben</th>
+      <th>mcaid_ben</th>
+      <th>...</th>
+      <th>vet_ben</th>
+      <th>tanf_ben</th>
+      <th>snap_ben</th>
+      <th>market_income</th>
+      <th>bens</th>
+      <th>tax</th>
+      <th>s006_m</th>
+      <th>XTOT_m</th>
+      <th>tpc_eci</th>
+      <th>vat</th>
+    </tr>
+    <tr>
+      <th>RECID</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>192722</th>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>-303140.163141</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>-299540.163141</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>-303140.163141</td>
+      <td>0.000000</td>
+      <td>-3600.0</td>
+      <td>0.000382</td>
+      <td>0.000764</td>
+      <td>-303140.163141</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>166558</th>
+      <td>0.0</td>
+      <td>5188.764042</td>
+      <td>-235938.542464</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>-232338.542464</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>-241127.306506</td>
+      <td>5188.764042</td>
+      <td>-3600.0</td>
+      <td>0.000502</td>
+      <td>0.001003</td>
+      <td>-235938.542464</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>12643</th>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>-169432.325500</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>-167632.325500</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>-169432.325500</td>
+      <td>0.000000</td>
+      <td>-1800.0</td>
+      <td>0.000415</td>
+      <td>0.000415</td>
+      <td>-169432.325500</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>262111</th>
+      <td>0.0</td>
+      <td>5724.820074</td>
+      <td>-166304.985475</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>-162704.985475</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>-172029.805549</td>
+      <td>5724.820074</td>
+      <td>-3600.0</td>
+      <td>0.000586</td>
+      <td>0.001171</td>
+      <td>-166304.985475</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>12729</th>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>-158776.447320</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>-156976.447320</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>-158776.447320</td>
+      <td>0.000000</td>
+      <td>-1800.0</td>
+      <td>0.000305</td>
+      <td>0.000305</td>
+      <td>-158776.447320</td>
+      <td>0.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 22 columns</p>
+</div></div></div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -506,6 +725,197 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>mcare_ben</th>
+      <th>e02300</th>
+      <th>expanded_income</th>
+      <th>e02400</th>
+      <th>other_ben</th>
+      <th>ssi_ben</th>
+      <th>XTOT</th>
+      <th>aftertax_income</th>
+      <th>wic_ben</th>
+      <th>mcaid_ben</th>
+      <th>...</th>
+      <th>vet_ben</th>
+      <th>tanf_ben</th>
+      <th>snap_ben</th>
+      <th>market_income</th>
+      <th>bens</th>
+      <th>tax</th>
+      <th>s006_m</th>
+      <th>XTOT_m</th>
+      <th>tpc_eci</th>
+      <th>vat</th>
+    </tr>
+    <tr>
+      <th>RECID</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>114914</th>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>69802.199214</td>
+      <td>10375.344060</td>
+      <td>4598.753905</td>
+      <td>0.0</td>
+      <td>3.0</td>
+      <td>65628.896562</td>
+      <td>0.0</td>
+      <td>8801.561911</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>46026.539337</td>
+      <td>23775.659877</td>
+      <td>4173.302652</td>
+      <td>0.002192</td>
+      <td>0.006576</td>
+      <td>61000.637303</td>
+      <td>2362.640276</td>
+    </tr>
+    <tr>
+      <th>17246</th>
+      <td>14469.708379</td>
+      <td>0.0</td>
+      <td>66965.286249</td>
+      <td>48615.929084</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>70565.286249</td>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>3879.648786</td>
+      <td>63085.637463</td>
+      <td>-3600.000000</td>
+      <td>0.000407</td>
+      <td>0.000815</td>
+      <td>52495.577870</td>
+      <td>2540.350305</td>
+    </tr>
+    <tr>
+      <th>30939</th>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>80962.094996</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>3.0</td>
+      <td>70584.459409</td>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>80962.094996</td>
+      <td>0.000000</td>
+      <td>10377.635587</td>
+      <td>0.000464</td>
+      <td>0.001391</td>
+      <td>80962.094996</td>
+      <td>2541.040539</td>
+    </tr>
+    <tr>
+      <th>218693</th>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>46325.762442</td>
+      <td>0.000000</td>
+      <td>9197.507811</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>50034.709016</td>
+      <td>0.0</td>
+      <td>17603.123823</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>19525.130809</td>
+      <td>26800.631634</td>
+      <td>-3708.946573</td>
+      <td>0.000130</td>
+      <td>0.000260</td>
+      <td>28722.638620</td>
+      <td>1801.249525</td>
+    </tr>
+    <tr>
+      <th>106167</th>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>560738.530679</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>4.0</td>
+      <td>405322.276782</td>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>560738.530679</td>
+      <td>0.000000</td>
+      <td>155416.253897</td>
+      <td>0.000151</td>
+      <td>0.000604</td>
+      <td>560738.530679</td>
+      <td>10133.056920</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 22 columns</p>
+</div></div></div>
 </div>
 <p>Add carbon tax and financial transaction tax.</p>
 <div class="cell docutils container">
@@ -516,6 +926,16 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;mcare_ben&#39;, &#39;e02300&#39;, &#39;expanded_income&#39;, &#39;e02400&#39;, &#39;other_ben&#39;,
+       &#39;ssi_ben&#39;, &#39;XTOT&#39;, &#39;aftertax_income&#39;, &#39;wic_ben&#39;, &#39;mcaid_ben&#39;, &#39;s006&#39;,
+       &#39;housing_ben&#39;, &#39;vet_ben&#39;, &#39;tanf_ben&#39;, &#39;snap_ben&#39;, &#39;market_income&#39;,
+       &#39;bens&#39;, &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;, &#39;tpc_eci&#39;, &#39;vat&#39;, &#39;carbon_tax&#39;,
+       &#39;ftt&#39;],
+      dtype=&#39;object&#39;)
+</pre></div>
+</div>
+</div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -523,12 +943,216 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>mcare_ben</th>
+      <th>e02300</th>
+      <th>expanded_income</th>
+      <th>e02400</th>
+      <th>other_ben</th>
+      <th>ssi_ben</th>
+      <th>XTOT</th>
+      <th>aftertax_income</th>
+      <th>wic_ben</th>
+      <th>mcaid_ben</th>
+      <th>...</th>
+      <th>snap_ben</th>
+      <th>market_income</th>
+      <th>bens</th>
+      <th>tax</th>
+      <th>s006_m</th>
+      <th>XTOT_m</th>
+      <th>tpc_eci</th>
+      <th>vat</th>
+      <th>carbon_tax</th>
+      <th>ftt</th>
+    </tr>
+    <tr>
+      <th>RECID</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>68054</th>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>27958.618898</td>
+      <td>0.000000</td>
+      <td>2029.579775</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>25720.122550</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>3469.350114</td>
+      <td>22459.689010</td>
+      <td>5498.929889</td>
+      <td>2238.496349</td>
+      <td>0.000673</td>
+      <td>0.000673</td>
+      <td>27958.618898</td>
+      <td>925.924412</td>
+      <td>360.081716</td>
+      <td>25.720123</td>
+    </tr>
+    <tr>
+      <th>110412</th>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>83622.482713</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>3.0</td>
+      <td>75085.808563</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.000000</td>
+      <td>83622.482713</td>
+      <td>0.000000</td>
+      <td>8536.674151</td>
+      <td>0.000344</td>
+      <td>0.001032</td>
+      <td>83622.482713</td>
+      <td>2703.089108</td>
+      <td>1351.544554</td>
+      <td>150.171617</td>
+    </tr>
+    <tr>
+      <th>143561</th>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>192575.350044</td>
+      <td>34280.896826</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>2.0</td>
+      <td>150876.916735</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.000000</td>
+      <td>158294.453218</td>
+      <td>34280.896826</td>
+      <td>41698.433309</td>
+      <td>0.001973</td>
+      <td>0.003947</td>
+      <td>192575.350044</td>
+      <td>4828.061336</td>
+      <td>2715.784501</td>
+      <td>452.630750</td>
+    </tr>
+    <tr>
+      <th>171962</th>
+      <td>0.0</td>
+      <td>1875.550259</td>
+      <td>12525.733390</td>
+      <td>0.000000</td>
+      <td>1515.744949</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>13395.707751</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>2590.826414</td>
+      <td>6543.611769</td>
+      <td>5982.121622</td>
+      <td>-869.974361</td>
+      <td>0.000398</td>
+      <td>0.000398</td>
+      <td>12525.733390</td>
+      <td>522.432602</td>
+      <td>160.748493</td>
+      <td>13.395708</td>
+    </tr>
+    <tr>
+      <th>18613</th>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>122302.620733</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>87188.765761</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.000000</td>
+      <td>122302.620733</td>
+      <td>0.000000</td>
+      <td>35113.854971</td>
+      <td>0.000629</td>
+      <td>0.000629</td>
+      <td>122302.620733</td>
+      <td>2964.418036</td>
+      <td>1569.397784</td>
+      <td>174.377532</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 24 columns</p>
+</div></div></div>
 </div>
 <p>VAT with a custom amount generated.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mdf</span><span class="o">.</span><span class="n">add_vat</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="mf">500e9</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;vat2&#39;</span><span class="p">)</span>
 <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Multiplying tax by 1.08.
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;mcare_ben&#39;, &#39;e02300&#39;, &#39;expanded_income&#39;, &#39;e02400&#39;, &#39;other_ben&#39;,
+       &#39;ssi_ben&#39;, &#39;XTOT&#39;, &#39;aftertax_income&#39;, &#39;wic_ben&#39;, &#39;mcaid_ben&#39;, &#39;s006&#39;,
+       &#39;housing_ben&#39;, &#39;vet_ben&#39;, &#39;tanf_ben&#39;, &#39;snap_ben&#39;, &#39;market_income&#39;,
+       &#39;bens&#39;, &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;, &#39;tpc_eci&#39;, &#39;vat&#39;, &#39;carbon_tax&#39;,
+       &#39;ftt&#39;, &#39;vat2&#39;],
+      dtype=&#39;object&#39;)
 </pre></div>
 </div>
 </div>
@@ -539,10 +1163,20 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>np.float64(464.5240745518526)
+</pre></div>
+</div>
+</div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mdf</span><span class="o">.</span><span class="n">weighted_sum</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s1">&#39;vat2&#39;</span><span class="p">,</span> <span class="s1">&#39;s006&#39;</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e9</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>np.float64(500.0000000000001)
 </pre></div>
 </div>
 </div>
@@ -555,10 +1189,20 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Multiplying tax by 2.15.
+</pre></div>
+</div>
+</div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mdf</span><span class="o">.</span><span class="n">weighted_sum</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s1">&#39;vat3&#39;</span><span class="p">,</span> <span class="s1">&#39;s006&#39;</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e9</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>np.float64(1000.0)
 </pre></div>
 </div>
 </div>
@@ -597,12 +1241,12 @@
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="charts.html"
+       href="agg.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title"><code class="docutils literal notranslate"><span class="pre">microdf</span></code> charts</p>
+        <p class="prev-next-title">The <code class="docutils literal notranslate"><span class="pre">agg</span></code> function</p>
       </div>
     </a>
     <a class="right-next"
@@ -621,8 +1265,7 @@
             
             
               
-                <dialog id="pst-secondary-sidebar-modal"></dialog>
-                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
 
 
   <div class="sidebar-secondary-item">
@@ -681,8 +1324,8 @@ By Max Ghenis
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script defer src="_static/scripts/bootstrap.js?digest=26a4bc78f4c0ddb94549"></script>
-<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=26a4bc78f4c0ddb94549"></script>
+  <script src="_static/scripts/bootstrap.js?digest=dfe6caa3a7d634c4db9b"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b"></script>
 
   <footer class="bd-footer">
   </footer>
