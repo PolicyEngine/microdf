@@ -90,6 +90,9 @@ jobs:
       - name: Install dependencies
         run: |
           uv pip install -e ".[dev]" --system
+      - name: Build package
+        run: |
+          python -m build --wheel --sdist
       - name: Publish a git tag
         run: ".github/publish-git-tag.sh || true"
       - name: Publish to PyPI
