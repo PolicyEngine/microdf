@@ -3,3 +3,12 @@
     - Initialized changelog.
   date: 2025-07-17 12:00:00
   version: 0.4.5
+- bump: patch
+  changes:
+    added:
+    - Create pyproject.toml and uv.lock files to move away from setup.py.
+    - Create unified workflow files.
+    - Fix documentation errors.
+    - Ensure MicroSeries functions return MicroSeries objects.
+    - Fix unary operations to not require `other`.
+  date: 2025-07-18 10:50:26
