@@ -119,13 +119,22 @@ class MicroDataFrame(pd.DataFrame):
             if column != self.weights_col:
                 self._link_weights(column)
 
-    def set_weights(self, weights: np.ndarray) -> None:
+    def set_weights(
+        self,
+        weights: Union[np.ndarray, str],
+        preserve_old: Optional[bool] = False,
+    ) -> None:
         """Sets the weights for the MicroDataFrame. If a string is received, it
         will be assumed to be the column name of the weight column.
 
         :param weights: Array of weights.
+        :param preserve_old: If True, keeps the old weights as a column when
+            new weights are provided.
         :type weights: np.array
         """
+        if preserve_old and self.weights_col is not None:
+            self["old_" + self.weights_col] = self.weights
+
         if isinstance(weights, str):
             self.weights_col = weights
             self.weights = pd.Series(self[weights], dtype=float)
@@ -136,15 +145,22 @@ class MicroDataFrame(pd.DataFrame):
                 self.weights = pd.Series(weights, dtype=float)
             self._link_all_weights()
 
-    def set_weight_col(self, column: str) -> None:
+    def set_weight_col(
+        self, column: str, preserve_old: Optional[bool] = False
+    ) -> None:
         """Sets the weights for the MicroDataFrame by specifying the name of
         the weight column.
 
         :param weights: Array of weights.
+        :param preserve_old: If True, keeps the old weights as a column when
+            new weights are provided.
         :type weights: np.array
         """
+        if preserve_old and self.weights_col is not None:
+            self["old_" + self.weights_col] = self.weights
+
         self.weights = np.array(self[column])
-        self.weight_col = column
+        self.weights_col = column
         self._link_all_weights()
 
     def __getitem__(

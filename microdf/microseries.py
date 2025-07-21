@@ -39,15 +39,22 @@ class MicroSeries(pd.Series):
         fn._rtype = pd.Series
         return fn
 
-    def set_weights(self, weights: np.array) -> None:
+    def set_weights(
+        self, weights: np.array, preserve_old: Optional[bool] = False
+    ) -> None:
         """Sets the weight values.
 
         :param weights: Array of weights.
+        :param preserve_old: If True, keeps the old weights as a column when
+            new weights are provided.
         :type weights: np.array.
         """
         if weights is None:
             self.weights = pd.Series(np.ones_like(self.values), dtype=float)
         else:
+            if preserve_old and self.weights is not None:
+                self["old_weights"] = self.weights
+
             self.weights = pd.Series(weights, dtype=float)
 
     @vector_function
