@@ -17,3 +17,11 @@
     changed:
     - Deleted visualization functionality.
   date: 2025-07-18 12:53:43
+- bump: minor
+  changes:
+    added:
+    - Add astype and sqrt methods to MicroSeries and MicroDataFrame.
+    - Support in-place reset_index.
+    - Split generic.py into microdataframe.py and microseries.py.
+    - Add optional preserve_old parameter when setting weights.
+  date: 2025-07-22 15:08:32
