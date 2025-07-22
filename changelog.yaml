@@ -33,3 +33,23 @@
     - Remove taxcalc from optional dependencies in pyproject.toml.
     - Remove documentation notebooks that depend on taxcalc functionality.
   date: 2025-07-22 16:16:51
+- bump: major
+  changes:
+    changed:
+    - Update package description to reflect focused scope on weighted DataFrames and
+      Series.
+    - Update README with clearer documentation and usage examples.
+    - Version bumped to 1.0.0 to reflect major breaking changes.
+    - Remove pip from dev dependencies as it's not needed.
+    - Update to Python 3.13 as main version, supporting Python 3.9+.
+    - Test against Python 3.9, 3.10, 3.11, 3.12, and 3.13 in CI.
+    removed:
+    - Remove all modules not used by PolicyEngine repositories.
+    - Keep only MicroDataFrame, MicroSeries, and their GroupBy classes.
+    - Remove agg, concat, constants, custom_taxes, income_measures, inequality (standalone
+      functions), io, poverty (standalone functions), tax, ubi, utils, and weighted
+      modules.
+    - Remove _optional module as it's no longer needed.
+    - Remove associated test files for deleted modules.
+    - Simplify package to focus on core weighted data structures used by PolicyEngine.
+  date: 2025-07-22 19:04:55
