@@ -1,0 +1,9 @@
+- bump: major
+  changes:
+    removed:
+    - Remove all modules not used by PolicyEngine repositories.
+    - Keep only MicroDataFrame, MicroSeries, and their GroupBy classes.
+    - Remove agg, concat, constants, custom_taxes, income_measures, inequality (standalone functions), io, poverty (standalone functions), tax, ubi, utils, and weighted modules.
+    - Remove _optional module as it's no longer needed.
+    - Remove associated test files for deleted modules.
+    - Simplify package to focus on core weighted data structures used by PolicyEngine.
