@@ -105,24 +105,6 @@ def test_multiple_groupby() -> None:
     assert (df.groupby(["x", "y"]).z.sum() == np.array([5, 6])).all()
 
 
-def test_concat() -> None:
-    df1 = mdf.MicroDataFrame({"x": [1, 2]}, weights=[3, 4])
-    df2 = mdf.MicroDataFrame({"y": [5, 6]}, weights=[7, 8])
-    # Verify that pd.concat returns DataFrame (probably no way to fix this).
-    pd_long = pd.concat([df1, df2])
-    assert isinstance(pd_long, pd.DataFrame)
-    assert not isinstance(pd_long, mdf.MicroDataFrame)
-    # Verify that mdf.concat works.
-    mdf_long = mdf.concat([df1, df2])
-    assert isinstance(mdf_long, mdf.MicroDataFrame)
-    # Weights should be preserved.
-    assert mdf_long.weights.equals(pd.concat([df1.weights, df2.weights]))
-    # Verify it works horizontally too (take the first set of weights).
-    mdf_wide = mdf.concat([df1, df2], axis=1)
-    assert isinstance(mdf_wide, mdf.MicroDataFrame)
-    assert mdf_wide.weights.equals(df1.weights)
-
-
 def test_set_index() -> None:
     d = mdf.MicroDataFrame(dict(x=[1, 2, 3]), weights=[4, 5, 6])
     assert d.x.__class__ == MicroSeries

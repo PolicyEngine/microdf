@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "microdf-python"
-version = "0.4.5"
-description = "Survey microdata as DataFrames"
+version = "1.0.0"
+description = "Weighted pandas DataFrames and Series for survey microdata"
 readme = "README.md"
 authors = [
     { name = "Max Ghenis", email = "max@ubicenter.org" }
@@ -26,7 +26,6 @@ dev = [
     "docformatter",
     "isort",
     "linecheck",
-    "pip",
     "pytest",
     "pytest-cov",
     "setuptools",
@@ -45,7 +44,7 @@ line_length = 79
 
 [tool.black]
 line-length = 79
-target-version = ["py311"]
+target-version = ["py313"]
 
 [tool.flake8]
 max-line-length = 79

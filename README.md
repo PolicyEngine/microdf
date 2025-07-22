@@ -1,18 +1,49 @@
-[![Build](https://github.com/PSLmodels/microdf/workflows/Build%20and%20test%20[Python%203.7,%203.8,%203.9]/badge.svg)](https://github.com/PSLmodels/microdf/actions?query=workflow%3A%22Build+and+test+%5BPython+3.7%2C+3.8%2C+3.9%5D%22)
-[![Codecov](https://codecov.io/gh/PSLmodels/microdf/branch/master/graph/badge.svg)](https://codecov.io/gh/PSLmodels/microdf)
+[![Build](https://github.com/PolicyEngine/microdf/workflows/Pull%20request/badge.svg)](https://github.com/PolicyEngine/microdf/actions)
+[![Codecov](https://codecov.io/gh/PolicyEngine/microdf/branch/master/graph/badge.svg)](https://codecov.io/gh/PolicyEngine/microdf)
 
 # microdf
-Analysis tools for working with survey microdata as DataFrames.
+Weighted pandas DataFrames and Series for survey microdata analysis.
 
-*Disclaimer: `MicroSeries` and `MicroDataFrame` are experimental features and may not consider weights after performing some operations. See open issues.*
+## Overview
+microdf provides `MicroDataFrame` and `MicroSeries` classes that extend pandas functionality with integrated weighting support, essential for accurate survey data analysis.
+
+## Key Features
+- **MicroDataFrame**: A pandas DataFrame with an integrated weight column
+- **MicroSeries**: A pandas Series with integrated weights
+- **Weighted operations**: All aggregations (sum, mean, median, etc.) automatically use weights
+- **Inequality metrics**: Built-in Gini coefficient calculation
+- **Poverty analysis**: Integrated poverty rate and gap calculations
 
 ## Installation
 Install with:
 
-    pip install git+git://github.com/PSLmodels/microdf.git
+    pip install microdf-python
+
+Or for development:
+
+    pip install git+https://github.com/PolicyEngine/microdf.git
+
+## Usage
+```python
+import microdf as mdf
+import pandas as pd
+
+# Create sample data with weights
+df = pd.DataFrame({
+    'income': [10_000, 20_000, 30_000, 40_000, 50_000],
+    'weights': [1, 2, 3, 2, 1]
+})
+
+# Create a MicroDataFrame
+mdf_df = mdf.MicroDataFrame(df, weights='weights')
+
+# All operations are weight-aware
+print(mdf_df.income.mean())  # Weighted mean
+print(mdf_df.income.gini())  # Gini coefficient
+```
 
 ## Questions
-Contact the maintainer, Max Ghenis (mghenis@gmail.com).
+Contact the maintainer, Max Ghenis (max@policyengine.org).
 
 ## Citation
 You may cite the source of your analysis as "microdf release #.#.#, author's calculations."
