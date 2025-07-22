@@ -1,0 +1,6 @@
+- bump: minor
+  changes:
+    removed:
+    - Remove all taxcalc functionality and dependencies from the package.
+    - Delete taxcalc.py module and associated test file.
+    - Remove taxcalc from optional dependencies in pyproject.toml.
