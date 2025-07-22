@@ -27,41 +27,87 @@ class MicroDataFrame(pd.DataFrame):
         self.override_df_functions()
 
     def override_df_functions(self) -> None:
+        """Override DataFrame functions to work with weighted operations."""
         for name in MicroSeries.FUNCTIONS:
+            if name in MicroSeries.SCALAR_FUNCTIONS:
+                setattr(self, name, self._create_scalar_function(name))
+            elif name in MicroSeries.VECTOR_FUNCTIONS:
+                setattr(self, name, self._create_vector_function(name))
+            elif name in MicroSeries.AGNOSTIC_FUNCTIONS:
+                setattr(self, name, self._create_agnostic_function(name))
 
-            def get_fn(name) -> Callable:
-                def fn(*args, **kwargs) -> Union[pd.Series, pd.DataFrame]:
-                    is_array = len(args) > 0 and hasattr(args[0], "__len__")
-                    if (
-                        name in MicroSeries.SCALAR_FUNCTIONS
-                        or name in MicroSeries.AGNOSTIC_FUNCTIONS
-                        and not is_array
-                    ):
-                        results = pd.Series(
-                            [
-                                getattr(self[col], name)(*args, **kwargs)
-                                for col in self.columns
-                            ]
-                        )
-                        results.index = self.columns
-                        return results
-                    elif (
-                        name in MicroSeries.VECTOR_FUNCTIONS
-                        or name in MicroSeries.AGNOSTIC_FUNCTIONS
-                        and is_array
-                    ):
-                        results = pd.DataFrame(
-                            [
-                                getattr(self[col], name)(*args, **kwargs)
-                                for col in self.columns
-                            ]
-                        )
-                        results.index = self.columns
-                        return results
+    def _create_scalar_function(self, name: str) -> Callable:
+        """Create a scalar function that returns a Series of results.
 
-                return fn
+        :param name: Name of the function to create
+        :return: Function that applies the operation to all columns
+        """
 
-            setattr(self, name, get_fn(name))
+        def fn(*args, **kwargs) -> pd.Series:
+            results = pd.Series(
+                [
+                    getattr(self[col], name)(*args, **kwargs)
+                    for col in self.columns
+                ]
+            )
+            results.index = self.columns
+            return results
+
+        return fn
+
+    def _create_vector_function(self, name: str) -> Callable:
+        """Create a vector function that returns a DataFrame of results.
+
+        :param name: Name of the function to create
+        :return: Function that applies the operation to all columns
+        """
+
+        def fn(*args, **kwargs) -> pd.DataFrame:
+            results = pd.DataFrame(
+                [
+                    getattr(self[col], name)(*args, **kwargs)
+                    for col in self.columns
+                ]
+            )
+            results.index = self.columns
+            return results
+
+        return fn
+
+    def _create_agnostic_function(self, name: str) -> Callable:
+        """Create a function that can be either scalar or vector based on
+        input.
+
+        :param name: Name of the function to create
+        :return: Function that applies the operation to all columns
+        """
+
+        def fn(*args, **kwargs) -> Union[pd.Series, pd.DataFrame]:
+            # Check if first argument is array-like
+            is_array = len(args) > 0 and hasattr(args[0], "__len__")
+
+            if is_array:
+                # Use vector function behavior
+                results = pd.DataFrame(
+                    [
+                        getattr(self[col], name)(*args, **kwargs)
+                        for col in self.columns
+                    ]
+                )
+                results.index = self.columns
+                return results
+            else:
+                # Use scalar function behavior
+                results = pd.Series(
+                    [
+                        getattr(self[col], name)(*args, **kwargs)
+                        for col in self.columns
+                    ]
+                )
+                results.index = self.columns
+                return results
+
+        return fn
 
     def get_args_as_micro_series(*kwarg_names: tuple) -> Callable:
         """Decorator for auto-parsing column names into MicroSeries objects. If
