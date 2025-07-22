@@ -486,10 +486,10 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;XTOT&#39;, &#39;other_ben&#39;, &#39;e02400&#39;, &#39;s006&#39;, &#39;expanded_income&#39;,
-       &#39;aftertax_income&#39;, &#39;vet_ben&#39;, &#39;tanf_ben&#39;, &#39;mcare_ben&#39;, &#39;wic_ben&#39;,
-       &#39;housing_ben&#39;, &#39;snap_ben&#39;, &#39;mcaid_ben&#39;, &#39;e02300&#39;, &#39;ssi_ben&#39;,
-       &#39;market_income&#39;, &#39;bens&#39;, &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;],
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;other_ben&#39;, &#39;snap_ben&#39;, &#39;vet_ben&#39;, &#39;e02400&#39;, &#39;s006&#39;, &#39;aftertax_income&#39;,
+       &#39;XTOT&#39;, &#39;ssi_ben&#39;, &#39;tanf_ben&#39;, &#39;e02300&#39;, &#39;mcare_ben&#39;, &#39;wic_ben&#39;,
+       &#39;expanded_income&#39;, &#39;mcaid_ben&#39;, &#39;housing_ben&#39;, &#39;market_income&#39;, &#39;bens&#39;,
+       &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;],
       dtype=&#39;object&#39;)
 </pre></div>
 </div>
@@ -512,10 +512,10 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;XTOT&#39;, &#39;other_ben&#39;, &#39;e02400&#39;, &#39;s006&#39;, &#39;expanded_income&#39;,
-       &#39;aftertax_income&#39;, &#39;vet_ben&#39;, &#39;tanf_ben&#39;, &#39;mcare_ben&#39;, &#39;wic_ben&#39;,
-       &#39;housing_ben&#39;, &#39;snap_ben&#39;, &#39;mcaid_ben&#39;, &#39;e02300&#39;, &#39;ssi_ben&#39;,
-       &#39;market_income&#39;, &#39;bens&#39;, &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;, &#39;tpc_eci&#39;, &#39;vat&#39;],
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;other_ben&#39;, &#39;snap_ben&#39;, &#39;vet_ben&#39;, &#39;e02400&#39;, &#39;s006&#39;, &#39;aftertax_income&#39;,
+       &#39;XTOT&#39;, &#39;ssi_ben&#39;, &#39;tanf_ben&#39;, &#39;e02300&#39;, &#39;mcare_ben&#39;, &#39;wic_ben&#39;,
+       &#39;expanded_income&#39;, &#39;mcaid_ben&#39;, &#39;housing_ben&#39;, &#39;market_income&#39;, &#39;bens&#39;,
+       &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;, &#39;tpc_eci&#39;, &#39;vat&#39;],
       dtype=&#39;object&#39;)
 </pre></div>
 </div>
@@ -546,20 +546,20 @@ document.write(`
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>XTOT</th>
       <th>other_ben</th>
+      <th>snap_ben</th>
+      <th>vet_ben</th>
       <th>e02400</th>
       <th>s006</th>
-      <th>expanded_income</th>
       <th>aftertax_income</th>
-      <th>vet_ben</th>
-      <th>tanf_ben</th>
-      <th>mcare_ben</th>
-      <th>wic_ben</th>
-      <th>...</th>
-      <th>mcaid_ben</th>
-      <th>e02300</th>
+      <th>XTOT</th>
       <th>ssi_ben</th>
+      <th>tanf_ben</th>
+      <th>e02300</th>
+      <th>...</th>
+      <th>expanded_income</th>
+      <th>mcaid_ben</th>
+      <th>housing_ben</th>
       <th>market_income</th>
       <th>bens</th>
       <th>tax</th>
@@ -596,19 +596,19 @@ document.write(`
   <tbody>
     <tr>
       <th>192722</th>
-      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>381.90</td>
-      <td>-303140.163141</td>
       <td>-299540.163141</td>
+      <td>2.0</td>
       <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
       <td>0.0</td>
       <td>0.000000</td>
+      <td>...</td>
+      <td>-303140.163141</td>
+      <td>0.0</td>
       <td>0.0</td>
       <td>-303140.163141</td>
       <td>0.000000</td>
@@ -620,19 +620,19 @@ document.write(`
     </tr>
     <tr>
       <th>166558</th>
-      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>501.66</td>
-      <td>-235938.542464</td>
       <td>-232338.542464</td>
+      <td>2.0</td>
       <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
       <td>0.0</td>
       <td>5188.764042</td>
+      <td>...</td>
+      <td>-235938.542464</td>
+      <td>0.0</td>
       <td>0.0</td>
       <td>-241127.306506</td>
       <td>5188.764042</td>
@@ -644,19 +644,19 @@ document.write(`
     </tr>
     <tr>
       <th>12643</th>
-      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>414.87</td>
-      <td>-169432.325500</td>
       <td>-167632.325500</td>
+      <td>1.0</td>
       <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
       <td>0.0</td>
       <td>0.000000</td>
+      <td>...</td>
+      <td>-169432.325500</td>
+      <td>0.0</td>
       <td>0.0</td>
       <td>-169432.325500</td>
       <td>0.000000</td>
@@ -668,19 +668,19 @@ document.write(`
     </tr>
     <tr>
       <th>262111</th>
-      <td>2.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>585.69</td>
-      <td>-166304.985475</td>
       <td>-162704.985475</td>
+      <td>2.0</td>
       <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
       <td>0.0</td>
       <td>5724.820074</td>
+      <td>...</td>
+      <td>-166304.985475</td>
+      <td>0.0</td>
       <td>0.0</td>
       <td>-172029.805549</td>
       <td>5724.820074</td>
@@ -692,19 +692,19 @@ document.write(`
     </tr>
     <tr>
       <th>12729</th>
-      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>304.88</td>
-      <td>-158776.447320</td>
       <td>-156976.447320</td>
+      <td>1.0</td>
       <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
       <td>0.0</td>
       <td>0.000000</td>
+      <td>...</td>
+      <td>-158776.447320</td>
+      <td>0.0</td>
       <td>0.0</td>
       <td>-158776.447320</td>
       <td>0.000000</td>
@@ -744,20 +744,20 @@ document.write(`
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>XTOT</th>
       <th>other_ben</th>
+      <th>snap_ben</th>
+      <th>vet_ben</th>
       <th>e02400</th>
       <th>s006</th>
-      <th>expanded_income</th>
       <th>aftertax_income</th>
-      <th>vet_ben</th>
-      <th>tanf_ben</th>
-      <th>mcare_ben</th>
-      <th>wic_ben</th>
-      <th>...</th>
-      <th>mcaid_ben</th>
-      <th>e02300</th>
+      <th>XTOT</th>
       <th>ssi_ben</th>
+      <th>tanf_ben</th>
+      <th>e02300</th>
+      <th>...</th>
+      <th>expanded_income</th>
+      <th>mcaid_ben</th>
+      <th>housing_ben</th>
       <th>market_income</th>
       <th>bens</th>
       <th>tax</th>
@@ -793,124 +793,124 @@ document.write(`
   </thead>
   <tbody>
     <tr>
-      <th>38012</th>
-      <td>2.0</td>
-      <td>0.000000</td>
-      <td>22372.347518</td>
-      <td>184.51</td>
-      <td>74082.880824</td>
-      <td>75922.234236</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>14469.708379</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>37240.824928</td>
-      <td>36842.055897</td>
-      <td>-1839.353412</td>
-      <td>0.000185</td>
-      <td>0.000369</td>
-      <td>59613.172445</td>
-      <td>2733.200432</td>
-    </tr>
-    <tr>
-      <th>29630</th>
-      <td>3.0</td>
+      <th>255706</th>
       <td>0.000000</td>
       <td>0.000000</td>
-      <td>426.77</td>
-      <td>93571.131520</td>
-      <td>79912.527335</td>
       <td>0.0</td>
-      <td>0.0</td>
-      <td>0.000000</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>93571.131520</td>
-      <td>0.000000</td>
-      <td>13658.604185</td>
-      <td>0.000427</td>
-      <td>0.001280</td>
-      <td>93571.131520</td>
-      <td>2717.025929</td>
-    </tr>
-    <tr>
-      <th>211533</th>
-      <td>2.0</td>
-      <td>0.000000</td>
-      <td>0.000000</td>
-      <td>185.31</td>
-      <td>83995.181443</td>
-      <td>73397.531533</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.000000</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>83995.181443</td>
-      <td>0.000000</td>
-      <td>10597.649910</td>
-      <td>0.000185</td>
-      <td>0.000371</td>
-      <td>83995.181443</td>
-      <td>2642.311135</td>
-    </tr>
-    <tr>
-      <th>225424</th>
+      <td>11246.781231</td>
+      <td>950.64</td>
+      <td>13046.781231</td>
       <td>1.0</td>
-      <td>2094.656481</td>
-      <td>0.000000</td>
-      <td>456.40</td>
-      <td>5675.322641</td>
-      <td>7475.322641</td>
-      <td>0.0</td>
       <td>0.0</td>
       <td>0.000000</td>
       <td>0.0</td>
       <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
+      <td>11246.781231</td>
       <td>0.000000</td>
-      <td>5675.322641</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>11246.781231</td>
       <td>-1800.000000</td>
-      <td>0.000456</td>
-      <td>0.000456</td>
-      <td>5675.322641</td>
-      <td>291.537583</td>
+      <td>0.000951</td>
+      <td>0.000951</td>
+      <td>11246.781231</td>
+      <td>508.824468</td>
     </tr>
     <tr>
-      <th>61614</th>
-      <td>1.0</td>
+      <th>120473</th>
       <td>0.000000</td>
-      <td>11265.345682</td>
-      <td>1708.47</td>
-      <td>25735.054061</td>
-      <td>27535.054061</td>
+      <td>0.000000</td>
       <td>0.0</td>
+      <td>37465.246187</td>
+      <td>3647.29</td>
+      <td>108498.396893</td>
+      <td>2.0</td>
       <td>0.0</td>
-      <td>14469.708379</td>
+      <td>0.000000</td>
       <td>0.0</td>
       <td>...</td>
-      <td>0.0</td>
-      <td>0.0</td>
+      <td>109277.808706</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>42871.912512</td>
+      <td>66405.896194</td>
+      <td>779.411813</td>
+      <td>0.003647</td>
+      <td>0.007295</td>
+      <td>80337.158699</td>
+      <td>3905.942288</td>
+    </tr>
+    <tr>
+      <th>149300</th>
+      <td>0.000000</td>
+      <td>0.000000</td>
       <td>0.0</td>
       <td>0.000000</td>
-      <td>25735.054061</td>
-      <td>-1800.000000</td>
-      <td>0.001708</td>
-      <td>0.001708</td>
-      <td>11265.345682</td>
-      <td>1073.867108</td>
+      <td>1126.59</td>
+      <td>8488.796767</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>7200.489719</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>7200.489719</td>
+      <td>0.000000</td>
+      <td>-1288.307047</td>
+      <td>0.001127</td>
+      <td>0.001127</td>
+      <td>7200.489719</td>
+      <td>331.063074</td>
+    </tr>
+    <tr>
+      <th>199274</th>
+      <td>4598.753905</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>540.42</td>
+      <td>16300.315817</td>
+      <td>1.0</td>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>13400.315817</td>
+      <td>8801.561911</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>13400.315817</td>
+      <td>-2900.000000</td>
+      <td>0.000540</td>
+      <td>0.000540</td>
+      <td>4598.753905</td>
+      <td>635.712317</td>
+    </tr>
+    <tr>
+      <th>7433</th>
+      <td>21105.189283</td>
+      <td>4627.255264</td>
+      <td>0.0</td>
+      <td>374.565100</td>
+      <td>95.31</td>
+      <td>99481.245595</td>
+      <td>4.0</td>
+      <td>0.0</td>
+      <td>10481.550375</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>94381.245595</td>
+      <td>35207.469406</td>
+      <td>18312.077041</td>
+      <td>2004.631855</td>
+      <td>92376.613740</td>
+      <td>-5100.000000</td>
+      <td>0.000095</td>
+      <td>0.000381</td>
+      <td>38593.191876</td>
+      <td>3581.324841</td>
     </tr>
   </tbody>
 </table>
@@ -927,11 +927,10 @@ document.write(`
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;XTOT&#39;, &#39;other_ben&#39;, &#39;e02400&#39;, &#39;s006&#39;, &#39;expanded_income&#39;,
-       &#39;aftertax_income&#39;, &#39;vet_ben&#39;, &#39;tanf_ben&#39;, &#39;mcare_ben&#39;, &#39;wic_ben&#39;,
-       &#39;housing_ben&#39;, &#39;snap_ben&#39;, &#39;mcaid_ben&#39;, &#39;e02300&#39;, &#39;ssi_ben&#39;,
-       &#39;market_income&#39;, &#39;bens&#39;, &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;, &#39;tpc_eci&#39;, &#39;vat&#39;,
-       &#39;carbon_tax&#39;, &#39;ftt&#39;],
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;other_ben&#39;, &#39;snap_ben&#39;, &#39;vet_ben&#39;, &#39;e02400&#39;, &#39;s006&#39;, &#39;aftertax_income&#39;,
+       &#39;XTOT&#39;, &#39;ssi_ben&#39;, &#39;tanf_ben&#39;, &#39;e02300&#39;, &#39;mcare_ben&#39;, &#39;wic_ben&#39;,
+       &#39;expanded_income&#39;, &#39;mcaid_ben&#39;, &#39;housing_ben&#39;, &#39;market_income&#39;, &#39;bens&#39;,
+       &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;, &#39;tpc_eci&#39;, &#39;vat&#39;, &#39;carbon_tax&#39;, &#39;ftt&#39;],
       dtype=&#39;object&#39;)
 </pre></div>
 </div>
@@ -962,18 +961,18 @@ document.write(`
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>XTOT</th>
       <th>other_ben</th>
+      <th>snap_ben</th>
+      <th>vet_ben</th>
       <th>e02400</th>
       <th>s006</th>
-      <th>expanded_income</th>
       <th>aftertax_income</th>
-      <th>vet_ben</th>
-      <th>tanf_ben</th>
-      <th>mcare_ben</th>
-      <th>wic_ben</th>
-      <th>...</th>
+      <th>XTOT</th>
       <th>ssi_ben</th>
+      <th>tanf_ben</th>
+      <th>e02300</th>
+      <th>...</th>
+      <th>housing_ben</th>
       <th>market_income</th>
       <th>bens</th>
       <th>tax</th>
@@ -1011,124 +1010,124 @@ document.write(`
   </thead>
   <tbody>
     <tr>
-      <th>155204</th>
-      <td>1.0</td>
-      <td>2047.204716</td>
-      <td>0.0</td>
-      <td>1260.81</td>
-      <td>5868.601673</td>
-      <td>7668.601673</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>321.489497</td>
-      <td>5547.112176</td>
-      <td>-1800.000000</td>
-      <td>0.001261</td>
-      <td>0.001261</td>
-      <td>5868.601673</td>
-      <td>299.075465</td>
-      <td>61.348813</td>
-      <td>7.668602</td>
-    </tr>
-    <tr>
-      <th>30667</th>
-      <td>1.0</td>
+      <th>273165</th>
+      <td>19959.56810</td>
       <td>0.000000</td>
       <td>0.0</td>
-      <td>1470.09</td>
-      <td>8397.215641</td>
-      <td>9003.742354</td>
       <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>8397.215641</td>
-      <td>0.000000</td>
-      <td>-606.526713</td>
-      <td>0.001470</td>
-      <td>0.001470</td>
-      <td>8397.215641</td>
-      <td>351.145952</td>
-      <td>72.029939</td>
-      <td>9.003742</td>
-    </tr>
-    <tr>
-      <th>226329</th>
-      <td>1.0</td>
-      <td>0.000000</td>
-      <td>0.0</td>
-      <td>387.93</td>
-      <td>26379.564136</td>
-      <td>23565.374668</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>26379.564136</td>
-      <td>0.000000</td>
-      <td>2814.189468</td>
-      <td>0.000388</td>
-      <td>0.000388</td>
-      <td>26379.564136</td>
-      <td>848.353488</td>
-      <td>329.915245</td>
-      <td>23.565375</td>
-    </tr>
-    <tr>
-      <th>151387</th>
-      <td>1.0</td>
-      <td>0.000000</td>
-      <td>0.0</td>
-      <td>570.69</td>
-      <td>17407.265692</td>
-      <td>16620.926261</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>...</td>
-      <td>0.0</td>
-      <td>17407.265692</td>
-      <td>0.000000</td>
-      <td>786.339431</td>
-      <td>0.000571</td>
-      <td>0.000571</td>
-      <td>17407.265692</td>
-      <td>648.216124</td>
-      <td>199.451115</td>
-      <td>16.620926</td>
-    </tr>
-    <tr>
-      <th>221446</th>
+      <td>1501.69</td>
+      <td>77406.714843</td>
       <td>3.0</td>
+      <td>9680.980099</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>13610.712479</td>
+      <td>56046.455694</td>
+      <td>-7749.546670</td>
+      <td>0.001502</td>
+      <td>0.004505</td>
+      <td>43251.260678</td>
+      <td>2786.641734</td>
+      <td>1238.507437</td>
+      <td>77.406715</td>
+    </tr>
+    <tr>
+      <th>242605</th>
+      <td>0.00000</td>
       <td>0.000000</td>
       <td>0.0</td>
-      <td>214.63</td>
+      <td>0.0</td>
+      <td>578.42</td>
+      <td>1800.000000</td>
+      <td>1.0</td>
       <td>0.000000</td>
-      <td>4700.000000</td>
-      <td>0.0</td>
-      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>...</td>
       <td>0.0</td>
       <td>0.000000</td>
       <td>0.000000</td>
-      <td>-4700.000000</td>
-      <td>0.000215</td>
-      <td>0.000644</td>
+      <td>-1800.000000</td>
+      <td>0.000578</td>
+      <td>0.000578</td>
       <td>0.000000</td>
-      <td>183.300000</td>
-      <td>37.600000</td>
-      <td>4.700000</td>
+      <td>70.200000</td>
+      <td>14.400000</td>
+      <td>1.800000</td>
+    </tr>
+    <tr>
+      <th>234575</th>
+      <td>0.00000</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>617.96</td>
+      <td>1800.000000</td>
+      <td>1.0</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>-1800.000000</td>
+      <td>0.000618</td>
+      <td>0.000618</td>
+      <td>0.000000</td>
+      <td>70.200000</td>
+      <td>14.400000</td>
+      <td>1.800000</td>
+    </tr>
+    <tr>
+      <th>241877</th>
+      <td>0.00000</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>420.58</td>
+      <td>27079.984194</td>
+      <td>2.0</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>27451.709757</td>
+      <td>0.000000</td>
+      <td>371.725563</td>
+      <td>0.000421</td>
+      <td>0.000841</td>
+      <td>27451.709757</td>
+      <td>974.879431</td>
+      <td>379.119779</td>
+      <td>27.079984</td>
+    </tr>
+    <tr>
+      <th>125186</th>
+      <td>10782.39676</td>
+      <td>2707.599129</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>670.24</td>
+      <td>70117.432411</td>
+      <td>2.0</td>
+      <td>0.000000</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>...</td>
+      <td>0.0</td>
+      <td>42432.423035</td>
+      <td>31622.573833</td>
+      <td>3937.564458</td>
+      <td>0.000670</td>
+      <td>0.001340</td>
+      <td>55922.418925</td>
+      <td>2524.227567</td>
+      <td>1191.996351</td>
+      <td>70.117432</td>
     </tr>
   </tbody>
 </table>
@@ -1147,11 +1146,11 @@ document.write(`
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Multiplying tax by 1.08.
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;XTOT&#39;, &#39;other_ben&#39;, &#39;e02400&#39;, &#39;s006&#39;, &#39;expanded_income&#39;,
-       &#39;aftertax_income&#39;, &#39;vet_ben&#39;, &#39;tanf_ben&#39;, &#39;mcare_ben&#39;, &#39;wic_ben&#39;,
-       &#39;housing_ben&#39;, &#39;snap_ben&#39;, &#39;mcaid_ben&#39;, &#39;e02300&#39;, &#39;ssi_ben&#39;,
-       &#39;market_income&#39;, &#39;bens&#39;, &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;, &#39;tpc_eci&#39;, &#39;vat&#39;,
-       &#39;carbon_tax&#39;, &#39;ftt&#39;, &#39;vat2&#39;],
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Index([&#39;other_ben&#39;, &#39;snap_ben&#39;, &#39;vet_ben&#39;, &#39;e02400&#39;, &#39;s006&#39;, &#39;aftertax_income&#39;,
+       &#39;XTOT&#39;, &#39;ssi_ben&#39;, &#39;tanf_ben&#39;, &#39;e02300&#39;, &#39;mcare_ben&#39;, &#39;wic_ben&#39;,
+       &#39;expanded_income&#39;, &#39;mcaid_ben&#39;, &#39;housing_ben&#39;, &#39;market_income&#39;, &#39;bens&#39;,
+       &#39;tax&#39;, &#39;s006_m&#39;, &#39;XTOT_m&#39;, &#39;tpc_eci&#39;, &#39;vat&#39;, &#39;carbon_tax&#39;, &#39;ftt&#39;,
+       &#39;vat2&#39;],
       dtype=&#39;object&#39;)
 </pre></div>
 </div>
