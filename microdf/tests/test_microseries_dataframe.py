@@ -105,8 +105,6 @@ def test_multiple_groupby() -> None:
     assert (df.groupby(["x", "y"]).z.sum() == np.array([5, 6])).all()
 
 
-
-
 def test_set_index() -> None:
     d = mdf.MicroDataFrame(dict(x=[1, 2, 3]), weights=[4, 5, 6])
     assert d.x.__class__ == MicroSeries
