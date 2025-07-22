@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [0.6.0] - 2025-07-22 16:16:51
+
 ## [0.5.0] - 2025-07-22 15:08:32
 
 ### Added
@@ -36,6 +38,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 
 
+[0.6.0]: https://github.com/PolicyEngine/microcalibrate/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/PolicyEngine/microcalibrate/compare/0.4.7...0.5.0
 [0.4.7]: https://github.com/PolicyEngine/microcalibrate/compare/0.4.6...0.4.7
 [0.4.6]: https://github.com/PolicyEngine/microcalibrate/compare/0.4.5...0.4.6
