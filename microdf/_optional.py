@@ -7,9 +7,7 @@ from typing import Optional, Union
 # Adapted from:
 # https://github.com/pandas-dev/pandas/blob/master/pandas/compat/_optional.py
 
-VERSIONS = {
-    "taxcalc": "2.0.0",
-}
+VERSIONS = {}
 
 
 def _get_version(module: types.ModuleType) -> str:
