@@ -44,7 +44,7 @@ line_length = 79
 
 [tool.black]
 line-length = 79
-target-version = ["py311"]
+target-version = ["py313"]
 
 [tool.flake8]
 max-line-length = 79

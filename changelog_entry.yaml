@@ -12,3 +12,5 @@
     - Update README with clearer documentation and usage examples.
     - Version bumped to 1.0.0 to reflect major breaking changes.
     - Remove pip from dev dependencies as it's not needed.
+    - Update to Python 3.13 as main version, supporting Python 3.9+.
+    - Test against Python 3.9, 3.10, 3.11, 3.12, and 3.13 in CI.

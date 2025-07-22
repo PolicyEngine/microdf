@@ -1,4 +1,4 @@
-[![Build](https://github.com/PolicyEngine/microdf/workflows/Build%20and%20test%20[Python%203.9+]/badge.svg)](https://github.com/PolicyEngine/microdf/actions)
+[![Build](https://github.com/PolicyEngine/microdf/workflows/Pull%20request/badge.svg)](https://github.com/PolicyEngine/microdf/actions)
 [![Codecov](https://codecov.io/gh/PolicyEngine/microdf/branch/master/graph/badge.svg)](https://codecov.io/gh/PolicyEngine/microdf)
 
 # microdf

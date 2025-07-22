@@ -14,7 +14,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         with:
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
           version: "latest"
       - name: Install dependencies
         run: |
-          uv pip install -e ".[dev,taxcalc]" --system
+          uv pip install -e ".[dev]" --system
       - name: Run tests with coverage
         run: make test
       - name: Upload coverage to Codecov
@@ -64,14 +64,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.13'
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         with:
           version: "latest"
       - name: Install dependencies
         run: |
-          uv pip install -e ".[dev,docs,taxcalc]" --system
+          uv pip install -e ".[dev,docs]" --system
       - name: Build Jupyter Book
         run: |
           jb build docs/.
