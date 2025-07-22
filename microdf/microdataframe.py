@@ -114,7 +114,8 @@ class MicroDataFrame(pd.DataFrame):
 
     def _link_all_weights(self) -> None:
         if self.weights is None:
-            self.set_weights(np.ones((len(self))))
+            if len(self) > 0:
+                self.set_weights(np.ones((len(self))))
         for column in self.columns:
             if column != self.weights_col:
                 self._link_weights(column)
@@ -139,6 +140,11 @@ class MicroDataFrame(pd.DataFrame):
             self.weights_col = weights
             self.weights = pd.Series(self[weights], dtype=float)
         elif weights is not None:
+            if len(weights) != len(self):
+                raise ValueError(
+                    f"Length of weights ({len(weights)}) does not match "
+                    f"length of DataFrame ({len(self)})."
+                )
             self.weights_col = None
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UserWarning)

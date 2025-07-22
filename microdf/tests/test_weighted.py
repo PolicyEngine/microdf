@@ -15,7 +15,7 @@ df2.x *= 2
 df2.y *= 1.5
 dfg = pd.concat([df, df2])
 dfg["g"] = ["a"] * 3 + ["b"] * 3
-mdg = mdf.MicroDataFrame(dfg[["x", "y", "g"]], weights=W)
+mdg = mdf.MicroDataFrame(dfg[["x", "y", "g"]], weights=dfg["w"])
 
 
 def test_weighted_quantile() -> None:
@@ -31,7 +31,7 @@ def test_weighted_median() -> None:
 
 
 def test_weighted_mean() -> None:
-    # Test umweighted.
+    # Test unweighted.
     assert mdf.weighted_mean(df, "x") == 8 / 3
     # Test weighted.
     assert mdf.weighted_mean(df, "x", "w") == 11 / 6

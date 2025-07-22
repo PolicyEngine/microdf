@@ -50,8 +50,17 @@ class MicroSeries(pd.Series):
         :type weights: np.array.
         """
         if weights is None:
-            self.weights = pd.Series(np.ones_like(self.values), dtype=float)
+            if len(self) > 0:
+                self.weights = pd.Series(
+                    np.ones_like(self.values), dtype=float
+                )
         else:
+            if len(weights) != len(self):
+                raise ValueError(
+                    f"Length of weights ({len(weights)}) does not match "
+                    f"length of DataFrame ({len(self)})."
+                )
+
             if preserve_old and self.weights is not None:
                 self["old_weights"] = self.weights
 

@@ -80,9 +80,10 @@ def test_mean() -> None:
 def test_poverty_count() -> None:
     arr = np.array([10000, 20000, 50000])
     w = np.array([1123, 1144, 2211])
-    df = MicroDataFrame(weights=w)
+    df = pd.DataFrame()
     df["income"] = arr
     df["threshold"] = 16000
+    df = MicroDataFrame(df, weights=w)
     assert df.poverty_count("income", "threshold") == w[0]
 
 
@@ -171,10 +172,10 @@ def test_quintile_rank() -> None:
     assert np.array_equal(s.quintile_rank().values, [5, 3, 4])
 
 
-def test_decile_rank_rank() -> None:
+def test_decile_rank() -> None:
     s = mdf.MicroSeries(
         [5, 4, 3, 2, 1, 6, 7, 8, 9],
-        weights=[10, 20, 10, 10, 10, 10, 10, 10, 10, 10],
+        weights=[10, 20, 10, 10, 10, 10, 10, 10, 10],
     )
     assert np.array_equal(s.decile_rank().values, [6, 5, 3, 2, 1, 7, 8, 9, 10])
 
