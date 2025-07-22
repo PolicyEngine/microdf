@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 
 import microdf as mdf
-from microdf.generic import MicroDataFrame, MicroSeries
+from microdf.microdataframe import MicroDataFrame
+from microdf.microseries import MicroSeries
 
 
 def test_df_init() -> None:
@@ -79,9 +80,10 @@ def test_mean() -> None:
 def test_poverty_count() -> None:
     arr = np.array([10000, 20000, 50000])
     w = np.array([1123, 1144, 2211])
-    df = MicroDataFrame(weights=w)
+    df = pd.DataFrame()
     df["income"] = arr
     df["threshold"] = 16000
+    df = MicroDataFrame(df, weights=w)
     assert df.poverty_count("income", "threshold") == w[0]
 
 
@@ -170,10 +172,10 @@ def test_quintile_rank() -> None:
     assert np.array_equal(s.quintile_rank().values, [5, 3, 4])
 
 
-def test_decile_rank_rank() -> None:
+def test_decile_rank() -> None:
     s = mdf.MicroSeries(
         [5, 4, 3, 2, 1, 6, 7, 8, 9],
-        weights=[10, 20, 10, 10, 10, 10, 10, 10, 10, 10],
+        weights=[10, 20, 10, 10, 10, 10, 10, 10, 10],
     )
     assert np.array_equal(s.decile_rank().values, [6, 5, 3, 2, 1, 7, 8, 9, 10])
 
@@ -230,3 +232,59 @@ def test_additional_ops_return_microseries() -> None:
     assert isinstance(radd, mdf.MicroSeries)
     assert isinstance(xor, mdf.MicroSeries)
     assert isinstance(inv, mdf.MicroSeries)
+
+
+def test_reset_index_inplace() -> None:
+    df = pd.DataFrame(
+        {"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=["a", "b", "c", "d"]
+    )
+    weights = np.array([0.1, 0.2, 0.3, 0.4])
+    mdf = MicroDataFrame(df, weights=weights)
+
+    # Test 1: reset_index with inplace=False (default)
+    mdf_copy = mdf.copy()
+    result = mdf_copy.reset_index()
+    assert list(mdf_copy.index) == ["a", "b", "c", "d"]
+    assert list(result.index) == [0, 1, 2, 3]
+    assert "index" in result.columns
+    assert list(result["index"]) == ["a", "b", "c", "d"]
+    np.testing.assert_array_equal(result.weights.values, weights)
+
+    # Test 2: reset_index with inplace=True
+    mdf_copy = mdf.copy()
+    result = mdf_copy.reset_index(inplace=True)
+    assert result is None
+    assert list(mdf_copy.index) == [0, 1, 2, 3]
+    assert "index" in mdf_copy.columns
+    assert list(mdf_copy["index"]) == ["a", "b", "c", "d"]
+    np.testing.assert_array_equal(mdf_copy.weights.values, weights)
+    assert isinstance(mdf_copy["A"], MicroSeries)
+    assert isinstance(mdf_copy["B"], MicroSeries)
+    assert isinstance(mdf_copy["index"], MicroSeries)
+
+    # Test 3: reset_index with drop=True
+    mdf_copy = mdf.copy()
+    mdf_copy.reset_index(drop=True, inplace=True)
+    assert list(mdf_copy.index) == [0, 1, 2, 3]
+    assert "index" not in mdf_copy.columns
+    assert list(mdf_copy.columns) == ["A", "B"]
+    np.testing.assert_array_equal(mdf_copy.weights.values, weights)
+
+    # Test 4: Multi-level index
+    arrays = [["bar", "bar", "baz", "baz"], ["one", "two", "one", "two"]]
+    multi_index = pd.MultiIndex.from_arrays(arrays, names=["first", "second"])
+    df_multi = pd.DataFrame(
+        {"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=multi_index
+    )
+    mdf_multi = MicroDataFrame(df_multi, weights=weights)
+    result = mdf_multi.reset_index(level="first")
+    assert "first" in result.columns
+    assert result.index.name == "second"
+    np.testing.assert_array_equal(result.weights.values, weights)
+
+    # Reset all levels in place
+    mdf_multi.reset_index(inplace=True)
+    assert "first" in mdf_multi.columns
+    assert "second" in mdf_multi.columns
+    assert list(mdf_multi.index) == [0, 1, 2, 3]
+    np.testing.assert_array_equal(mdf_multi.weights.values, weights)

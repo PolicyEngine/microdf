@@ -19,6 +19,10 @@ test:
 install:
 	pip install -e ".[dev]"
 
+build:
+	pip install build
+	python -m build --wheel --sdist
+
 changelog:
 	build-changelog changelog.yaml --output changelog.yaml --update-last-date --start-from 0.4.5 --append-file changelog_entry.yaml
 	build-changelog changelog.yaml --org PolicyEngine --repo microcalibrate --output CHANGELOG.md --template .github/changelog_template.md
