@@ -7,3 +7,7 @@
     - Remove _optional module as it's no longer needed.
     - Remove associated test files for deleted modules.
     - Simplify package to focus on core weighted data structures used by PolicyEngine.
+    changed:
+    - Update package description to reflect focused scope on weighted DataFrames and Series.
+    - Update README with clearer documentation and usage examples.
+    - Version bumped to 1.0.0 to reflect major breaking changes.
