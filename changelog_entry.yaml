@@ -11,3 +11,4 @@
     - Update package description to reflect focused scope on weighted DataFrames and Series.
     - Update README with clearer documentation and usage examples.
     - Version bumped to 1.0.0 to reflect major breaking changes.
+    - Remove pip from dev dependencies as it's not needed.

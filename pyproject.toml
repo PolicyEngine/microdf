@@ -26,7 +26,6 @@ dev = [
     "docformatter",
     "isort",
     "linecheck",
-    "pip",
     "pytest",
     "pytest-cov",
     "setuptools",
