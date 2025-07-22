@@ -47,13 +47,6 @@ from .poverty import (
     squared_poverty_gap,
 )
 from .tax import mtr, tax_from_mtrs
-from .taxcalc import (
-    add_weighted_metrics,
-    calc_df,
-    n65,
-    recalculate,
-    static_baseline_calc,
-)
 from .ubi import ubi_or_bens
 from .utils import (
     cartesian_product,
@@ -129,12 +122,6 @@ __all__ = [
     # tax.py
     "mtr",
     "tax_from_mtrs",
-    # taxcalc.py
-    "static_baseline_calc",
-    "add_weighted_metrics",
-    "n65",
-    "calc_df",
-    "recalculate",
     # ubi.py
     "ubi_or_bens",
     # utils.py

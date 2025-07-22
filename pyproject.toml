@@ -34,9 +34,6 @@ dev = [
 docs = [
     "jupyter_book",
 ]
-taxcalc = [
-    "taxcalc",
-]
 
 [tool.setuptools.packages.find]
 where = ["."]

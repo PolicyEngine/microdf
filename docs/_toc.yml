@@ -3,9 +3,4 @@ root: home
 sections:
 - file: examples
   sections:
-  - file: agg
-  - file: custom_taxes
-  - file: demo
   - file: gini
-  - file: income_measures
-  - file: weighting
