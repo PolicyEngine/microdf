@@ -24,6 +24,15 @@ def test_df_init() -> None:
     assert df.a.mean() == np.average(arr, weights=w)
 
 
+def test_handles_empty_index() -> None:
+    arr = np.array([0, 1, 1])
+    w = np.array([3, 0, 9])
+    df = mdf.MicroDataFrame({"a": arr}, weights=w)
+
+    empty_index = pd.Index([])
+    df[empty_index]  # Implicit assert; checking for ValueError
+
+
 def test_series_getitem() -> None:
     arr = np.array([0, 1, 1])
     w = np.array([3, 0, 9])
