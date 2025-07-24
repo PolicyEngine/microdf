@@ -4,6 +4,7 @@
 - All files must end with a newline character
 - **ALWAYS run `make format` before committing** - this will auto-fix most style issues
 - Run `make lint` after formatting to check if there are any remaining issues
+- **IMPORTANT**: `make format` will fail if there are lines over 79 characters that black can't fix (usually in strings/comments). You must manually break these lines.
 
 ## Changelog Requirements
 - Every PR must include a `changelog_entry.yaml` file at the root
