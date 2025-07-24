@@ -37,7 +37,7 @@ jobs:
                 message: Update package version
     publish-to-pypi:
       name: Publish to PyPI
-      needs: test
+      if: (github.event.head_commit.message == 'Update package version')
       runs-on: ubuntu-latest
       steps:
         - name: Checkout code
