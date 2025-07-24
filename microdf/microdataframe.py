@@ -44,14 +44,15 @@ class MicroDataFrame(pd.DataFrame):
         """
 
         def fn(*args, **kwargs) -> pd.Series:
-            results = pd.Series(
-                [
-                    getattr(self[col], name)(*args, **kwargs)
-                    for col in self.columns
-                ]
-            )
-            results.index = self.columns
-            return results
+            results = {}
+            for col in self.columns:
+                if pd.api.types.is_numeric_dtype(self[col]):
+                    try:
+                        results[col] = getattr(self[col], name)(*args, **kwargs)
+                    except Exception:
+                        # Skip columns that can't be aggregated
+                        pass
+            return pd.Series(results)
 
         return fn
 
@@ -63,14 +64,24 @@ class MicroDataFrame(pd.DataFrame):
         """
 
         def fn(*args, **kwargs) -> pd.DataFrame:
-            results = pd.DataFrame(
-                [
-                    getattr(self[col], name)(*args, **kwargs)
-                    for col in self.columns
-                ]
-            )
-            results.index = self.columns
-            return results
+            results = []
+            columns = []
+            for col in self.columns:
+                if pd.api.types.is_numeric_dtype(self[col]):
+                    try:
+                        result = getattr(self[col], name)(*args, **kwargs)
+                        results.append(result)
+                        columns.append(col)
+                    except Exception:
+                        # Skip columns that can't be aggregated
+                        pass
+            
+            if results:
+                df = pd.DataFrame(results)
+                df.index = columns
+                return df
+            else:
+                return pd.DataFrame()
 
         return fn
 
@@ -88,24 +99,35 @@ class MicroDataFrame(pd.DataFrame):
 
             if is_array:
                 # Use vector function behavior
-                results = pd.DataFrame(
-                    [
-                        getattr(self[col], name)(*args, **kwargs)
-                        for col in self.columns
-                    ]
-                )
-                results.index = self.columns
-                return results
+                results = []
+                columns = []
+                for col in self.columns:
+                    if pd.api.types.is_numeric_dtype(self[col]):
+                        try:
+                            result = getattr(self[col], name)(*args, **kwargs)
+                            results.append(result)
+                            columns.append(col)
+                        except Exception:
+                            # Skip columns that can't be aggregated
+                            pass
+                
+                if results:
+                    df = pd.DataFrame(results)
+                    df.index = columns
+                    return df
+                else:
+                    return pd.DataFrame()
             else:
                 # Use scalar function behavior
-                results = pd.Series(
-                    [
-                        getattr(self[col], name)(*args, **kwargs)
-                        for col in self.columns
-                    ]
-                )
-                results.index = self.columns
-                return results
+                results = {}
+                for col in self.columns:
+                    if pd.api.types.is_numeric_dtype(self[col]):
+                        try:
+                            results[col] = getattr(self[col], name)(*args, **kwargs)
+                        except Exception:
+                            # Skip columns that can't be aggregated
+                            pass
+                return pd.Series(results)
 
         return fn
 
@@ -601,18 +623,25 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
         elif isinstance(by, str):
             self.columns.remove(by)
         self.columns.remove("__tmp_weights")
+        # Filter to only numeric columns
+        self.numeric_columns = [
+            col for col in self.columns 
+            if pd.api.types.is_numeric_dtype(self.obj[col])
+        ]
         for fn_name in MicroSeries.SCALAR_FUNCTIONS:
 
             def get_fn(name):
                 def fn(*args, **kwargs):
-                    return MicroDataFrame(
-                        {
-                            col: getattr(getattr(self, col), name)(
+                    results = {}
+                    for col in self.numeric_columns:
+                        try:
+                            results[col] = getattr(getattr(self, col), name)(
                                 *args, **kwargs
                             )
-                            for col in self.columns
-                        }
-                    )
+                        except Exception:
+                            # Skip columns that can't be aggregated
+                            pass
+                    return MicroDataFrame(results) if results else MicroDataFrame()
 
                 return fn
 
@@ -621,14 +650,16 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
 
             def get_fn(name) -> Callable:
                 def fn(*args, **kwargs) -> Union[pd.Series, pd.DataFrame]:
-                    return MicroDataFrame(
-                        {
-                            col: getattr(getattr(self, col), name)(
+                    results = {}
+                    for col in self.numeric_columns:
+                        try:
+                            results[col] = getattr(getattr(self, col), name)(
                                 *args, **kwargs
                             )
-                            for col in self.columns
-                        }
-                    )
+                        except Exception:
+                            # Skip columns that can't be aggregated
+                            pass
+                    return MicroDataFrame(results) if results else MicroDataFrame()
 
                 return fn
 
