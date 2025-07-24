@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Move publishing to pypi to after versioning job.
