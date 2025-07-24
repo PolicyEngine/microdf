@@ -22,6 +22,14 @@ def test_df_init() -> None:
     df["w"] = w
     df.set_weight_col("w")
     assert df.a.mean() == np.average(arr, weights=w)
+    
+    # Test set_weights with string (column name)
+    df2 = mdf.MicroDataFrame()
+    df2["a"] = arr
+    df2["w"] = w
+    df2.set_weights("w")  # Using string column name instead of set_weight_col
+    assert df2.a.mean() == np.average(arr, weights=w)
+    assert np.array_equal(df2.weights.values, w)
 
 
 def test_handles_empty_index() -> None:

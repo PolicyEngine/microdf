@@ -225,11 +225,23 @@ class MicroDataFrame(pd.DataFrame):
         """Sets the weights for the MicroDataFrame by specifying the name of
         the weight column.
 
-        :param weights: Array of weights.
+        .. deprecated:: 1.0.2
+            Use :meth:`set_weights` with a string argument instead.
+            This method will be removed in a future version.
+
+        :param column: Name of the column to use as weights.
         :param preserve_old: If True, keeps the old weights as a column when
             new weights are provided.
-        :type weights: np.array
+        :type column: str
         """
+        import warnings
+        warnings.warn(
+            "set_weight_col is deprecated and will be removed in a future version. "
+            "Use set_weights(column_name) instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        
         if preserve_old and self.weights_col is not None:
             self["old_" + self.weights_col] = self.weights
 
