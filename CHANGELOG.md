@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.0.1] - 2025-07-24 02:03:31
+
+### Fixed
+
+- Allowed a MicroDataFrame to handle an empty index subset
+
 ## [1.0.0] - 2025-07-22 19:04:55
 
 ### Changed
@@ -49,6 +55,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 
 
+[1.0.1]: https://github.com/PolicyEngine/microcalibrate/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/PolicyEngine/microcalibrate/compare/0.6.0...1.0.0
 [0.6.0]: https://github.com/PolicyEngine/microcalibrate/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/PolicyEngine/microcalibrate/compare/0.4.7...0.5.0

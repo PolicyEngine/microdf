@@ -53,3 +53,8 @@
     - Remove associated test files for deleted modules.
     - Simplify package to focus on core weighted data structures used by PolicyEngine.
   date: 2025-07-22 19:04:55
+- bump: patch
+  changes:
+    fixed:
+    - Allowed a MicroDataFrame to handle an empty index subset
+  date: 2025-07-24 02:03:31
