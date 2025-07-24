@@ -1,4 +1,13 @@
 - bump: patch
   changes:
-    changed:
-    - Move publishing to pypi to after versioning job.
+    fixed:
+    - MicroDataFrame.merge() now works correctly by implementing inplace support for the drop() method
+    - merge() now returns a MicroDataFrame instead of a regular DataFrame (Fixes #194)
+    - MicroDataFrame aggregation functions now skip non-numeric columns instead of raising errors (Fixes #213)
+    added:
+    - __getattr__ method to MicroDataFrame for intuitive column access via dot notation (Fixes #220)
+    - Full pandas argument support to drop() and merge() methods (Addresses #212)
+    - nullify_weights() method to both MicroDataFrame and MicroSeries to set all weights to 1 (Fixes #176)
+    - Test coverage for set_weights() with string column name argument
+    deprecated:
+    - set_weight_col() method - use set_weights() with a string argument instead (Fixes #208)

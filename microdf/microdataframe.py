@@ -44,14 +44,17 @@ class MicroDataFrame(pd.DataFrame):
         """
 
         def fn(*args, **kwargs) -> pd.Series:
-            results = pd.Series(
-                [
-                    getattr(self[col], name)(*args, **kwargs)
-                    for col in self.columns
-                ]
-            )
-            results.index = self.columns
-            return results
+            results = {}
+            for col in self.columns:
+                if pd.api.types.is_numeric_dtype(self[col]):
+                    try:
+                        results[col] = getattr(self[col], name)(
+                            *args, **kwargs
+                        )
+                    except Exception:
+                        # Skip columns that can't be aggregated
+                        pass
+            return pd.Series(results)
 
         return fn
 
@@ -63,14 +66,24 @@ class MicroDataFrame(pd.DataFrame):
         """
 
         def fn(*args, **kwargs) -> pd.DataFrame:
-            results = pd.DataFrame(
-                [
-                    getattr(self[col], name)(*args, **kwargs)
-                    for col in self.columns
-                ]
-            )
-            results.index = self.columns
-            return results
+            results = []
+            columns = []
+            for col in self.columns:
+                if pd.api.types.is_numeric_dtype(self[col]):
+                    try:
+                        result = getattr(self[col], name)(*args, **kwargs)
+                        results.append(result)
+                        columns.append(col)
+                    except Exception:
+                        # Skip columns that can't be aggregated
+                        pass
+
+            if results:
+                df = pd.DataFrame(results)
+                df.index = columns
+                return df
+            else:
+                return pd.DataFrame()
 
         return fn
 
@@ -88,24 +101,37 @@ class MicroDataFrame(pd.DataFrame):
 
             if is_array:
                 # Use vector function behavior
-                results = pd.DataFrame(
-                    [
-                        getattr(self[col], name)(*args, **kwargs)
-                        for col in self.columns
-                    ]
-                )
-                results.index = self.columns
-                return results
+                results = []
+                columns = []
+                for col in self.columns:
+                    if pd.api.types.is_numeric_dtype(self[col]):
+                        try:
+                            result = getattr(self[col], name)(*args, **kwargs)
+                            results.append(result)
+                            columns.append(col)
+                        except Exception:
+                            # Skip columns that can't be aggregated
+                            pass
+
+                if results:
+                    df = pd.DataFrame(results)
+                    df.index = columns
+                    return df
+                else:
+                    return pd.DataFrame()
             else:
                 # Use scalar function behavior
-                results = pd.Series(
-                    [
-                        getattr(self[col], name)(*args, **kwargs)
-                        for col in self.columns
-                    ]
-                )
-                results.index = self.columns
-                return results
+                results = {}
+                for col in self.columns:
+                    if pd.api.types.is_numeric_dtype(self[col]):
+                        try:
+                            results[col] = getattr(self[col], name)(
+                                *args, **kwargs
+                            )
+                        except Exception:
+                            # Skip columns that can't be aggregated
+                            pass
+                return pd.Series(results)
 
         return fn
 
@@ -185,6 +211,7 @@ class MicroDataFrame(pd.DataFrame):
         if isinstance(weights, str):
             self.weights_col = weights
             self.weights = pd.Series(self[weights], dtype=float)
+            self._link_all_weights()
         elif weights is not None:
             if len(weights) != len(self):
                 raise ValueError(
@@ -203,16 +230,38 @@ class MicroDataFrame(pd.DataFrame):
         """Sets the weights for the MicroDataFrame by specifying the name of
         the weight column.
 
-        :param weights: Array of weights.
+        .. deprecated:: 1.0.2
+            Use :meth:`set_weights` with a string argument instead.
+            This method will be removed in a future version.
+
+        :param column: Name of the column to use as weights.
         :param preserve_old: If True, keeps the old weights as a column when
             new weights are provided.
-        :type weights: np.array
+        :type column: str
         """
+        import warnings
+
+        warnings.warn(
+            "set_weight_col is deprecated and will be removed in a "
+            "future version. Use set_weights(column_name) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         if preserve_old and self.weights_col is not None:
             self["old_" + self.weights_col] = self.weights
 
         self.weights = np.array(self[column])
         self.weights_col = column
+        self._link_all_weights()
+
+    def nullify_weights(self) -> None:
+        """Set all weights to 1, effectively making the DataFrame unweighted.
+
+        This is useful for comparing weighted and unweighted statistics or when
+        you want to temporarily ignore weights.
+        """
+        self.weights = np.ones(len(self))
         self._link_all_weights()
 
     def __getitem__(
@@ -302,6 +351,138 @@ class MicroDataFrame(pd.DataFrame):
             self[col] = MicroSeries(self[col])
         res = MicroDataFrame(res, weights=self.weights.copy(deep))
         return res
+
+    def drop(
+        self,
+        labels=None,
+        axis=0,
+        index=None,
+        columns=None,
+        level=None,
+        inplace=False,
+        errors="raise",
+    ):
+        """Drop specified labels from rows or columns.
+
+        This method supports all parameters of pandas DataFrame.drop(),
+        including the 'inplace' parameter.
+
+        :param labels: Index or column labels to drop.
+        :param axis: Whether to drop labels from the index (0 or 'index') or
+            columns (1 or 'columns').
+        :param index: Alternative to specifying axis (labels, axis=0 is
+            equivalent to index=labels).
+        :param columns: Alternative to specifying axis (labels, axis=1 is
+            equivalent to columns=labels).
+        :param level: For MultiIndex, level from which the labels will be
+            removed.
+        :param inplace: If False, return a copy. Otherwise, do operation
+            inplace and return None.
+        :param errors: If 'ignore', suppress error and only existing labels are
+            dropped.
+        :return: MicroDataFrame or None if inplace=True.
+        """
+        if inplace:
+            weights_backup = self.weights.copy()
+            # Perform in-place drop on the parent DataFrame
+            super().drop(
+                labels=labels,
+                axis=axis,
+                index=index,
+                columns=columns,
+                level=level,
+                inplace=True,
+                errors=errors,
+            )
+            self.weights = weights_backup
+            self._link_all_weights()
+            return None
+        else:
+            res = super().drop(
+                labels=labels,
+                axis=axis,
+                index=index,
+                columns=columns,
+                level=level,
+                inplace=False,
+                errors=errors,
+            )
+            return MicroDataFrame(res, weights=self.weights)
+
+    def merge(
+        self,
+        right,
+        how="inner",
+        on=None,
+        left_on=None,
+        right_on=None,
+        left_index=False,
+        right_index=False,
+        sort=False,
+        suffixes=("_x", "_y"),
+        copy=True,
+        indicator=False,
+        validate=None,
+    ):
+        """Merge DataFrame or named Series objects with a database-style join.
+
+        This method overrides pandas DataFrame.merge() to return a
+        MicroDataFrame.
+
+        :param right: Object to merge with.
+        :param how: Type of merge to be performed.
+        :param on: Column or index level names to join on.
+        :param left_on: Column or index level names to join on in the left
+            DataFrame.
+        :param right_on: Column or index level names to join on in the right
+            DataFrame.
+        :param left_index: Use the index from the left DataFrame as the join
+            key(s).
+        :param right_index: Use the index from the right DataFrame as the join
+            key(s).
+        :param sort: Sort the join keys lexicographically in the result
+            DataFrame.
+        :param suffixes: A length-2 sequence where each element is optionally a
+            string indicating the suffix to add to overlapping column names.
+        :param copy: If False, avoid copy if possible.
+        :param indicator: If True, adds a column to output DataFrame called
+            "_merge".
+        :param validate: If specified, checks if merge is of specified type.
+        :return: MicroDataFrame with merged data.
+        """
+        res = super().merge(
+            right,
+            how=how,
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            left_index=left_index,
+            right_index=right_index,
+            sort=sort,
+            suffixes=suffixes,
+            copy=copy,
+            indicator=indicator,
+            validate=validate,
+        )
+
+        # For inner join, both dataframes must have the same weights on
+        # matching rows. For now, we'll use the left dataframe's weights.
+        # This is a simplification and may need more sophisticated handling
+        return MicroDataFrame(res, weights=self.weights)
+
+    def __getattr__(self, name):
+        """Allow accessing columns as attributes (e.g., df.column_name).
+
+        This enables more intuitive column access while preserving MicroSeries
+        functionality when accessing columns.
+
+        :param name: Attribute name to access
+        :return: MicroSeries if the attribute is a column, otherwise delegates
+            to parent
+        """
+        if name in self.columns:
+            return self[name]
+        return super().__getattr__(name)
 
     def equals(self, other: "MicroDataFrame") -> bool:
         equal_values = super().equals(other)
@@ -469,17 +650,29 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
         elif isinstance(by, str):
             self.columns.remove(by)
         self.columns.remove("__tmp_weights")
+        # Filter to only numeric columns
+        self.numeric_columns = [
+            col
+            for col in self.columns
+            if pd.api.types.is_numeric_dtype(self.obj[col])
+        ]
         for fn_name in MicroSeries.SCALAR_FUNCTIONS:
 
             def get_fn(name):
                 def fn(*args, **kwargs):
-                    return MicroDataFrame(
-                        {
-                            col: getattr(getattr(self, col), name)(
+                    results = {}
+                    for col in self.numeric_columns:
+                        try:
+                            results[col] = getattr(getattr(self, col), name)(
                                 *args, **kwargs
                             )
-                            for col in self.columns
-                        }
+                        except Exception:
+                            # Skip columns that can't be aggregated
+                            pass
+                    return (
+                        MicroDataFrame(results)
+                        if results
+                        else MicroDataFrame()
                     )
 
                 return fn
@@ -489,13 +682,19 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
 
             def get_fn(name) -> Callable:
                 def fn(*args, **kwargs) -> Union[pd.Series, pd.DataFrame]:
-                    return MicroDataFrame(
-                        {
-                            col: getattr(getattr(self, col), name)(
+                    results = {}
+                    for col in self.numeric_columns:
+                        try:
+                            results[col] = getattr(getattr(self, col), name)(
                                 *args, **kwargs
                             )
-                            for col in self.columns
-                        }
+                        except Exception:
+                            # Skip columns that can't be aggregated
+                            pass
+                    return (
+                        MicroDataFrame(results)
+                        if results
+                        else MicroDataFrame()
                     )
 
                 return fn
