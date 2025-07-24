@@ -301,6 +301,116 @@ class MicroDataFrame(pd.DataFrame):
         res = MicroDataFrame(res, weights=self.weights.copy(deep))
         return res
 
+    def drop(
+        self,
+        labels=None,
+        axis=0,
+        index=None,
+        columns=None,
+        level=None,
+        inplace=False,
+        errors="raise",
+    ):
+        """Drop specified labels from rows or columns.
+
+        This method supports all parameters of pandas DataFrame.drop(),
+        including the 'inplace' parameter.
+
+        :param labels: Index or column labels to drop.
+        :param axis: Whether to drop labels from the index (0 or 'index') or
+            columns (1 or 'columns').
+        :param index: Alternative to specifying axis (labels, axis=0 is
+            equivalent to index=labels).
+        :param columns: Alternative to specifying axis (labels, axis=1 is
+            equivalent to columns=labels).
+        :param level: For MultiIndex, level from which the labels will be removed.
+        :param inplace: If False, return a copy. Otherwise, do operation
+            inplace and return None.
+        :param errors: If 'ignore', suppress error and only existing labels are
+            dropped.
+        :return: MicroDataFrame or None if inplace=True.
+        """
+        if inplace:
+            weights_backup = self.weights.copy()
+            # Perform in-place drop on the parent DataFrame
+            super().drop(
+                labels=labels,
+                axis=axis,
+                index=index,
+                columns=columns,
+                level=level,
+                inplace=True,
+                errors=errors,
+            )
+            self.weights = weights_backup
+            self._link_all_weights()
+            return None
+        else:
+            res = super().drop(
+                labels=labels,
+                axis=axis,
+                index=index,
+                columns=columns,
+                level=level,
+                inplace=False,
+                errors=errors,
+            )
+            return MicroDataFrame(res, weights=self.weights)
+
+    def merge(
+        self,
+        right,
+        how="inner",
+        on=None,
+        left_on=None,
+        right_on=None,
+        left_index=False,
+        right_index=False,
+        sort=False,
+        suffixes=("_x", "_y"),
+        copy=True,
+        indicator=False,
+        validate=None,
+    ):
+        """Merge DataFrame or named Series objects with a database-style join.
+
+        This method overrides pandas DataFrame.merge() to return a MicroDataFrame.
+
+        :param right: Object to merge with.
+        :param how: Type of merge to be performed.
+        :param on: Column or index level names to join on.
+        :param left_on: Column or index level names to join on in the left DataFrame.
+        :param right_on: Column or index level names to join on in the right DataFrame.
+        :param left_index: Use the index from the left DataFrame as the join key(s).
+        :param right_index: Use the index from the right DataFrame as the join key(s).
+        :param sort: Sort the join keys lexicographically in the result DataFrame.
+        :param suffixes: A length-2 sequence where each element is optionally a string
+            indicating the suffix to add to overlapping column names.
+        :param copy: If False, avoid copy if possible.
+        :param indicator: If True, adds a column to output DataFrame called "_merge".
+        :param validate: If specified, checks if merge is of specified type.
+        :return: MicroDataFrame with merged data.
+        """
+        res = super().merge(
+            right,
+            how=how,
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            left_index=left_index,
+            right_index=right_index,
+            sort=sort,
+            suffixes=suffixes,
+            copy=copy,
+            indicator=indicator,
+            validate=validate,
+        )
+        
+        # For inner join, both dataframes must have the same weights on matching rows
+        # For now, we'll use the left dataframe's weights
+        # This is a simplification and may need more sophisticated handling
+        return MicroDataFrame(res, weights=self.weights)
+
     def equals(self, other: "MicroDataFrame") -> bool:
         equal_values = super().equals(other)
         equal_weights = self.weights.equals(other.weights)

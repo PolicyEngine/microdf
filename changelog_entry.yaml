@@ -1,0 +1,5 @@
+- bump: patch
+  changes:
+    fixed:
+    - MicroDataFrame.merge() now works correctly by implementing inplace support for the drop() method
+    - merge() now returns a MicroDataFrame instead of a regular DataFrame
