@@ -58,3 +58,21 @@
     fixed:
     - Allowed a MicroDataFrame to handle an empty index subset
   date: 2025-07-24 02:03:31
+- bump: patch
+  changes:
+    added:
+    - __getattr__ method to MicroDataFrame for intuitive column access via dot notation
+      (Fixes
+    - Full pandas argument support to drop() and merge() methods (Addresses
+    - nullify_weights() method to both MicroDataFrame and MicroSeries to set all weights
+      to 1 (Fixes
+    - Test coverage for set_weights() with string column name argument
+    deprecated:
+    - set_weight_col() method - use set_weights() with a string argument instead (Fixes
+    fixed:
+    - MicroDataFrame.merge() now works correctly by implementing inplace support for
+      the drop() method
+    - merge() now returns a MicroDataFrame instead of a regular DataFrame (Fixes
+    - MicroDataFrame aggregation functions now skip non-numeric columns instead of
+      raising errors (Fixes
+  date: 2025-07-24 12:20:41

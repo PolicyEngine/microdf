@@ -3,6 +3,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.0.2] - 2025-07-24 12:20:41
+
+### Added
+
+- __getattr__ method to MicroDataFrame for intuitive column access via dot notation (Fixes
+- Full pandas argument support to drop() and merge() methods (Addresses
+- nullify_weights() method to both MicroDataFrame and MicroSeries to set all weights to 1 (Fixes
+- Test coverage for set_weights() with string column name argument
+
+### Fixed
+
+- MicroDataFrame.merge() now works correctly by implementing inplace support for the drop() method
+- merge() now returns a MicroDataFrame instead of a regular DataFrame (Fixes
+- MicroDataFrame aggregation functions now skip non-numeric columns instead of raising errors (Fixes
+
 ## [1.0.1] - 2025-07-24 02:03:31
 
 ### Fixed
@@ -55,6 +70,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 
 
+[1.0.2]: https://github.com/PolicyEngine/microcalibrate/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/PolicyEngine/microcalibrate/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/PolicyEngine/microcalibrate/compare/0.6.0...1.0.0
 [0.6.0]: https://github.com/PolicyEngine/microcalibrate/compare/0.5.0...0.6.0
