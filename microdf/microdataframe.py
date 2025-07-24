@@ -413,6 +413,19 @@ class MicroDataFrame(pd.DataFrame):
         # This is a simplification and may need more sophisticated handling
         return MicroDataFrame(res, weights=self.weights)
 
+    def __getattr__(self, name):
+        """Allow accessing columns as attributes (e.g., df.column_name).
+        
+        This enables more intuitive column access while preserving MicroSeries
+        functionality when accessing columns.
+        
+        :param name: Attribute name to access
+        :return: MicroSeries if the attribute is a column, otherwise delegates to parent
+        """
+        if name in self.columns:
+            return self[name]
+        return super().__getattr__(name)
+
     def equals(self, other: "MicroDataFrame") -> bool:
         equal_values = super().equals(other)
         equal_weights = self.weights.equals(other.weights)
