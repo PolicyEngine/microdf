@@ -1,4 +1,0 @@
-- bump: patch 
-  changes:
-    fixed:
-    - Allowed a MicroDataFrame to handle an empty index subset 
