@@ -35,3 +35,34 @@ jobs:
               with:
                 add: "."
                 message: Update package version
+    publish-to-pypi:
+      name: Publish to PyPI
+      needs: test
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+          with:
+            fetch-depth: 0 # Fetch all history for all tags and branches
+        - name: Set up Python      
+          uses: actions/setup-python@v5
+          with:
+            python-version: '3.13'
+        - name: Install uv
+          uses: astral-sh/setup-uv@v3
+          with:
+            version: "latest"
+        - name: Install dependencies
+          run: |
+            uv pip install -e ".[dev]" --system
+        - name: Build package
+          run: |
+            make build
+        - name: Publish a git tag
+          run: ".github/publish-git-tag.sh || true"
+        - name: Publish to PyPI
+          uses: pypa/gh-action-pypi-publish@release/v1
+          with:
+            user: __token__
+            password: ${{ secrets.PYPI }}
+            skip-existing: true
