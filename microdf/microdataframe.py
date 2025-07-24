@@ -242,8 +242,8 @@ class MicroDataFrame(pd.DataFrame):
         import warnings
 
         warnings.warn(
-            "set_weight_col is deprecated and will be removed in a future version. "
-            "Use set_weights(column_name) instead.",
+            "set_weight_col is deprecated and will be removed in a "
+            "future version. Use set_weights(column_name) instead.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -465,8 +465,8 @@ class MicroDataFrame(pd.DataFrame):
             validate=validate,
         )
 
-        # For inner join, both dataframes must have the same weights on matching rows
-        # For now, we'll use the left dataframe's weights
+        # For inner join, both dataframes must have the same weights on
+        # matching rows. For now, we'll use the left dataframe's weights.
         # This is a simplification and may need more sophisticated handling
         return MicroDataFrame(res, weights=self.weights)
 
