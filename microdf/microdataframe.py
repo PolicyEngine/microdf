@@ -216,16 +216,18 @@ class MicroDataFrame(pd.DataFrame):
         self._link_all_weights()
 
     def __getitem__(
-        self, key: Union[str, List]
-    ) -> Union[pd.Series, pd.DataFrame]:
-        result = super().__getitem__(key)
-        if isinstance(result, pd.DataFrame):
-            try:
-                weights = self.weights[key]
-            except Exception:
-                weights = self.weights
-            return MicroDataFrame(result, weights=weights)
-        return result
+            self, key: Union[str, List]
+        ) -> Union[pd.Series, pd.DataFrame]:
+            # Let pandas handle the initial slicing
+            result = super().__getitem__(key)
+    
+            # If the result is a DataFrame, re-synchronize the weights
+            if isinstance(result, pd.DataFrame):
+                new_weights = self.weights.reindex(result.index)
+                return MicroDataFrame(result, weights=new_weights)
+            
+            # Otherwise, the result is a Series or a scalar, so just return it
+            return result
 
     def catch_series_relapse(self) -> None:
         for col in self.columns:
