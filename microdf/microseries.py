@@ -68,9 +68,9 @@ class MicroSeries(pd.Series):
 
     def nullify_weights(self) -> None:
         """Set all weights to 1, effectively making the Series unweighted.
-        
-        This is useful for comparing weighted and unweighted statistics or
-        when you want to temporarily ignore weights.
+
+        This is useful for comparing weighted and unweighted statistics or when
+        you want to temporarily ignore weights.
         """
         self.weights = pd.Series(np.ones(len(self)), dtype=float)
 

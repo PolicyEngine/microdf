@@ -252,9 +252,9 @@ class MicroDataFrame(pd.DataFrame):
 
     def nullify_weights(self) -> None:
         """Set all weights to 1, effectively making the DataFrame unweighted.
-        
-        This is useful for comparing weighted and unweighted statistics or
-        when you want to temporarily ignore weights.
+
+        This is useful for comparing weighted and unweighted statistics or when
+        you want to temporarily ignore weights.
         """
         self.weights = np.ones(len(self))
         self._link_all_weights()
@@ -369,7 +369,8 @@ class MicroDataFrame(pd.DataFrame):
             equivalent to index=labels).
         :param columns: Alternative to specifying axis (labels, axis=1 is
             equivalent to columns=labels).
-        :param level: For MultiIndex, level from which the labels will be removed.
+        :param level: For MultiIndex, level from which the labels will be
+            removed.
         :param inplace: If False, return a copy. Otherwise, do operation
             inplace and return None.
         :param errors: If 'ignore', suppress error and only existing labels are
@@ -420,20 +421,27 @@ class MicroDataFrame(pd.DataFrame):
     ):
         """Merge DataFrame or named Series objects with a database-style join.
 
-        This method overrides pandas DataFrame.merge() to return a MicroDataFrame.
+        This method overrides pandas DataFrame.merge() to return a
+        MicroDataFrame.
 
         :param right: Object to merge with.
         :param how: Type of merge to be performed.
         :param on: Column or index level names to join on.
-        :param left_on: Column or index level names to join on in the left DataFrame.
-        :param right_on: Column or index level names to join on in the right DataFrame.
-        :param left_index: Use the index from the left DataFrame as the join key(s).
-        :param right_index: Use the index from the right DataFrame as the join key(s).
-        :param sort: Sort the join keys lexicographically in the result DataFrame.
-        :param suffixes: A length-2 sequence where each element is optionally a string
-            indicating the suffix to add to overlapping column names.
+        :param left_on: Column or index level names to join on in the left
+            DataFrame.
+        :param right_on: Column or index level names to join on in the right
+            DataFrame.
+        :param left_index: Use the index from the left DataFrame as the join
+            key(s).
+        :param right_index: Use the index from the right DataFrame as the join
+            key(s).
+        :param sort: Sort the join keys lexicographically in the result
+            DataFrame.
+        :param suffixes: A length-2 sequence where each element is optionally a
+            string indicating the suffix to add to overlapping column names.
         :param copy: If False, avoid copy if possible.
-        :param indicator: If True, adds a column to output DataFrame called "_merge".
+        :param indicator: If True, adds a column to output DataFrame called
+            "_merge".
         :param validate: If specified, checks if merge is of specified type.
         :return: MicroDataFrame with merged data.
         """
@@ -459,12 +467,13 @@ class MicroDataFrame(pd.DataFrame):
 
     def __getattr__(self, name):
         """Allow accessing columns as attributes (e.g., df.column_name).
-        
+
         This enables more intuitive column access while preserving MicroSeries
         functionality when accessing columns.
-        
+
         :param name: Attribute name to access
-        :return: MicroSeries if the attribute is a column, otherwise delegates to parent
+        :return: MicroSeries if the attribute is a column, otherwise delegates
+            to parent
         """
         if name in self.columns:
             return self[name]
