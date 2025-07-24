@@ -22,7 +22,7 @@ def test_df_init() -> None:
     df["w"] = w
     df.set_weight_col("w")
     assert df.a.mean() == np.average(arr, weights=w)
-    
+
     # Test set_weights with string (column name)
     df2 = mdf.MicroDataFrame()
     df2["a"] = arr

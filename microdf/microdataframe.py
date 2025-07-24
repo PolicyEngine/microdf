@@ -48,7 +48,9 @@ class MicroDataFrame(pd.DataFrame):
             for col in self.columns:
                 if pd.api.types.is_numeric_dtype(self[col]):
                     try:
-                        results[col] = getattr(self[col], name)(*args, **kwargs)
+                        results[col] = getattr(self[col], name)(
+                            *args, **kwargs
+                        )
                     except Exception:
                         # Skip columns that can't be aggregated
                         pass
@@ -75,7 +77,7 @@ class MicroDataFrame(pd.DataFrame):
                     except Exception:
                         # Skip columns that can't be aggregated
                         pass
-            
+
             if results:
                 df = pd.DataFrame(results)
                 df.index = columns
@@ -110,7 +112,7 @@ class MicroDataFrame(pd.DataFrame):
                         except Exception:
                             # Skip columns that can't be aggregated
                             pass
-                
+
                 if results:
                     df = pd.DataFrame(results)
                     df.index = columns
@@ -123,7 +125,9 @@ class MicroDataFrame(pd.DataFrame):
                 for col in self.columns:
                     if pd.api.types.is_numeric_dtype(self[col]):
                         try:
-                            results[col] = getattr(self[col], name)(*args, **kwargs)
+                            results[col] = getattr(self[col], name)(
+                                *args, **kwargs
+                            )
                         except Exception:
                             # Skip columns that can't be aggregated
                             pass
@@ -236,13 +240,14 @@ class MicroDataFrame(pd.DataFrame):
         :type column: str
         """
         import warnings
+
         warnings.warn(
             "set_weight_col is deprecated and will be removed in a future version. "
             "Use set_weights(column_name) instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
-        
+
         if preserve_old and self.weights_col is not None:
             self["old_" + self.weights_col] = self.weights
 
@@ -459,7 +464,7 @@ class MicroDataFrame(pd.DataFrame):
             indicator=indicator,
             validate=validate,
         )
-        
+
         # For inner join, both dataframes must have the same weights on matching rows
         # For now, we'll use the left dataframe's weights
         # This is a simplification and may need more sophisticated handling
@@ -647,7 +652,8 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
         self.columns.remove("__tmp_weights")
         # Filter to only numeric columns
         self.numeric_columns = [
-            col for col in self.columns 
+            col
+            for col in self.columns
             if pd.api.types.is_numeric_dtype(self.obj[col])
         ]
         for fn_name in MicroSeries.SCALAR_FUNCTIONS:
@@ -663,7 +669,11 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                         except Exception:
                             # Skip columns that can't be aggregated
                             pass
-                    return MicroDataFrame(results) if results else MicroDataFrame()
+                    return (
+                        MicroDataFrame(results)
+                        if results
+                        else MicroDataFrame()
+                    )
 
                 return fn
 
@@ -681,7 +691,11 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                         except Exception:
                             # Skip columns that can't be aggregated
                             pass
-                    return MicroDataFrame(results) if results else MicroDataFrame()
+                    return (
+                        MicroDataFrame(results)
+                        if results
+                        else MicroDataFrame()
+                    )
 
                 return fn
 

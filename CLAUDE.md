@@ -2,7 +2,8 @@
 
 ## Code Style
 - All files must end with a newline character
-- Run `make lint` before committing to catch style issues
+- **ALWAYS run `make format` before committing** - this will auto-fix most style issues
+- Run `make lint` after formatting to check if there are any remaining issues
 
 ## Changelog Requirements
 - Every PR must include a `changelog_entry.yaml` file at the root
@@ -55,9 +56,11 @@
 4. **File endings**: Ensure all files end with a newline
 
 ### Before Pushing
-Always run these commands locally:
+**CRITICAL: Always run these commands locally before pushing:**
 ```bash
-make format  # Auto-fix style issues
-make lint    # Check for remaining issues
+make format  # Auto-fix style issues (ALWAYS RUN THIS FIRST!)
+make lint    # Check for remaining issues (should pass after format)
 make test    # Run all tests
 ```
+
+If CI fails with linting errors, it's almost always because `make format` wasn't run.
