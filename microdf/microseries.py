@@ -66,6 +66,14 @@ class MicroSeries(pd.Series):
 
             self.weights = pd.Series(weights, dtype=float)
 
+    def nullify_weights(self) -> None:
+        """Set all weights to 1, effectively making the Series unweighted.
+        
+        This is useful for comparing weighted and unweighted statistics or
+        when you want to temporarily ignore weights.
+        """
+        self.weights = pd.Series(np.ones(len(self)), dtype=float)
+
     @vector_function
     def weight(self) -> pd.Series:
         """Calculates the weighted value of the MicroSeries.

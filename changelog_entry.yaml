@@ -6,3 +6,4 @@
     added:
     - __getattr__ method to MicroDataFrame for intuitive column access via dot notation (Fixes #220)
     - Full pandas argument support to drop() and merge() methods (Addresses #212)
+    - nullify_weights() method to both MicroDataFrame and MicroSeries to set all weights to 1 (Fixes #176)

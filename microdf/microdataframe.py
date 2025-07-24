@@ -215,6 +215,15 @@ class MicroDataFrame(pd.DataFrame):
         self.weights_col = column
         self._link_all_weights()
 
+    def nullify_weights(self) -> None:
+        """Set all weights to 1, effectively making the DataFrame unweighted.
+        
+        This is useful for comparing weighted and unweighted statistics or
+        when you want to temporarily ignore weights.
+        """
+        self.weights = np.ones(len(self))
+        self._link_all_weights()
+
     def __getitem__(
         self, key: Union[str, List]
     ) -> Union[pd.Series, pd.DataFrame]:
