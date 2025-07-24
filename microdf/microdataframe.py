@@ -207,6 +207,7 @@ class MicroDataFrame(pd.DataFrame):
         if isinstance(weights, str):
             self.weights_col = weights
             self.weights = pd.Series(self[weights], dtype=float)
+            self._link_all_weights()
         elif weights is not None:
             if len(weights) != len(self):
                 raise ValueError(
