@@ -161,12 +161,59 @@ class MicroDataFrame(pd.DataFrame):
     def override_df_functions(self) -> None:
         """Override DataFrame functions to work with weighted operations."""
         for name in MicroSeries.FUNCTIONS:
-            if name in MicroSeries.SCALAR_FUNCTIONS:
+            if name == "sum":
+                # Sum has its own axis-aware signature and result types.
+                continue
+            elif name in MicroSeries.SCALAR_FUNCTIONS:
                 setattr(self, name, self._create_scalar_function(name))
             elif name in MicroSeries.VECTOR_FUNCTIONS:
                 setattr(self, name, self._create_vector_function(name))
             elif name in MicroSeries.AGNOSTIC_FUNCTIONS:
                 setattr(self, name, self._create_agnostic_function(name))
+
+    def sum(
+        self,
+        axis: Optional[Union[int, str]] = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ) -> Union[pd.Series, MicroSeries, float]:
+        """Sum numeric columns, weighting reductions across observations.
+
+        Column sums (axis=0 or 'index') apply observation weights and return a
+        plain Series. Row sums (axis=1 or 'columns') do not multiply row values
+        by weights; they return a MicroSeries with an independent copy of the
+        original weights for subsequent weighted aggregation.
+
+        Non-numeric columns are excluded, matching other MicroDataFrame
+        aggregations. skipna and min_count follow pandas sum semantics.
+        Explicit axis=None follows the installed pandas version: column sums in
+        pandas 2, and a weighted total over both axes in pandas 3.
+        """
+        axis_number = None if axis is None else self._get_axis_number(axis)
+        values = pd.DataFrame(self)
+        numeric_columns = [
+            pd.api.types.is_numeric_dtype(dtype) for dtype in values.dtypes
+        ]
+        values = values.iloc[:, numeric_columns]
+        if axis_number != 1 and self.weights is not None:
+            values = values.mul(self.weights, axis=0)
+        result = values.sum(
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            min_count=min_count,
+            **kwargs,
+        )
+        if axis_number == 1:
+            weights = (
+                self.weights.copy()
+                if self.weights is not None
+                else pd.Series(1.0, index=self.index)
+            )
+            return MicroSeries(result, weights=weights)
+        return result
 
     def _create_scalar_function(self, name: str) -> Callable:
         """Create a scalar function that returns a Series of results.
