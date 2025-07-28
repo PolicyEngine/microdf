@@ -37,24 +37,42 @@ class MicroDataFrame(pd.DataFrame):
                 setattr(self, name, self._create_agnostic_function(name))
 
     def _create_scalar_function(self, name: str) -> Callable:
-        """Create a scalar function that returns a Series of results.
+        def fn(*args, **kwargs) -> Union[pd.Series, float]:
+            axis = kwargs.get("axis", 0)
+            # Remove axis from kwargs since MicroSeries doesn't use it
+            ms_kwargs = {k: v for k, v in kwargs.items() if k != "axis"}
 
-        :param name: Name of the function to create
-        :return: Function that applies the operation to all columns
-        """
+            if axis == 0 or axis == "index":
+                # Column-wise: use MicroSeries methods
+                results = {}
+                for col in self.columns:
+                    if pd.api.types.is_numeric_dtype(self[col]):
+                        try:
+                            results[col] = getattr(self[col], name)(
+                                *args, **ms_kwargs
+                            )
+                        except Exception:
+                            pass
+                return pd.Series(results)
 
-        def fn(*args, **kwargs) -> pd.Series:
-            results = {}
-            for col in self.columns:
-                if pd.api.types.is_numeric_dtype(self[col]):
-                    try:
-                        results[col] = getattr(self[col], name)(
-                            *args, **kwargs
-                        )
-                    except Exception:
-                        # Skip columns that can't be aggregated
-                        pass
-            return pd.Series(results)
+            elif axis == 1 or axis == "columns":
+                # Row-wise: use pandas DataFrame methods
+                numeric_cols = [
+                    col
+                    for col in self.columns
+                    if pd.api.types.is_numeric_dtype(self[col])
+                ]
+                if numeric_cols:
+                    # Create regular DataFrame and call its method
+                    df = pd.DataFrame(
+                        {col: self[col].values for col in numeric_cols},
+                        index=self.index,
+                    )
+                    return getattr(df, name)(axis=1, *args, **ms_kwargs)
+                return pd.Series(dtype="float64", index=self.index)
+
+            else:
+                raise ValueError(f"Invalid axis: {axis}")
 
         return fn
 

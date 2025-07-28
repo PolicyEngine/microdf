@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    changed:
+    - Handle dataframe sum axis properly.
