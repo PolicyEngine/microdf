@@ -287,3 +287,55 @@ def test_reset_index_inplace() -> None:
     assert "second" in mdf_multi.columns
     assert list(mdf_multi.index) == [0, 1, 2, 3]
     np.testing.assert_array_equal(mdf_multi.weights.values, weights)
+
+
+def test_loc_preserves_weights() -> None:
+    """Test that .loc[] returns MicroDataFrame with proper weights (issue
+    #265)."""
+    df = mdf.MicroDataFrame(
+        {"one": [1, 1, 1, 1, 1]}, weights=[10, 20, 30, 40, 50]
+    )
+
+    # Filter all rows (should get same weights)
+    filtered = df.loc[df.one == 1]
+    assert isinstance(filtered, MicroDataFrame)
+    assert filtered.one.sum() == 150.0  # Weighted sum
+
+    # Partial filter
+    df2 = mdf.MicroDataFrame(
+        {"x": [1, 2, 3, 4, 5]}, weights=[10, 20, 30, 40, 50]
+    )
+    subset = df2.loc[df2.x > 2]
+    assert isinstance(subset, MicroDataFrame)
+    assert subset.x.sum() == 500.0  # 3*30 + 4*40 + 5*50 = 500
+    np.testing.assert_array_equal(subset.weights.values, [30.0, 40.0, 50.0])
+
+
+def test_iloc_preserves_weights() -> None:
+    """Test that .iloc[] returns MicroDataFrame with proper weights."""
+    df = mdf.MicroDataFrame(
+        {"x": [1, 2, 3, 4, 5]}, weights=[10, 20, 30, 40, 50]
+    )
+
+    # Select rows by position
+    subset = df.iloc[2:5]
+    assert isinstance(subset, MicroDataFrame)
+    assert subset.x.sum() == 500.0  # 3*30 + 4*40 + 5*50 = 500
+    np.testing.assert_array_equal(subset.weights.values, [30.0, 40.0, 50.0])
+
+
+def test_groupby_column_selection() -> None:
+    """Test that groupby column selection preserves weights (issue #193)."""
+    d = mdf.MicroDataFrame(
+        dict(g=["a", "a", "b"], y=[1, 2, 3]), weights=[4, 5, 6]
+    )
+
+    # Test single column string selection
+    result_str = d.groupby("g")["y"].sum()
+    assert result_str["a"] == 14.0  # 1*4 + 2*5 = 14
+    assert result_str["b"] == 18.0  # 3*6 = 18
+
+    # Test list column selection
+    result_list = d.groupby("g")[["y"]].sum()
+    assert result_list.loc["a", "y"] == 14.0
+    assert result_list.loc["b", "y"] == 18.0
