@@ -339,3 +339,8 @@ def test_groupby_column_selection() -> None:
     result_list = d.groupby("g")[["y"]].sum()
     assert result_list.loc["a", "y"] == 14.0
     assert result_list.loc["b", "y"] == 18.0
+
+    # Aggregated results should be plain DataFrame (no spurious weight column)
+    result_all = d.groupby("g").sum()
+    assert "weight" not in result_all.columns
+    assert list(result_all.columns) == ["y"]

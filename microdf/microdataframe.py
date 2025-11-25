@@ -765,11 +765,9 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                         except Exception:
                             # Skip columns that can't be aggregated
                             pass
-                    return (
-                        MicroDataFrame(results)
-                        if results
-                        else MicroDataFrame()
-                    )
+                    # Return plain DataFrame - aggregated results don't have
+                    # per-row weights (weights were already applied)
+                    return pd.DataFrame(results) if results else pd.DataFrame()
 
                 return fn
 
@@ -787,11 +785,9 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                         except Exception:
                             # Skip columns that can't be aggregated
                             pass
-                    return (
-                        MicroDataFrame(results)
-                        if results
-                        else MicroDataFrame()
-                    )
+                    # Return plain DataFrame - aggregated results don't have
+                    # per-row weights (weights were already applied)
+                    return pd.DataFrame(results) if results else pd.DataFrame()
 
                 return fn
 
@@ -850,10 +846,12 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                                 )(*args, **kwargs)
                             except Exception:
                                 pass
+                        # Return plain DataFrame - aggregated results don't
+                        # have per-row weights (weights were already applied)
                         return (
-                            MicroDataFrame(results)
+                            pd.DataFrame(results)
                             if results
-                            else MicroDataFrame()
+                            else pd.DataFrame()
                         )
 
                     return fn
@@ -871,10 +869,12 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                                 )(*args, **kwargs)
                             except Exception:
                                 pass
+                        # Return plain DataFrame - aggregated results don't
+                        # have per-row weights (weights were already applied)
                         return (
-                            MicroDataFrame(results)
+                            pd.DataFrame(results)
                             if results
-                            else MicroDataFrame()
+                            else pd.DataFrame()
                         )
 
                     return fn
