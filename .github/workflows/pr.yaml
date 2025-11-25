@@ -76,9 +76,13 @@ jobs:
         with:
           version: "latest"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           uv pip install -e ".[dev]" --system
+
+      - name: Install MyST
+        run: |
+          npm install -g mystmd
 
       - name: Build documentation with MyST
         run: |
