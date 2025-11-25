@@ -30,9 +30,8 @@ dev = [
     "pytest-cov",
     "setuptools",
 ]
-docs = [
-    "jupyter_book",
-]
+# Note: Documentation uses MyST (Jupyter Book 2.0) which is installed via npm
+# Run: cd docs && myst build --html
 
 [tool.setuptools.packages.find]
 where = ["."]

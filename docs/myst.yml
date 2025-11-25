@@ -1,0 +1,29 @@
+version: 1
+project:
+  title: microdf documentation
+  authors:
+    - name:
+        given: Max
+        family: Ghenis
+  copyright: '2024'
+  github: PolicyEngine/microdf
+  jupyter:
+    myst:
+      enable_extensions:
+        - colon_fence
+        - deflist
+        - dollarmath
+        - linkify
+        - substitution
+  toc:
+    - file: home.md
+    - file: examples.md
+      children:
+        - file: gini.ipynb
+site:
+  options:
+    logo: microdf_logo.png
+    favicon: ''
+    analytics_google: ''
+    folders: true
+  template: book-theme
