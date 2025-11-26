@@ -12,6 +12,80 @@ from microdf.microseries import MicroSeries, MicroSeriesGroupBy
 logger = logging.getLogger(__name__)
 
 
+class _MicroLocIndexer:
+    """Custom loc indexer that returns MicroDataFrame with proper weights."""
+
+    def __init__(self, mdf: "MicroDataFrame"):
+        self._mdf = mdf
+        # Get the parent's loc indexer
+        self._parent_loc = pd.DataFrame.loc.fget(mdf)
+
+    def __getitem__(self, key):
+        # Use the parent DataFrame's loc indexer
+        result = self._parent_loc[key]
+
+        if isinstance(result, pd.DataFrame):
+            # Get the filtered weights based on the result's index
+            new_weights = self._mdf.weights.reindex(result.index)
+            return MicroDataFrame(result, weights=new_weights)
+        elif isinstance(result, pd.Series):
+            # Single row or column selected
+            if result.name in self._mdf.columns:
+                # Column was selected - return MicroSeries with all weights
+                return MicroSeries(result, weights=self._mdf.weights)
+            else:
+                # Row was selected - return as-is (scalar values for each col)
+                return result
+        else:
+            # Scalar value
+            return result
+
+    def __setitem__(self, key, value):
+        self._parent_loc[key] = value
+        self._mdf._link_all_weights()
+
+
+class _MicroILocIndexer:
+    """Custom iloc indexer that returns MicroDataFrame with proper weights."""
+
+    def __init__(self, mdf: "MicroDataFrame"):
+        self._mdf = mdf
+        # Get the parent's iloc indexer
+        self._parent_iloc = pd.DataFrame.iloc.fget(mdf)
+
+    def __getitem__(self, key):
+        # Use the parent DataFrame's iloc indexer
+        result = self._parent_iloc[key]
+
+        if isinstance(result, pd.DataFrame):
+            # Get the filtered weights based on the result's index
+            new_weights = self._mdf.weights.iloc[
+                self._mdf.index.get_indexer(result.index)
+            ]
+            new_weights = pd.Series(new_weights.values, index=result.index)
+            return MicroDataFrame(result, weights=new_weights)
+        elif isinstance(result, pd.Series):
+            # Single row or column selected
+            if isinstance(key, tuple) and len(key) == 2:
+                # df.iloc[:, col_idx] - column selection
+                row_key = key[0]
+                if isinstance(row_key, slice) and row_key == slice(None):
+                    # All rows selected for a column
+                    return MicroSeries(result, weights=self._mdf.weights)
+            # Check if this is a column (result index matches mdf index)
+            if result.index.equals(self._mdf.index):
+                return MicroSeries(result, weights=self._mdf.weights)
+            # Row selection - return as-is
+            return result
+        else:
+            # Scalar value
+            return result
+
+    def __setitem__(self, key, value):
+        self._parent_iloc[key] = value
+        self._mdf._link_all_weights()
+
+
 class MicroDataFrame(pd.DataFrame):
     def __init__(self, *args, weights=None, **kwargs):
         """A DataFrame-inheriting class for weighted microdata. Weights can be
@@ -25,6 +99,23 @@ class MicroDataFrame(pd.DataFrame):
         self.set_weights(weights)
         self._link_all_weights()
         self.override_df_functions()
+
+    @property
+    def loc(self) -> _MicroLocIndexer:
+        """Label-based indexer that preserves MicroDataFrame type and weights.
+
+        :return: Custom loc indexer for MicroDataFrame
+        """
+        return _MicroLocIndexer(self)
+
+    @property
+    def iloc(self) -> _MicroILocIndexer:
+        """Integer-based indexer that preserves MicroDataFrame type and
+        weights.
+
+        :return: Custom iloc indexer for MicroDataFrame
+        """
+        return _MicroILocIndexer(self)
 
     def override_df_functions(self) -> None:
         """Override DataFrame functions to work with weighted operations."""
@@ -643,6 +734,7 @@ class MicroDataFrame(pd.DataFrame):
 
 class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
     def _init(self, by: Union[str, List]):
+        self._by = by
         self.columns = list(self.obj.columns)
         if isinstance(by, list):
             for column in by:
@@ -656,6 +748,10 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
             for col in self.columns
             if pd.api.types.is_numeric_dtype(self.obj[col])
         ]
+        # Store reference to weights groupby for column selection
+        self._weights_groupby = copy.deepcopy(
+            super().__getitem__("__tmp_weights")
+        )
         for fn_name in MicroSeries.SCALAR_FUNCTIONS:
 
             def get_fn(name):
@@ -669,11 +765,9 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                         except Exception:
                             # Skip columns that can't be aggregated
                             pass
-                    return (
-                        MicroDataFrame(results)
-                        if results
-                        else MicroDataFrame()
-                    )
+                    # Return plain DataFrame - aggregated results don't have
+                    # per-row weights (weights were already applied)
+                    return pd.DataFrame(results) if results else pd.DataFrame()
 
                 return fn
 
@@ -691,12 +785,99 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                         except Exception:
                             # Skip columns that can't be aggregated
                             pass
-                    return (
-                        MicroDataFrame(results)
-                        if results
-                        else MicroDataFrame()
-                    )
+                    # Return plain DataFrame - aggregated results don't have
+                    # per-row weights (weights were already applied)
+                    return pd.DataFrame(results) if results else pd.DataFrame()
 
                 return fn
 
             setattr(self, fn_name, get_fn(fn_name))
+
+    def __getitem__(
+        self, key: Union[str, List]
+    ) -> Union["MicroSeriesGroupBy", "MicroDataFrameGroupBy"]:
+        """Select columns from the groupby object while preserving weights.
+
+        This ensures that operations like groupby(col)["y"].sum() or
+        groupby(col)[["y"]].sum() use weighted aggregation.
+
+        :param key: Column name or list of column names
+        :return: MicroSeriesGroupBy for single column, MicroDataFrameGroupBy
+            for multiple columns
+        """
+        if isinstance(key, str):
+            # Single column - return MicroSeriesGroupBy
+            result = super().__getitem__(key)
+            result.__class__ = MicroSeriesGroupBy
+            result._init()
+            result.weights = self._weights_groupby
+            return result
+        else:
+            # Multiple columns - return a new MicroDataFrameGroupBy
+            # with only the selected columns
+            result = super().__getitem__(key)
+            result.__class__ = MicroDataFrameGroupBy
+            # Re-initialize with the subset of columns
+            result._by = self._by
+            result.columns = list(key) if hasattr(key, "__iter__") else [key]
+            result.numeric_columns = [
+                col
+                for col in result.columns
+                if pd.api.types.is_numeric_dtype(result.obj[col])
+            ]
+            result._weights_groupby = self._weights_groupby
+            # Set up the column attributes as MicroSeriesGroupBy
+            for col in result.columns:
+                col_gb = super().__getitem__(col)
+                col_gb.__class__ = MicroSeriesGroupBy
+                col_gb._init()
+                col_gb.weights = self._weights_groupby
+                setattr(result, col, col_gb)
+            # Set up the scalar and vector functions
+            for fn_name in MicroSeries.SCALAR_FUNCTIONS:
+
+                def get_scalar_fn(name, res):
+                    def fn(*args, **kwargs):
+                        results = {}
+                        for col in res.numeric_columns:
+                            try:
+                                results[col] = getattr(
+                                    getattr(res, col), name
+                                )(*args, **kwargs)
+                            except Exception:
+                                pass
+                        # Return plain DataFrame - aggregated results don't
+                        # have per-row weights (weights were already applied)
+                        return (
+                            pd.DataFrame(results)
+                            if results
+                            else pd.DataFrame()
+                        )
+
+                    return fn
+
+                setattr(result, fn_name, get_scalar_fn(fn_name, result))
+            for fn_name in MicroSeries.VECTOR_FUNCTIONS:
+
+                def get_vector_fn(name, res):
+                    def fn(*args, **kwargs):
+                        results = {}
+                        for col in res.numeric_columns:
+                            try:
+                                results[col] = getattr(
+                                    getattr(res, col), name
+                                )(*args, **kwargs)
+                            except Exception:
+                                pass
+                        # Return plain DataFrame - aggregated results don't
+                        # have per-row weights (weights were already applied)
+                        return (
+                            pd.DataFrame(results)
+                            if results
+                            else pd.DataFrame()
+                        )
+
+                    return fn
+
+                setattr(result, fn_name, get_vector_fn(fn_name, result))
+            return result

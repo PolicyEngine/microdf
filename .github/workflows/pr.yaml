@@ -60,27 +60,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         with:
           version: "latest"
-      - name: Install dependencies
+
+      - name: Install Python dependencies
         run: |
-          uv pip install -e ".[dev,docs]" --system
-      - name: Build Jupyter Book
+          uv pip install -e ".[dev]" --system
+
+      - name: Install MyST
         run: |
-          jb build docs/.
-      - name: Check documentation build
+          npm install -g mystmd
+
+      - name: Build documentation with MyST
         run: |
-          for notebook in $(find docs/_build/jupyter_execute -name "*.ipynb"); do
-            if grep -q '"output_type": "error"' "$notebook"; then
-              echo "Error found in $notebook"
-              cat "$notebook"
-              exit 1
-            fi
-          done
+          cd docs && myst build --html
