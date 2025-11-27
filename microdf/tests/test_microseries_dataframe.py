@@ -112,6 +112,55 @@ def test_median() -> None:
     assert series.median() == 4
 
 
+def test_weighted_quantile_skewed() -> None:
+    # 99% of the population has 0 income, 1% has 1M
+    # The median should be 0, not an interpolated value
+    series = mdf.MicroSeries([0, 1_000_000], weights=[99, 1])
+    assert series.median() == 0
+    assert series.quantile(0.5) == 0
+    # 99th percentile is still 0 since exactly 99% have 0
+    assert series.quantile(0.99) == 0
+    # Only quantile > 0.99 gives 1M
+    assert series.quantile(1.0) == 1_000_000
+    # Test multiple quantiles
+    result = series.quantile([0.1, 0.5, 0.99, 1.0])
+    assert result[0.1] == 0
+    assert result[0.5] == 0
+    assert result[0.99] == 0
+    assert result[1.0] == 1_000_000
+
+
+def test_weighted_quantile_boundaries() -> None:
+    # Test q=0 returns minimum, q=1 returns maximum
+    series = mdf.MicroSeries([10, 20, 30], weights=[1, 1, 1])
+    assert series.quantile(0.0) == 10
+    assert series.quantile(1.0) == 30
+
+
+def test_weighted_quantile_equal_weights() -> None:
+    # With equal weights, should match "replicated" interpretation
+    # Values: 1, 2, 3 each with weight 2 -> like [1,1,2,2,3,3]
+    series = mdf.MicroSeries([1, 2, 3], weights=[2, 2, 2])
+    # cumsum_normalized = [2/6, 4/6, 6/6] = [0.333, 0.667, 1.0]
+    # median (0.5): smallest where cumsum >= 0.5 -> index 1 -> value 2
+    assert series.median() == 2
+    # 0.25 quantile: smallest where cumsum >= 0.25 -> index 0 -> value 1
+    assert series.quantile(0.25) == 1
+    # 0.75 quantile: smallest where cumsum >= 0.75 -> index 2 -> value 3
+    assert series.quantile(0.75) == 3
+
+
+def test_weighted_quantile_unsorted_input() -> None:
+    # Ensure sorting works correctly
+    series = mdf.MicroSeries([30, 10, 20], weights=[1, 2, 1])
+    # Sorted: values [10, 20, 30], weights [2, 1, 1]
+    # cumsum_normalized = [0.5, 0.75, 1.0]
+    assert series.quantile(0.0) == 10
+    assert series.quantile(0.5) == 10  # cumsum[0]=0.5 >= 0.5
+    assert series.quantile(0.6) == 20  # cumsum[1]=0.75 >= 0.6
+    assert series.quantile(1.0) == 30
+
+
 def test_unweighted_groupby() -> None:
     df = mdf.MicroDataFrame({"x": [1, 2], "y": [3, 4], "z": [5, 6]})
     assert (df.groupby("x").z.sum().values == np.array([5.0, 6.0])).all()
