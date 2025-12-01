@@ -112,17 +112,18 @@ class MicroSeries(pd.Series):
     def quantile(self, q: np.array) -> pd.Series:
         """Calculates weighted quantiles of the MicroSeries.
 
-        Doesn't exactly match unweighted quantiles of stacked values.
-        See stackoverflow.com/q/21844024#comment102342137_29677616.
+        Uses the inverse CDF method: the q-th quantile is the smallest
+        value where the cumulative weight proportion >= q. This matches
+        the default behavior of R's survey::svyquantile.
 
-        :param q: Array of quantiles to calculate.
-        :type q: np.array
+        :param q: Quantile(s) to calculate, must be in [0, 1].
+        :type q: float or np.array
 
-        :return: Array of weighted quantiles.
-        :rtype: pd.Series
+        :return: Weighted quantile value(s).
+        :rtype: float or pd.Series
         """
         values = np.array(self.values)
-        quantiles = np.array(q)
+        quantiles = np.atleast_1d(q)
         sample_weight = np.array(self.weights)
         assert np.all(quantiles >= 0) and np.all(
             quantiles <= 1
@@ -130,11 +131,20 @@ class MicroSeries(pd.Series):
         sorter = np.argsort(values)
         values = values[sorter]
         sample_weight = sample_weight[sorter]
-        weighted_quantiles = np.cumsum(sample_weight) - 0.5 * sample_weight
-        weighted_quantiles /= np.sum(sample_weight)
-        result = np.interp(quantiles, weighted_quantiles, values)
-        if quantiles.shape == ():
-            return result
+        cumsum = np.cumsum(sample_weight)
+        cumsum_normalized = cumsum / cumsum[-1]
+        result = np.array(
+            [
+                values[
+                    min(
+                        np.searchsorted(cumsum_normalized, qi), len(values) - 1
+                    )
+                ]
+                for qi in quantiles
+            ]
+        )
+        if np.array(q).shape == ():
+            return result[0]
         return pd.Series(result, index=quantiles)
 
     @scalar_function
