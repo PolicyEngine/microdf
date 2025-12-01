@@ -85,3 +85,8 @@
       weighted aggregation (fixes issue
     - Documentation build updated to use Jupyter Book 2.0 / MyST
   date: 2025-11-26 01:45:27
+- bump: patch
+  changes:
+    fixed:
+    - Fix weighted quantile/median to use inverse CDF method instead of interpolation
+  date: 2025-12-01 14:13:25

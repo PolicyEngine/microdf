@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.1.1] - 2025-12-01 14:13:25
+
+### Fixed
+
+- Fix weighted quantile/median to use inverse CDF method instead of interpolation
+
 ## [1.1.0] - 2025-11-26 01:45:27
 
 ### Fixed
@@ -78,6 +84,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 
 
+[1.1.1]: https://github.com/PolicyEngine/microcalibrate/compare/1.1.0...1.1.1
 [1.1.0]: https://github.com/PolicyEngine/microcalibrate/compare/1.0.2...1.1.0
 [1.0.2]: https://github.com/PolicyEngine/microcalibrate/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/PolicyEngine/microcalibrate/compare/1.0.0...1.0.1

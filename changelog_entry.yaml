@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    fixed:
-      - Fix weighted quantile/median to use inverse CDF method instead of interpolation
