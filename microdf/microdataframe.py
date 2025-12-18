@@ -44,6 +44,10 @@ class _MicroLocIndexer:
         self._parent_loc[key] = value
         self._mdf._link_all_weights()
 
+    def __getattr__(self, name):
+        """Delegate unknown attributes to the parent loc indexer."""
+        return getattr(self._parent_loc, name)
+
 
 class _MicroILocIndexer:
     """Custom iloc indexer that returns MicroDataFrame with proper weights."""
@@ -84,6 +88,10 @@ class _MicroILocIndexer:
     def __setitem__(self, key, value):
         self._parent_iloc[key] = value
         self._mdf._link_all_weights()
+
+    def __getattr__(self, name):
+        """Delegate unknown attributes to the parent iloc indexer."""
+        return getattr(self._parent_iloc, name)
 
 
 class MicroDataFrame(pd.DataFrame):
