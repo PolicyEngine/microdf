@@ -90,3 +90,8 @@
     fixed:
     - Fix weighted quantile/median to use inverse CDF method instead of interpolation
   date: 2025-12-01 14:13:25
+- bump: patch
+  changes:
+    fixed:
+    - Fix mean() method to properly handle skipna parameter
+  date: 2026-01-07 12:05:33

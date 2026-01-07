@@ -1,4 +1,0 @@
-- bump: patch
-  changes:
-    fixed:
-    - Fix mean() method to properly handle skipna parameter
