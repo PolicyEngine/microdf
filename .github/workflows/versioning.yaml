@@ -9,6 +9,7 @@ on:
       paths:
         - changelog_entry.yaml
         - "!pyproject.toml"
+        - .github/workflows/**
 
 jobs:
     Versioning:
