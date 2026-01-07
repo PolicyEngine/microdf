@@ -101,13 +101,32 @@ class MicroSeries(pd.Series):
         return self.weights.sum()
 
     @scalar_function
-    def mean(self) -> float:
+    def mean(self, skipna: bool = True) -> float:
         """Calculates the weighted mean of the MicroSeries.
 
+        :param skipna: Exclude NA/null values. If True (default), NaN values
+            are excluded. If False, returns NaN if any value is NaN.
+        :type skipna: bool
         :returns: The weighted mean.
         :rtype: float
         """
-        return np.average(self.values, weights=self.weights)
+        values = self.values
+        weights = self.weights
+
+        if skipna:
+            # Create mask for non-NaN values
+            mask = ~pd.isna(values)
+            if not mask.any():
+                # All values are NaN
+                return np.nan
+            values = values[mask]
+            weights = weights[mask]
+
+        # If skipna=False and there are any NaN values, return NaN
+        if not skipna and pd.isna(values).any():
+            return np.nan
+
+        return np.average(values, weights=weights)
 
     def quantile(self, q: np.array) -> pd.Series:
         """Calculates weighted quantiles of the MicroSeries.
