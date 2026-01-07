@@ -94,6 +94,36 @@ def test_mean() -> None:
         pass
 
 
+def test_mean_skipna() -> None:
+    # Test skipna=True (default) - should skip NaN values
+    arr = np.array([3.0, np.nan, 2.0])
+    w = np.array([4.0, 1.0, 1.0])
+    series = mdf.MicroSeries(arr, weights=w)
+
+    # skipna=True should exclude NaN and its weight
+    expected = np.average([3.0, 2.0], weights=[4.0, 1.0])
+    assert series.mean(skipna=True) == expected
+    assert series.mean() == expected  # Default should be skipna=True
+
+    # Test skipna=False - should return NaN if any value is NaN
+    assert np.isnan(series.mean(skipna=False))
+
+    # Test with all NaN values
+    arr_all_nan = np.array([np.nan, np.nan, np.nan])
+    w_all_nan = np.array([1.0, 2.0, 3.0])
+    series_all_nan = mdf.MicroSeries(arr_all_nan, weights=w_all_nan)
+    assert np.isnan(series_all_nan.mean(skipna=True))
+    assert np.isnan(series_all_nan.mean(skipna=False))
+
+    # Test with no NaN values - skipna should not affect result
+    arr_no_nan = np.array([3.0, 5.0, 2.0])
+    w_no_nan = np.array([4.0, 1.0, 1.0])
+    series_no_nan = mdf.MicroSeries(arr_no_nan, weights=w_no_nan)
+    expected_no_nan = np.average(arr_no_nan, weights=w_no_nan)
+    assert series_no_nan.mean(skipna=True) == expected_no_nan
+    assert series_no_nan.mean(skipna=False) == expected_no_nan
+
+
 def test_poverty_count() -> None:
     arr = np.array([10000, 20000, 50000])
     w = np.array([1123, 1144, 2211])

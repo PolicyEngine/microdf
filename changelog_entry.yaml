@@ -1,4 +1,4 @@
 - bump: patch
   changes:
     fixed:
-    - Added missing getattr method to mdf.
+    - Fix mean() method to properly handle skipna parameter
