@@ -95,3 +95,14 @@
     fixed:
     - Fix mean() method to properly handle skipna parameter
   date: 2026-01-07 12:05:33
+- bump: minor
+  changes:
+    added:
+    - Added pandas 3.0 compatibility test suite
+    fixed:
+    - MicroDataFrame.loc[] and .iloc[] now preserve MicroDataFrame type and weights
+      when filtering rows (fixes issue
+    - MicroDataFrame.groupby(col)["y"].sum() and groupby(col)[["y"]].sum() now use
+      weighted aggregation (fixes issue
+    - Documentation build updated to use Jupyter Book 2.0 / MyST
+  date: 2026-01-24 15:42:22

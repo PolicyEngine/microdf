@@ -3,6 +3,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.2.0] - 2026-01-24 15:42:22
+
+### Added
+
+- Added pandas 3.0 compatibility test suite
+
+### Fixed
+
+- MicroDataFrame.loc[] and .iloc[] now preserve MicroDataFrame type and weights when filtering rows (fixes issue
+- MicroDataFrame.groupby(col)["y"].sum() and groupby(col)[["y"]].sum() now use weighted aggregation (fixes issue
+- Documentation build updated to use Jupyter Book 2.0 / MyST
+
 ## [1.1.2] - 2026-01-07 12:05:33
 
 ### Fixed
@@ -90,6 +102,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 
 
+[1.2.0]: https://github.com/PolicyEngine/microcalibrate/compare/1.1.2...1.2.0
 [1.1.2]: https://github.com/PolicyEngine/microcalibrate/compare/1.1.1...1.1.2
 [1.1.1]: https://github.com/PolicyEngine/microcalibrate/compare/1.1.0...1.1.1
 [1.1.0]: https://github.com/PolicyEngine/microcalibrate/compare/1.0.2...1.1.0

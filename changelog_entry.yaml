@@ -1,8 +1,0 @@
-- bump: minor
-  changes:
-    fixed:
-      - MicroDataFrame.loc[] and .iloc[] now preserve MicroDataFrame type and weights when filtering rows (fixes issue #265)
-      - MicroDataFrame.groupby(col)["y"].sum() and groupby(col)[["y"]].sum() now use weighted aggregation (fixes issue #193)
-      - Documentation build updated to use Jupyter Book 2.0 / MyST
-    added:
-      - Added pandas 3.0 compatibility test suite
