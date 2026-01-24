@@ -101,28 +101,48 @@ class MicroSeries(pd.Series):
         return self.weights.sum()
 
     @scalar_function
-    def mean(self) -> float:
+    def mean(self, skipna: bool = True) -> float:
         """Calculates the weighted mean of the MicroSeries.
 
+        :param skipna: Exclude NA/null values. If True (default), NaN values
+            are excluded. If False, returns NaN if any value is NaN.
+        :type skipna: bool
         :returns: The weighted mean.
         :rtype: float
         """
-        return np.average(self.values, weights=self.weights)
+        values = self.values
+        weights = self.weights
+
+        if skipna:
+            # Create mask for non-NaN values
+            mask = ~pd.isna(values)
+            if not mask.any():
+                # All values are NaN
+                return np.nan
+            values = values[mask]
+            weights = weights[mask]
+
+        # If skipna=False and there are any NaN values, return NaN
+        if not skipna and pd.isna(values).any():
+            return np.nan
+
+        return np.average(values, weights=weights)
 
     def quantile(self, q: np.array) -> pd.Series:
         """Calculates weighted quantiles of the MicroSeries.
 
-        Doesn't exactly match unweighted quantiles of stacked values.
-        See stackoverflow.com/q/21844024#comment102342137_29677616.
+        Uses the inverse CDF method: the q-th quantile is the smallest
+        value where the cumulative weight proportion >= q. This matches
+        the default behavior of R's survey::svyquantile.
 
-        :param q: Array of quantiles to calculate.
-        :type q: np.array
+        :param q: Quantile(s) to calculate, must be in [0, 1].
+        :type q: float or np.array
 
-        :return: Array of weighted quantiles.
-        :rtype: pd.Series
+        :return: Weighted quantile value(s).
+        :rtype: float or pd.Series
         """
         values = np.array(self.values)
-        quantiles = np.array(q)
+        quantiles = np.atleast_1d(q)
         sample_weight = np.array(self.weights)
         assert np.all(quantiles >= 0) and np.all(
             quantiles <= 1
@@ -130,11 +150,20 @@ class MicroSeries(pd.Series):
         sorter = np.argsort(values)
         values = values[sorter]
         sample_weight = sample_weight[sorter]
-        weighted_quantiles = np.cumsum(sample_weight) - 0.5 * sample_weight
-        weighted_quantiles /= np.sum(sample_weight)
-        result = np.interp(quantiles, weighted_quantiles, values)
-        if quantiles.shape == ():
-            return result
+        cumsum = np.cumsum(sample_weight)
+        cumsum_normalized = cumsum / cumsum[-1]
+        result = np.array(
+            [
+                values[
+                    min(
+                        np.searchsorted(cumsum_normalized, qi), len(values) - 1
+                    )
+                ]
+                for qi in quantiles
+            ]
+        )
+        if np.array(q).shape == ():
+            return result[0]
         return pd.Series(result, index=quantiles)
 
     @scalar_function

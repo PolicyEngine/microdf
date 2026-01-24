@@ -4,11 +4,12 @@ name: Versioning updates
 on:
   push:
       branches:
-        - master
+        - main
 
       paths:
         - changelog_entry.yaml
         - "!pyproject.toml"
+        - .github/workflows/**
 
 jobs:
     Versioning:

@@ -76,3 +76,22 @@
     - MicroDataFrame aggregation functions now skip non-numeric columns instead of
       raising errors (Fixes
   date: 2025-07-24 12:20:41
+- bump: minor
+  changes:
+    fixed:
+    - MicroDataFrame.loc[] and .iloc[] now preserve MicroDataFrame type and weights
+      when filtering rows (fixes issue
+    - MicroDataFrame.groupby(col)["y"].sum() and groupby(col)[["y"]].sum() now use
+      weighted aggregation (fixes issue
+    - Documentation build updated to use Jupyter Book 2.0 / MyST
+  date: 2025-11-26 01:45:27
+- bump: patch
+  changes:
+    fixed:
+    - Fix weighted quantile/median to use inverse CDF method instead of interpolation
+  date: 2025-12-01 14:13:25
+- bump: patch
+  changes:
+    fixed:
+    - Fix mean() method to properly handle skipna parameter
+  date: 2026-01-07 12:05:33

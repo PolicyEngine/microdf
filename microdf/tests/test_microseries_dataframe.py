@@ -94,6 +94,36 @@ def test_mean() -> None:
         pass
 
 
+def test_mean_skipna() -> None:
+    # Test skipna=True (default) - should skip NaN values
+    arr = np.array([3.0, np.nan, 2.0])
+    w = np.array([4.0, 1.0, 1.0])
+    series = mdf.MicroSeries(arr, weights=w)
+
+    # skipna=True should exclude NaN and its weight
+    expected = np.average([3.0, 2.0], weights=[4.0, 1.0])
+    assert series.mean(skipna=True) == expected
+    assert series.mean() == expected  # Default should be skipna=True
+
+    # Test skipna=False - should return NaN if any value is NaN
+    assert np.isnan(series.mean(skipna=False))
+
+    # Test with all NaN values
+    arr_all_nan = np.array([np.nan, np.nan, np.nan])
+    w_all_nan = np.array([1.0, 2.0, 3.0])
+    series_all_nan = mdf.MicroSeries(arr_all_nan, weights=w_all_nan)
+    assert np.isnan(series_all_nan.mean(skipna=True))
+    assert np.isnan(series_all_nan.mean(skipna=False))
+
+    # Test with no NaN values - skipna should not affect result
+    arr_no_nan = np.array([3.0, 5.0, 2.0])
+    w_no_nan = np.array([4.0, 1.0, 1.0])
+    series_no_nan = mdf.MicroSeries(arr_no_nan, weights=w_no_nan)
+    expected_no_nan = np.average(arr_no_nan, weights=w_no_nan)
+    assert series_no_nan.mean(skipna=True) == expected_no_nan
+    assert series_no_nan.mean(skipna=False) == expected_no_nan
+
+
 def test_poverty_count() -> None:
     arr = np.array([10000, 20000, 50000])
     w = np.array([1123, 1144, 2211])
@@ -110,6 +140,55 @@ def test_median() -> None:
     w = np.array([1, 1, 1, 3, 3])
     series = mdf.MicroSeries(arr, weights=w)
     assert series.median() == 4
+
+
+def test_weighted_quantile_skewed() -> None:
+    # 99% of the population has 0 income, 1% has 1M
+    # The median should be 0, not an interpolated value
+    series = mdf.MicroSeries([0, 1_000_000], weights=[99, 1])
+    assert series.median() == 0
+    assert series.quantile(0.5) == 0
+    # 99th percentile is still 0 since exactly 99% have 0
+    assert series.quantile(0.99) == 0
+    # Only quantile > 0.99 gives 1M
+    assert series.quantile(1.0) == 1_000_000
+    # Test multiple quantiles
+    result = series.quantile([0.1, 0.5, 0.99, 1.0])
+    assert result[0.1] == 0
+    assert result[0.5] == 0
+    assert result[0.99] == 0
+    assert result[1.0] == 1_000_000
+
+
+def test_weighted_quantile_boundaries() -> None:
+    # Test q=0 returns minimum, q=1 returns maximum
+    series = mdf.MicroSeries([10, 20, 30], weights=[1, 1, 1])
+    assert series.quantile(0.0) == 10
+    assert series.quantile(1.0) == 30
+
+
+def test_weighted_quantile_equal_weights() -> None:
+    # With equal weights, should match "replicated" interpretation
+    # Values: 1, 2, 3 each with weight 2 -> like [1,1,2,2,3,3]
+    series = mdf.MicroSeries([1, 2, 3], weights=[2, 2, 2])
+    # cumsum_normalized = [2/6, 4/6, 6/6] = [0.333, 0.667, 1.0]
+    # median (0.5): smallest where cumsum >= 0.5 -> index 1 -> value 2
+    assert series.median() == 2
+    # 0.25 quantile: smallest where cumsum >= 0.25 -> index 0 -> value 1
+    assert series.quantile(0.25) == 1
+    # 0.75 quantile: smallest where cumsum >= 0.75 -> index 2 -> value 3
+    assert series.quantile(0.75) == 3
+
+
+def test_weighted_quantile_unsorted_input() -> None:
+    # Ensure sorting works correctly
+    series = mdf.MicroSeries([30, 10, 20], weights=[1, 2, 1])
+    # Sorted: values [10, 20, 30], weights [2, 1, 1]
+    # cumsum_normalized = [0.5, 0.75, 1.0]
+    assert series.quantile(0.0) == 10
+    assert series.quantile(0.5) == 10  # cumsum[0]=0.5 >= 0.5
+    assert series.quantile(0.6) == 20  # cumsum[1]=0.75 >= 0.6
+    assert series.quantile(1.0) == 30
 
 
 def test_unweighted_groupby() -> None:
