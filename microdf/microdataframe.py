@@ -278,18 +278,18 @@ class MicroDataFrame(pd.DataFrame):
         self._link_all_weights()
 
     def _link_weights(self, column) -> None:
-        # self[column] = ... triggers __setitem__, which forces pd.Series
-        # this workaround avoids that
-        self[column].__class__ = MicroSeries
-        self[column].set_weights(self.weights)
+        # In pandas 3.0+, we can't modify column classes in-place due to CoW.
+        # Instead, we rely on __getitem__ to wrap columns as MicroSeries on
+        # access. This method is kept for backward compatibility but is now
+        # a no-op.
+        pass
 
     def _link_all_weights(self) -> None:
         if self.weights is None:
             if len(self) > 0:
                 self.set_weights(np.ones((len(self))))
-        for column in self.columns:
-            if column != self.weights_col:
-                self._link_weights(column)
+        # In pandas 3.0+, columns are wrapped as MicroSeries on access via
+        # __getitem__, not stored as MicroSeries internally.
 
     def set_weights(
         self,
@@ -365,7 +365,7 @@ class MicroDataFrame(pd.DataFrame):
 
     def __getitem__(
         self, key: Union[str, List]
-    ) -> Union[pd.Series, pd.DataFrame]:
+    ) -> Union[MicroSeries, "MicroDataFrame"]:
         # Let pandas handle the initial slicing
         result = super().__getitem__(key)
 
@@ -374,17 +374,22 @@ class MicroDataFrame(pd.DataFrame):
             new_weights = self.weights.reindex(result.index)
             return MicroDataFrame(result, weights=new_weights)
 
-        # Otherwise, the result is a Series or a scalar, so just return it
+        # If the result is a Series (single column), wrap as MicroSeries
+        if isinstance(result, pd.Series):
+            return MicroSeries(result, weights=self.weights)
+
+        # Otherwise, the result is a scalar, so just return it
         return result
 
     def catch_series_relapse(self) -> None:
-        for col in self.columns:
-            if self[col].__class__ == pd.Series:
-                self._link_weights(col)
+        # In pandas 3.0+, we don't need to track series class changes since
+        # __getitem__ always wraps columns as MicroSeries on access.
+        pass
 
     def __setattr__(self, key, value) -> None:
         super().__setattr__(key, value)
-        self.catch_series_relapse()
+        # No need to call catch_series_relapse in pandas 3.0+ since we wrap
+        # on access rather than store MicroSeries internally.
 
     def reset_index(
         self,
