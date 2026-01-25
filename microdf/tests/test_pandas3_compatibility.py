@@ -198,6 +198,26 @@ class TestCopyOnWriteCompatibility:
         assert np.allclose(mdf_copy.weights, [1.0, 2.0, 3.0])
 
 
+    def test_column_set_weights_after_access_regression(self):
+        """Regression test for pandas 3.0 CoW compatibility.
+
+        In pandas 3.0 with Copy-on-Write, modifying column.__class__ doesn't
+        persist because each access returns a copy. This test verifies the
+        fix that wraps columns as MicroSeries on access in __getitem__.
+        """
+        mdf = MicroDataFrame(
+            {"income": [10000, 20000, 30000]},
+            weights=np.array([1.0, 2.0, 3.0]),
+        )
+
+        # This was the exact error that occurred:
+        # AttributeError: 'Series' object has no attribute 'set_weights'
+        col = mdf["income"]
+        col.set_weights(np.array([4.0, 5.0, 6.0]))  # Would fail before fix
+
+        # Verify the new weights took effect
+        assert np.allclose(col.weights, [4.0, 5.0, 6.0])
+
 class TestGroupByWithPandas3:
     """Test groupby operations with pandas 3."""
 
