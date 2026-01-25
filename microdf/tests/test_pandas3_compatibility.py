@@ -201,8 +201,8 @@ class TestCopyOnWriteCompatibility:
         """Regression test for pandas 3.0 CoW compatibility.
 
         In pandas 3.0 with Copy-on-Write, modifying column.__class__ doesn't
-        persist because each access returns a copy. This test verifies the
-        fix that wraps columns as MicroSeries on access in __getitem__.
+        persist because each access returns a copy. This test verifies the fix
+        that wraps columns as MicroSeries on access in __getitem__.
         """
         mdf = MicroDataFrame(
             {"income": [10000, 20000, 30000]},
