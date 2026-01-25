@@ -106,3 +106,9 @@
       weighted aggregation (fixes issue
     - Documentation build updated to use Jupyter Book 2.0 / MyST
   date: 2026-01-24 15:42:22
+- bump: patch
+  changes:
+    fixed:
+    - Fixed pandas 3.0 compatibility issues with MicroSeries method access and Copy-on-Write
+      behavior
+  date: 2026-01-25 13:40:28
