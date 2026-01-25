@@ -197,7 +197,6 @@ class TestCopyOnWriteCompatibility:
         # Copy should be unchanged
         assert np.allclose(mdf_copy.weights, [1.0, 2.0, 3.0])
 
-
     def test_column_set_weights_after_access_regression(self):
         """Regression test for pandas 3.0 CoW compatibility.
 
@@ -217,6 +216,7 @@ class TestCopyOnWriteCompatibility:
 
         # Verify the new weights took effect
         assert np.allclose(col.weights, [4.0, 5.0, 6.0])
+
 
 class TestGroupByWithPandas3:
     """Test groupby operations with pandas 3."""
