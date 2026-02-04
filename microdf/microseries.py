@@ -1,4 +1,5 @@
 import logging
+import warnings
 from functools import wraps
 from typing import Callable, List, Optional, Union
 
@@ -18,6 +19,50 @@ class MicroSeries(pd.Series):
         """
         super().__init__(*args, **kwargs)
         self.set_weights(weights)
+
+    @property
+    def _values(self):
+        """Internal access to underlying numpy array without warning."""
+        return super().values
+
+    @property
+    def values(self):
+        """Access underlying numpy array.
+
+        .. warning::
+            Returns a plain numpy array without weights. Operations
+            like ``.mean()`` on the result will be unweighted. Use
+            MicroSeries methods directly for weighted calculations
+            (e.g., ``ms.mean()`` instead of ``ms.values.mean()``).
+        """
+        warnings.warn(
+            "Accessing .values on a MicroSeries returns a plain numpy "
+            "array without weights. Operations like .mean() on the "
+            "result will be unweighted. Use MicroSeries methods "
+            "directly for weighted calculations (e.g., ms.mean() "
+            "instead of ms.values.mean()).",
+            UserWarning,
+            stacklevel=2,
+        )
+        return super().values
+
+    def to_numpy(self, *args, **kwargs):
+        """Convert to numpy array.
+
+        .. warning::
+            Returns a plain numpy array without weights. Operations
+            like ``.mean()`` on the result will be unweighted. Use
+            MicroSeries methods directly for weighted calculations.
+        """
+        warnings.warn(
+            "Calling .to_numpy() on a MicroSeries returns a plain "
+            "numpy array without weights. Operations like .mean() on "
+            "the result will be unweighted. Use MicroSeries methods "
+            "directly for weighted calculations.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return super().to_numpy(*args, **kwargs)
 
     def weighted_function(fn: Callable) -> Callable:
         @wraps(fn)
@@ -52,7 +97,7 @@ class MicroSeries(pd.Series):
         if weights is None:
             if len(self) > 0:
                 self.weights = pd.Series(
-                    np.ones_like(self.values), dtype=float
+                    np.ones_like(self._values), dtype=float
                 )
         else:
             if len(weights) != len(self):
@@ -110,7 +155,7 @@ class MicroSeries(pd.Series):
         :returns: The weighted mean.
         :rtype: float
         """
-        values = self.values
+        values = self._values
         weights = self.weights
 
         if skipna:
@@ -141,7 +186,7 @@ class MicroSeries(pd.Series):
         :return: Weighted quantile value(s).
         :rtype: float or pd.Series
         """
-        values = np.array(self.values)
+        values = np.array(self._values)
         quantiles = np.atleast_1d(q)
         sample_weight = np.array(self.weights)
         assert np.all(quantiles >= 0) and np.all(
@@ -313,7 +358,7 @@ class MicroSeries(pd.Series):
                 "in division by zero."
             )
 
-        order = np.argsort(self.values)
+        order = np.argsort(self._values)
         inverse_order = np.argsort(order)
         ranks = np.array(self.weights.values)[order].cumsum()[inverse_order]
         if pct:
@@ -506,7 +551,7 @@ class MicroSeries(pd.Series):
         return MicroSeries(super().__rxor__(other), weights=self.weights)
 
     def sqrt(self) -> "MicroSeries":
-        sqrt_values = np.sqrt(self.values)
+        sqrt_values = np.sqrt(self._values)
         return MicroSeries(sqrt_values, index=self.index, weights=self.weights)
 
     # comparators
@@ -590,7 +635,7 @@ class MicroSeries(pd.Series):
 
     def __repr__(self) -> str:
         return pd.DataFrame(
-            dict(value=self.values, weight=self.weights.values)
+            dict(value=self._values, weight=self.weights.values)
         ).__repr__()
 
 
