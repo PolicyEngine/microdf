@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -423,3 +425,45 @@ def test_groupby_column_selection() -> None:
     result_all = d.groupby("g").sum()
     assert "weight" not in result_all.columns
     assert list(result_all.columns) == ["y"]
+
+
+def test_values_warns() -> None:
+    """Accessing .values on a MicroSeries should emit a UserWarning."""
+    ms = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        _ = ms.values
+        assert len(w) == 1
+        assert issubclass(w[0].category, UserWarning)
+        assert "weights" in str(w[0].message).lower()
+
+
+def test_to_numpy_warns() -> None:
+    """Calling .to_numpy() on a MicroSeries should emit a UserWarning."""
+    ms = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        _ = ms.to_numpy()
+        assert len(w) == 1
+        assert issubclass(w[0].category, UserWarning)
+        assert "weights" in str(w[0].message).lower()
+
+
+def test_mean_no_warning() -> None:
+    """Internal .values usage in .mean() should NOT emit a warning."""
+    ms = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        _ = ms.mean()
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) == 0
+
+
+def test_repr_no_warning() -> None:
+    """Internal .values usage in __repr__ should NOT emit a warning."""
+    ms = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        _ = repr(ms)
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) == 0
