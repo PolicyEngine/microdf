@@ -1,1 +1,6 @@
-
+- bump: minor
+  changes:
+    added:
+      - Added pandas 2 and 3 CI matrix testing to ensure compatibility with both major versions.
+    removed:
+      - Dropped Python 3.9 support (EOL).
