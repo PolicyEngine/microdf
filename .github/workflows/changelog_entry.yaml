@@ -1,29 +1,21 @@
-name: Versioning
+name: Changelog
 
 on:
   pull_request:
     branches: [ main ]
 
 jobs:
-  check-changelog-entry:
-    name: Changelog entry check
+  check-changelog:
+    name: Check changelog fragment
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Check for changelog entry
+      - uses: actions/checkout@v4
+      - name: Check for changelog fragment
         run: |
-          if [ ! -f "changelog_entry.yaml" ]; then
-            echo "Error: changelog_entry.yaml file is missing."
-            echo "Please add a changelog_entry.yaml file at the root of the repository."
+          FRAGMENTS=$(find changelog.d -type f ! -name '.gitkeep' | wc -l)
+          if [ "$FRAGMENTS" -eq 0 ]; then
+            echo "::error::No changelog fragment found in changelog.d/"
+            echo "Add one with: echo 'Description.' > changelog.d/\$(git branch --show-current).<type>.md"
+            echo "Types: added, changed, fixed, removed, breaking"
             exit 1
           fi
-          
-          # Check if the file is empty
-          if [ ! -s "changelog_entry.yaml" ]; then
-            echo "Error: changelog_entry.yaml file is empty."
-            echo "Please add content to the changelog_entry.yaml file."
-            exit 1
-          fi
-          
-          echo "Changelog entry found and is not empty."
