@@ -7,7 +7,7 @@
 - **IMPORTANT**: `make format` will fail if there are lines over 79 characters that black can't fix (usually in strings/comments). You must manually break these lines.
 
 ## Changelog Requirements
-- Every PR must include a `changelog_entry.yaml` file at the root
+- Every PR must include a `changelog.d/` file at the root
 - Format:
   ```yaml
   - bump: patch|minor|major
