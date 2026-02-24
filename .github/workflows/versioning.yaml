@@ -7,7 +7,7 @@ on:
         - main
 
       paths:
-        - changelog_entry.yaml
+        - changelog.d/**
         - "!pyproject.toml"
         - .github/workflows/**
 
@@ -20,17 +20,18 @@ jobs:
             - name: Checkout repo
               uses: actions/checkout@v4
               with:
-                repository: ${{ github.event.pull_request.head.repo.full_name }}
-                ref: ${{ github.event.pull_request.head.ref }}
                 token: ${{ secrets.POLICYENGINE_GITHUB }}
+                fetch-depth: 0
             - name: Setup Python
               uses: actions/setup-python@v5
               with:
                 python-version: 3.11
-            - name: Build changelog
-              run: pip install yaml-changelog && make changelog
-            - name: Preview changelog update
-              run: ".github/get-changelog-diff.sh"
+            - name: Install towncrier
+              run: pip install towncrier
+            - name: Bump version and build changelog
+              run: |
+                python .github/bump_version.py
+                towncrier build --yes --version $(python -c "import re; print(re.search(r'version = \"(.+?)\"', open('pyproject.toml').read()).group(1))")
             - name: Update changelog
               uses: EndBug/add-and-commit@v9
               with:
@@ -45,7 +46,7 @@ jobs:
           uses: actions/checkout@v4
           with:
             fetch-depth: 0 # Fetch all history for all tags and branches
-        - name: Set up Python      
+        - name: Set up Python
           uses: actions/setup-python@v5
           with:
             python-version: '3.13'

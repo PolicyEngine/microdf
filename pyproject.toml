@@ -28,7 +28,8 @@ dev = [
     "linecheck",
     "pytest",
     "pytest-cov",
-    "setuptools",
+    "setuptools",    "towncrier>=24.8.0",
+
 ]
 # Note: Documentation uses MyST (Jupyter Book 2.0) which is installed via npm
 # Run: cd docs && myst build --html
@@ -48,3 +49,36 @@ target-version = ["py313"]
 [tool.flake8]
 max-line-length = 79
 extend-ignore = ["E203", "W503"]
+
+[tool.towncrier]
+package = "microdf_python"
+directory = "changelog.d"
+filename = "CHANGELOG.md"
+title_format = "## [{version}] - {project_date}"
+issue_format = ""
+underlines = ["", "", ""]
+
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "Removed"
+showcontent = true
