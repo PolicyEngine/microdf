@@ -1,3 +1,10 @@
+## [1.2.3] - 2026-03-06
+
+### Changed
+
+- Replaced black, isort, flake8, and linecheck with ruff for code formatting.
+
+
 ## [1.2.2] - 2026-02-24
 
 ### Changed
