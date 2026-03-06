@@ -34,9 +34,6 @@ dev = [
 where = ["."]
 include = ["microdf*"]
 
-[tool.ruff]
-line-length = 79
-
 [tool.towncrier]
 package = "microdf_python"
 directory = "changelog.d"

@@ -261,9 +261,7 @@ def test_decile_rank() -> None:
 
 
 def test_copy_equals() -> None:
-    d = mdf.MicroDataFrame(
-        {"x": [1, 2], "y": [3, 4], "z": [5, 6]}, weights=[7, 8]
-    )
+    d = mdf.MicroDataFrame({"x": [1, 2], "y": [3, 4], "z": [5, 6]}, weights=[7, 8])
     d_copy = d.copy()
     d_copy_diff_weights = d_copy.copy()
     d_copy_diff_weights.weights *= 2
@@ -275,9 +273,7 @@ def test_copy_equals() -> None:
 
 
 def test_subset() -> None:
-    df = mdf.MicroDataFrame(
-        {"x": [1, 2], "y": [3, 4], "z": [5, 6]}, weights=[7, 8]
-    )
+    df = mdf.MicroDataFrame({"x": [1, 2], "y": [3, 4], "z": [5, 6]}, weights=[7, 8])
     df_no_z = mdf.MicroDataFrame({"x": [1, 2], "y": [3, 4]}, weights=[7, 8])
     assert df[["x", "y"]].equals(df_no_z)
     df_no_z_diff_weights = df_no_z.copy()
@@ -353,9 +349,7 @@ def test_reset_index_inplace() -> None:
     # Test 4: Multi-level index
     arrays = [["bar", "bar", "baz", "baz"], ["one", "two", "one", "two"]]
     multi_index = pd.MultiIndex.from_arrays(arrays, names=["first", "second"])
-    df_multi = pd.DataFrame(
-        {"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=multi_index
-    )
+    df_multi = pd.DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=multi_index)
     mdf_multi = MicroDataFrame(df_multi, weights=weights)
     result = mdf_multi.reset_index(level="first")
     assert "first" in result.columns
@@ -373,9 +367,7 @@ def test_reset_index_inplace() -> None:
 def test_loc_preserves_weights() -> None:
     """Test that .loc[] returns MicroDataFrame with proper weights (issue
     #265)."""
-    df = mdf.MicroDataFrame(
-        {"one": [1, 1, 1, 1, 1]}, weights=[10, 20, 30, 40, 50]
-    )
+    df = mdf.MicroDataFrame({"one": [1, 1, 1, 1, 1]}, weights=[10, 20, 30, 40, 50])
 
     # Filter all rows (should get same weights)
     filtered = df.loc[df.one == 1]
@@ -383,9 +375,7 @@ def test_loc_preserves_weights() -> None:
     assert filtered.one.sum() == 150.0  # Weighted sum
 
     # Partial filter
-    df2 = mdf.MicroDataFrame(
-        {"x": [1, 2, 3, 4, 5]}, weights=[10, 20, 30, 40, 50]
-    )
+    df2 = mdf.MicroDataFrame({"x": [1, 2, 3, 4, 5]}, weights=[10, 20, 30, 40, 50])
     subset = df2.loc[df2.x > 2]
     assert isinstance(subset, MicroDataFrame)
     assert subset.x.sum() == 500.0  # 3*30 + 4*40 + 5*50 = 500
@@ -394,9 +384,7 @@ def test_loc_preserves_weights() -> None:
 
 def test_iloc_preserves_weights() -> None:
     """Test that .iloc[] returns MicroDataFrame with proper weights."""
-    df = mdf.MicroDataFrame(
-        {"x": [1, 2, 3, 4, 5]}, weights=[10, 20, 30, 40, 50]
-    )
+    df = mdf.MicroDataFrame({"x": [1, 2, 3, 4, 5]}, weights=[10, 20, 30, 40, 50])
 
     # Select rows by position
     subset = df.iloc[2:5]
@@ -407,9 +395,7 @@ def test_iloc_preserves_weights() -> None:
 
 def test_groupby_column_selection() -> None:
     """Test that groupby column selection preserves weights (issue #193)."""
-    d = mdf.MicroDataFrame(
-        dict(g=["a", "a", "b"], y=[1, 2, 3]), weights=[4, 5, 6]
-    )
+    d = mdf.MicroDataFrame(dict(g=["a", "a", "b"], y=[1, 2, 3]), weights=[4, 5, 6])
 
     # Test single column string selection
     result_str = d.groupby("g")["y"].sum()

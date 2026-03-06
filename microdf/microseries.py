@@ -96,9 +96,7 @@ class MicroSeries(pd.Series):
         """
         if weights is None:
             if len(self) > 0:
-                self.weights = pd.Series(
-                    np.ones_like(self._values), dtype=float
-                )
+                self.weights = pd.Series(np.ones_like(self._values), dtype=float)
         else:
             if len(weights) != len(self):
                 raise ValueError(
@@ -199,11 +197,7 @@ class MicroSeries(pd.Series):
         cumsum_normalized = cumsum / cumsum[-1]
         result = np.array(
             [
-                values[
-                    min(
-                        np.searchsorted(cumsum_normalized, qi), len(values) - 1
-                    )
-                ]
+                values[min(np.searchsorted(cumsum_normalized, qi), len(values) - 1)]
                 for qi in quantiles
             ]
         )
@@ -454,9 +448,7 @@ class MicroSeries(pd.Series):
             return MicroSeries(res, weights=self.weights)
         return self
 
-    def round(
-        self, decimals: Optional[int] = 0, *args, **kwargs
-    ) -> "MicroSeries":
+    def round(self, decimals: Optional[int] = 0, *args, **kwargs) -> "MicroSeries":
         res = super().round(decimals=decimals, *args, **kwargs)
         return MicroSeries(res, weights=self.weights)
 
@@ -488,14 +480,10 @@ class MicroSeries(pd.Series):
     def __mul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__mul__(other), weights=self.weights)
 
-    def __floordiv__(
-        self, other: Union[int, float, pd.Series]
-    ) -> "MicroSeries":
+    def __floordiv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__floordiv__(other), weights=self.weights)
 
-    def __truediv__(
-        self, other: Union[int, float, pd.Series]
-    ) -> "MicroSeries":
+    def __truediv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__truediv__(other), weights=self.weights)
 
     def __mod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
@@ -525,14 +513,10 @@ class MicroSeries(pd.Series):
     def __rmul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__rmul__(other), weights=self.weights)
 
-    def __rfloordiv__(
-        self, other: Union[int, float, pd.Series]
-    ) -> "MicroSeries":
+    def __rfloordiv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__rfloordiv__(other), weights=self.weights)
 
-    def __rtruediv__(
-        self, other: Union[int, float, pd.Series]
-    ) -> "MicroSeries":
+    def __rtruediv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__rtruediv__(other), weights=self.weights)
 
     def __rmod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
@@ -585,17 +569,13 @@ class MicroSeries(pd.Series):
     def __imul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__imul__(other), weights=self.weights)
 
-    def __ifloordiv__(
-        self, other: Union[int, float, pd.Series]
-    ) -> "MicroSeries":
+    def __ifloordiv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__ifloordiv__(other), weights=self.weights)
 
     def __idiv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__idiv__(other), weights=self.weights)
 
-    def __itruediv__(
-        self, other: Union[int, float, pd.Series]
-    ) -> "MicroSeries":
+    def __itruediv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
         return MicroSeries(super().__itruediv__(other), weights=self.weights)
 
     def __imod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
@@ -666,16 +646,12 @@ class MicroSeriesGroupBy(pd.core.groupby.generic.SeriesGroupBy):
     def _init(self):
         def _weighted_agg(name) -> Callable:
             def via_micro_series(row, *args, **kwargs):
-                return getattr(MicroSeries(row.a, weights=row.w), name)(
-                    *args, **kwargs
-                )
+                return getattr(MicroSeries(row.a, weights=row.w), name)(*args, **kwargs)
 
             fn = getattr(MicroSeries, name)
 
             @wraps(fn)
-            def _weighted_agg_fn(
-                *args, **kwargs
-            ) -> Union[pd.Series, pd.DataFrame]:
+            def _weighted_agg_fn(*args, **kwargs) -> Union[pd.Series, pd.DataFrame]:
                 arrays = self.apply(np.array)
                 weights = self.weights.apply(np.array)
                 df = pd.DataFrame(dict(a=arrays, w=weights))

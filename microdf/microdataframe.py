@@ -147,9 +147,7 @@ class MicroDataFrame(pd.DataFrame):
             for col in self.columns:
                 if pd.api.types.is_numeric_dtype(self[col]):
                     try:
-                        results[col] = getattr(self[col], name)(
-                            *args, **kwargs
-                        )
+                        results[col] = getattr(self[col], name)(*args, **kwargs)
                     except Exception:
                         # Skip columns that can't be aggregated
                         pass
@@ -224,9 +222,7 @@ class MicroDataFrame(pd.DataFrame):
                 for col in self.columns:
                     if pd.api.types.is_numeric_dtype(self[col]):
                         try:
-                            results[col] = getattr(self[col], name)(
-                                *args, **kwargs
-                            )
+                            results[col] = getattr(self[col], name)(*args, **kwargs)
                         except Exception:
                             # Skip columns that can't be aggregated
                             pass
@@ -323,9 +319,7 @@ class MicroDataFrame(pd.DataFrame):
                 self.weights = pd.Series(weights, dtype=float)
             self._link_all_weights()
 
-    def set_weight_col(
-        self, column: str, preserve_old: Optional[bool] = False
-    ) -> None:
+    def set_weight_col(self, column: str, preserve_old: Optional[bool] = False) -> None:
         """Sets the weights for the MicroDataFrame by specifying the name of
         the weight column.
 
@@ -594,9 +588,7 @@ class MicroDataFrame(pd.DataFrame):
         return equal_values and equal_weights
 
     @get_args_as_micro_series()
-    def groupby(
-        self, by: Union[str, List], *args, **kwargs
-    ) -> "MicroDataFrameGroupBy":
+    def groupby(self, by: Union[str, List], *args, **kwargs) -> "MicroDataFrameGroupBy":
         """Returns a GroupBy object with MicroSeriesGroupBy objects for each
         column.
 
@@ -757,14 +749,10 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
         self.columns.remove("__tmp_weights")
         # Filter to only numeric columns
         self.numeric_columns = [
-            col
-            for col in self.columns
-            if pd.api.types.is_numeric_dtype(self.obj[col])
+            col for col in self.columns if pd.api.types.is_numeric_dtype(self.obj[col])
         ]
         # Store reference to weights groupby for column selection
-        self._weights_groupby = copy.deepcopy(
-            super().__getitem__("__tmp_weights")
-        )
+        self._weights_groupby = copy.deepcopy(super().__getitem__("__tmp_weights"))
         for fn_name in MicroSeries.SCALAR_FUNCTIONS:
 
             def get_fn(name):
@@ -854,18 +842,14 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                         results = {}
                         for col in res.numeric_columns:
                             try:
-                                results[col] = getattr(
-                                    getattr(res, col), name
-                                )(*args, **kwargs)
+                                results[col] = getattr(getattr(res, col), name)(
+                                    *args, **kwargs
+                                )
                             except Exception:
                                 pass
                         # Return plain DataFrame - aggregated results don't
                         # have per-row weights (weights were already applied)
-                        return (
-                            pd.DataFrame(results)
-                            if results
-                            else pd.DataFrame()
-                        )
+                        return pd.DataFrame(results) if results else pd.DataFrame()
 
                     return fn
 
@@ -877,18 +861,14 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                         results = {}
                         for col in res.numeric_columns:
                             try:
-                                results[col] = getattr(
-                                    getattr(res, col), name
-                                )(*args, **kwargs)
+                                results[col] = getattr(getattr(res, col), name)(
+                                    *args, **kwargs
+                                )
                             except Exception:
                                 pass
                         # Return plain DataFrame - aggregated results don't
                         # have per-row weights (weights were already applied)
-                        return (
-                            pd.DataFrame(results)
-                            if results
-                            else pd.DataFrame()
-                        )
+                        return pd.DataFrame(results) if results else pd.DataFrame()
 
                     return fn
 

@@ -76,9 +76,7 @@ class TestMicroSeriesSubclassPreservation:
 
     def test_microseries_preserved_after_indexing(self):
         """Indexing operations should return MicroSeries, not plain Series."""
-        ms = MicroSeries(
-            [1, 2, 3, 4, 5], weights=np.array([1.0, 2.0, 3.0, 4.0, 5.0])
-        )
+        ms = MicroSeries([1, 2, 3, 4, 5], weights=np.array([1.0, 2.0, 3.0, 4.0, 5.0]))
 
         # Boolean indexing
         result = ms[ms > 2]
@@ -105,9 +103,7 @@ class TestMicroDataFrameSubclassPreservation:
 
         # Column access
         col = mdf["a"]
-        assert isinstance(col, MicroSeries), (
-            f"Got {type(col)} instead of MicroSeries"
-        )
+        assert isinstance(col, MicroSeries), f"Got {type(col)} instead of MicroSeries"
         assert hasattr(col, "weights")
         assert hasattr(col, "set_weights")
 
@@ -186,9 +182,7 @@ class TestCopyOnWriteCompatibility:
 
     def test_microdataframe_copy_independent(self):
         """Copying a MicroDataFrame should create an independent copy."""
-        mdf = MicroDataFrame(
-            {"a": [1, 2, 3]}, weights=np.array([1.0, 2.0, 3.0])
-        )
+        mdf = MicroDataFrame({"a": [1, 2, 3]}, weights=np.array([1.0, 2.0, 3.0]))
         mdf_copy = mdf.copy()
 
         # Modify original
