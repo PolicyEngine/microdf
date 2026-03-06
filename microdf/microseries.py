@@ -189,9 +189,9 @@ class MicroSeries(pd.Series):
         values = np.array(self._values)
         quantiles = np.atleast_1d(q)
         sample_weight = np.array(self.weights)
-        assert np.all(quantiles >= 0) and np.all(
-            quantiles <= 1
-        ), "quantiles should be in [0, 1]"
+        assert np.all(quantiles >= 0) and np.all(quantiles <= 1), (
+            "quantiles should be in [0, 1]"
+        )
         sorter = np.argsort(values)
         values = values[sorter]
         sample_weight = sample_weight[sorter]

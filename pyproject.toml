@@ -20,16 +20,12 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "codecov",
-    "flake8",
-    "flake8-pyproject",
-    "black",
+    "ruff>=0.9.0",
     "docformatter",
-    "isort",
-    "linecheck",
     "pytest",
     "pytest-cov",
-    "setuptools",    "towncrier>=24.8.0",
-
+    "setuptools",
+    "towncrier>=24.8.0",
 ]
 # Note: Documentation uses MyST (Jupyter Book 2.0) which is installed via npm
 # Run: cd docs && myst build --html
@@ -38,17 +34,8 @@ dev = [
 where = ["."]
 include = ["microdf*"]
 
-[tool.isort]
-profile = "black"
-line_length = 79
-
-[tool.black]
+[tool.ruff]
 line-length = 79
-target-version = ["py313"]
-
-[tool.flake8]
-max-line-length = 79
-extend-ignore = ["E203", "W503"]
 
 [tool.towncrier]
 package = "microdf_python"

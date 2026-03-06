@@ -38,23 +38,23 @@ class TestMicroSeriesSubclassPreservation:
 
         # Addition
         result = ms + 1
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
         assert hasattr(result, "weights")
         assert hasattr(result, "set_weights")
 
         # Multiplication
         result = ms * 2
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
 
         # Division
         result = ms / 2
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
 
     def test_microseries_preserved_after_comparison(self):
         """Comparison operations should return MicroSeries, not plain
@@ -63,16 +63,16 @@ class TestMicroSeriesSubclassPreservation:
 
         # Greater than
         result = ms > 1
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
         assert hasattr(result, "weights")
 
         # Less than
         result = ms < 3
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
 
     def test_microseries_preserved_after_indexing(self):
         """Indexing operations should return MicroSeries, not plain Series."""
@@ -82,16 +82,16 @@ class TestMicroSeriesSubclassPreservation:
 
         # Boolean indexing
         result = ms[ms > 2]
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
         assert hasattr(result, "weights")
 
         # Slice indexing
         result = ms[1:3]
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
 
 
 class TestMicroDataFrameSubclassPreservation:
@@ -105,9 +105,9 @@ class TestMicroDataFrameSubclassPreservation:
 
         # Column access
         col = mdf["a"]
-        assert isinstance(
-            col, MicroSeries
-        ), f"Got {type(col)} instead of MicroSeries"
+        assert isinstance(col, MicroSeries), (
+            f"Got {type(col)} instead of MicroSeries"
+        )
         assert hasattr(col, "weights")
         assert hasattr(col, "set_weights")
 
@@ -120,9 +120,9 @@ class TestMicroDataFrameSubclassPreservation:
 
         # Column operations
         result = mdf["a"] + mdf["b"]
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
         assert hasattr(result, "weights")
 
 
