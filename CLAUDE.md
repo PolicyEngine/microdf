@@ -4,7 +4,7 @@
 - All files must end with a newline character
 - **ALWAYS run `make format` before committing** - this will auto-fix most style issues
 - Run `make lint` after formatting to check if there are any remaining issues
-- **IMPORTANT**: `make format` will fail if there are lines over 79 characters that black can't fix (usually in strings/comments). You must manually break these lines.
+- Code formatting uses `ruff format` (79-char line length configured in pyproject.toml)
 
 ## Changelog Requirements
 - Every PR must include a `changelog.d/` file at the root
@@ -52,9 +52,8 @@
 
 ### Linting Failures
 1. **Line length**: Run `make format` to auto-fix most issues
-2. **Import order**: `isort` is configured to work with black, run `make format`
-3. **Docstring formatting**: `docformatter` enforces 79-char wrapping, run `make format`
-4. **File endings**: Ensure all files end with a newline
+2. **Docstring formatting**: `docformatter` enforces 79-char wrapping, run `make format`
+3. **File endings**: Ensure all files end with a newline
 
 ### Before Pushing
 **CRITICAL: Always run these commands locally before pushing:**

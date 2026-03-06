@@ -38,23 +38,23 @@ class TestMicroSeriesSubclassPreservation:
 
         # Addition
         result = ms + 1
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
         assert hasattr(result, "weights")
         assert hasattr(result, "set_weights")
 
         # Multiplication
         result = ms * 2
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
 
         # Division
         result = ms / 2
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
 
     def test_microseries_preserved_after_comparison(self):
         """Comparison operations should return MicroSeries, not plain
@@ -63,35 +63,33 @@ class TestMicroSeriesSubclassPreservation:
 
         # Greater than
         result = ms > 1
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
         assert hasattr(result, "weights")
 
         # Less than
         result = ms < 3
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
 
     def test_microseries_preserved_after_indexing(self):
         """Indexing operations should return MicroSeries, not plain Series."""
-        ms = MicroSeries(
-            [1, 2, 3, 4, 5], weights=np.array([1.0, 2.0, 3.0, 4.0, 5.0])
-        )
+        ms = MicroSeries([1, 2, 3, 4, 5], weights=np.array([1.0, 2.0, 3.0, 4.0, 5.0]))
 
         # Boolean indexing
         result = ms[ms > 2]
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
         assert hasattr(result, "weights")
 
         # Slice indexing
         result = ms[1:3]
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
 
 
 class TestMicroDataFrameSubclassPreservation:
@@ -105,9 +103,7 @@ class TestMicroDataFrameSubclassPreservation:
 
         # Column access
         col = mdf["a"]
-        assert isinstance(
-            col, MicroSeries
-        ), f"Got {type(col)} instead of MicroSeries"
+        assert isinstance(col, MicroSeries), f"Got {type(col)} instead of MicroSeries"
         assert hasattr(col, "weights")
         assert hasattr(col, "set_weights")
 
@@ -120,9 +116,9 @@ class TestMicroDataFrameSubclassPreservation:
 
         # Column operations
         result = mdf["a"] + mdf["b"]
-        assert isinstance(
-            result, MicroSeries
-        ), f"Got {type(result)} instead of MicroSeries"
+        assert isinstance(result, MicroSeries), (
+            f"Got {type(result)} instead of MicroSeries"
+        )
         assert hasattr(result, "weights")
 
 
@@ -186,9 +182,7 @@ class TestCopyOnWriteCompatibility:
 
     def test_microdataframe_copy_independent(self):
         """Copying a MicroDataFrame should create an independent copy."""
-        mdf = MicroDataFrame(
-            {"a": [1, 2, 3]}, weights=np.array([1.0, 2.0, 3.0])
-        )
+        mdf = MicroDataFrame({"a": [1, 2, 3]}, weights=np.array([1.0, 2.0, 3.0]))
         mdf_copy = mdf.copy()
 
         # Modify original
