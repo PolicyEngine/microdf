@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    fixed:
+      - Fixed O(N²) weight linking in MicroDataFrame.copy()
