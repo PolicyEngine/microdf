@@ -444,9 +444,10 @@ class MicroDataFrame(pd.DataFrame):
 
     def copy(self, deep: Optional[bool] = True) -> "MicroDataFrame":
         res = super().copy(deep)
-        # This changes the original columns to Series. Undo it:
-        for col in self.columns:
-            self[col] = MicroSeries(self[col])
+        # super().copy() corrupts self's column types to plain Series.
+        # Restore them in O(N) instead of O(N²) by calling
+        # _link_all_weights once rather than per-column __setitem__.
+        self._link_all_weights()
         res = MicroDataFrame(res, weights=self.weights.copy(deep))
         return res
 
