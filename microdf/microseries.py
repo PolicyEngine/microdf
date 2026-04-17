@@ -9,6 +9,46 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
+def _weighted_top_share(
+    values: np.ndarray, weights: np.ndarray, top_x_pct: float
+) -> float:
+    """Share of the sum held by the top ``top_x_pct`` of weight.
+
+    Sort by value ascending, cumulate the weight, pick the slice from
+    the top that covers exactly ``top_x_pct`` of total weight, and
+    distribute the tied-at-cutoff row proportionally so constant values
+    return exactly ``top_x_pct`` rather than 1.0.
+    """
+    if top_x_pct <= 0:
+        return 0.0
+    if top_x_pct >= 1:
+        return 1.0
+    total_weight = weights.sum()
+    total_sum = float((values * weights).sum())
+    if total_weight == 0 or total_sum == 0:
+        return np.nan
+    # Ascending sort; the "top" cutoff is the final ``top_x_pct`` of
+    # cumulative weight.
+    order = np.argsort(values, kind="mergesort")
+    v = values[order]
+    w = weights[order]
+    # Cumulative weight from the bottom up.
+    cum_w = np.cumsum(w)
+    target_bottom_weight = total_weight * (1.0 - top_x_pct)
+    # searchsorted(cum_w, target, side="right") gives the first index
+    # whose cumulative weight exceeds the bottom cutoff.
+    k = int(np.searchsorted(cum_w, target_bottom_weight, side="right"))
+    # Rows strictly above the cutoff contribute all of their weight.
+    if k >= len(v):
+        return 0.0
+    top_sum = float((v[k + 1 :] * w[k + 1 :]).sum())
+    # Row k straddles the cutoff; include the fraction of its weight
+    # that lies above the cutoff so ties don't double-count.
+    partial_weight = cum_w[k] - target_bottom_weight
+    top_sum += float(v[k] * partial_weight)
+    return top_sum / total_sum
+
+
 class MicroSeries(pd.Series):
     def __init__(self, *args, weights: np.array = None, **kwargs):
         """A Series-inheriting class for weighted microdata. Weights can be
@@ -269,22 +309,27 @@ class MicroSeries(pd.Series):
     def top_x_pct_share(self, top_x_pct: float) -> float:
         """Calculates top x% share.
 
+        Uses a cumulative-weight sort so that rows tied at the cutoff
+        contribute proportionally rather than all-or-nothing. With
+        constant values this correctly returns ``top_x_pct`` itself.
+
         :param top_x_pct: Decimal between 0 and 1 of the top %, e.g. 0.1,
             0.001.
         :type top_x_pct: float
         :returns: The weighted share held by the top x%.
         :rtype: float
         """
-        threshold = self.quantile(1 - top_x_pct)
-        top_x_pct_sum = self[self >= threshold].sum()
-        total_sum = self.sum()
-        return top_x_pct_sum / total_sum
+        return _weighted_top_share(
+            np.asarray(self._values, dtype=float),
+            np.asarray(self.weights.values, dtype=float),
+            float(top_x_pct),
+        )
 
     @scalar_function
     def bottom_x_pct_share(self, bottom_x_pct: float) -> float:
         """Calculates bottom x% share.
 
-        :param bottom_x_pct: Decimal between 0 and 1 of the top %, e.g. 0.1,
+        :param bottom_x_pct: Decimal between 0 and 1 of the bottom %, e.g. 0.1,
             0.001.
         :type bottom_x_pct: float
         :returns: The weighted share held by the bottom x%.
