@@ -1,0 +1,4 @@
+- bump: patch
+  changes:
+    fixed:
+      - Migrate versioning workflow from the expired POLICYENGINE_GITHUB PAT to a short-lived GitHub App token, matching the pattern already used by policyengine-us and policyengine-api.
