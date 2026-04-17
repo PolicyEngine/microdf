@@ -64,23 +64,13 @@ class MicroSeries(pd.Series):
         )
         return super().to_numpy(*args, **kwargs)
 
-    def weighted_function(fn: Callable) -> Callable:
-        @wraps(fn)
-        def safe_fn(*args, **kwargs):
-            try:
-                return fn(*args, **kwargs)
-            except ZeroDivisionError:
-                return np.NaN
-
-        return safe_fn
-
-    @weighted_function
     def scalar_function(fn: Callable) -> Callable:
+        """Decorator marking ``fn`` as returning a scalar (float)."""
         fn._rtype = float
         return fn
 
-    @weighted_function
     def vector_function(fn: Callable) -> Callable:
+        """Decorator marking ``fn`` as returning a pandas Series."""
         fn._rtype = pd.Series
         return fn
 
