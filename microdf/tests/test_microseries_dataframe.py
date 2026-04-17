@@ -534,3 +534,50 @@ def test_drop_inplace_aligns_weights() -> None:
     df = mdf.MicroDataFrame({"x": [1, 2, 3, 4]}, weights=[10, 20, 30, 40])
     df.drop(labels=[0, 1], inplace=True)
     assert df.x.sum() == 250
+
+
+def test_merge_preserves_weights_per_surviving_row() -> None:
+    """Regression: merge must propagate weights onto the merged rows.
+
+    Previously the implementation passed ``self.weights`` straight to the
+    MicroDataFrame constructor, so any merge that changed row count
+    (inner filtering, left-with-missing, many-to-many, outer) raised
+    ``ValueError: Length of weights (N) does not match length of
+    DataFrame (M)``.
+    """
+    # Inner join filters rows.
+    left = mdf.MicroDataFrame(
+        {"k": [1, 2, 3, 4], "v": [10, 20, 30, 40]}, weights=[1, 2, 3, 4]
+    )
+    right = pd.DataFrame({"k": [2, 4], "w": [20, 40]})
+    res = left.merge(right, on="k")
+    assert len(res) == 2
+    # k=2 carries weight 2; k=4 carries weight 4.
+    np.testing.assert_array_equal(sorted(res.weights.values), [2.0, 4.0])
+    assert res.v.sum() == 2 * 20 + 4 * 40
+
+    # Left join with missing from right.
+    left = mdf.MicroDataFrame(
+        {"k": [1, 2, 3, 4], "v": [10, 20, 30, 40]}, weights=[1, 2, 3, 4]
+    )
+    right = pd.DataFrame({"k": [2, 4], "w": [100, 200]})
+    res = left.merge(right, on="k", how="left")
+    assert len(res) == 4
+    assert res.v.sum() == 300  # 1*10 + 2*20 + 3*30 + 4*40
+
+    # Many-to-many duplicates left rows; the same weight should ride
+    # along on each duplicate.
+    left = mdf.MicroDataFrame({"k": [1, 2], "v": [10, 20]}, weights=[5, 7])
+    right = pd.DataFrame({"k": [1, 1, 2], "w": [100, 200, 300]})
+    res = left.merge(right, on="k")
+    assert len(res) == 3
+    # v=10 weighted 5 appears twice, v=20 weighted 7 appears once.
+    assert res.v.sum() == 10 * 5 + 10 * 5 + 20 * 7
+
+    # Outer join: right-only rows have no left weight. We default to 0
+    # so they don't silently poison downstream aggregations.
+    left = mdf.MicroDataFrame({"k": [1, 2], "v": [10, 20]}, weights=[1, 2])
+    right = pd.DataFrame({"k": [2, 3], "w": [20, 30]})
+    res = left.merge(right, on="k", how="outer")
+    # k=1 -> weight 1, k=2 -> weight 2, k=3 -> weight 0 (right-only).
+    assert sorted(res.weights.values) == [0.0, 1.0, 2.0]
