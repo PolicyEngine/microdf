@@ -490,3 +490,47 @@ def test_repr_no_warning() -> None:
         _ = repr(ms)
         user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
         assert len(user_warnings) == 0
+
+
+def test_drop_inplace_aligns_weights() -> None:
+    """Regression: ``drop(inplace=True)`` must keep weights in sync.
+
+    Previously, ``weights_backup = self.weights.copy()`` was taken *before*
+    the drop, then reassigned back afterwards — so the weights vector
+    kept its original length and any subsequent weighted op either
+    raised a length-mismatch ValueError or silently returned 0.
+    """
+    # Row drop inplace.
+    df = mdf.MicroDataFrame({"x": [1, 2, 3, 4]}, weights=[10, 20, 30, 40])
+    df.drop(index=[0, 1], inplace=True)
+    assert len(df) == len(df.weights) == 2
+    assert df.x.sum() == 3 * 30 + 4 * 40  # 250
+
+    # Row drop non-inplace.
+    df = mdf.MicroDataFrame({"x": [1, 2, 3, 4]}, weights=[10, 20, 30, 40])
+    df2 = df.drop(index=[0, 1])
+    assert len(df2) == len(df2.weights) == 2
+    assert df2.x.sum() == 250
+    # Original untouched.
+    assert len(df) == 4
+    assert df.x.sum() == 1 * 10 + 2 * 20 + 3 * 30 + 4 * 40
+
+    # Column drop (weights length unchanged).
+    df = mdf.MicroDataFrame({"x": [1, 2, 3], "y": [4, 5, 6]}, weights=[10, 20, 30])
+    df.drop(columns=["y"], inplace=True)
+    assert list(df.columns) == ["x"]
+    assert df.x.sum() == 1 * 10 + 2 * 20 + 3 * 30
+
+    # String index row drop.
+    df = mdf.MicroDataFrame(
+        {"x": [1, 2, 3, 4]},
+        index=["a", "b", "c", "d"],
+        weights=[10, 20, 30, 40],
+    )
+    df.drop(index=["a", "b"], inplace=True)
+    assert df.x.sum() == 250
+
+    # labels= with default axis=0.
+    df = mdf.MicroDataFrame({"x": [1, 2, 3, 4]}, weights=[10, 20, 30, 40])
+    df.drop(labels=[0, 1], inplace=True)
+    assert df.x.sum() == 250
