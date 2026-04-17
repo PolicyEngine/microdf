@@ -610,3 +610,32 @@ def test_groupby_does_not_leak_tmp_weights_column() -> None:
     result = df.groupby("g").v.sum()
     assert result["a"] == 1 * 1 + 2 * 2
     assert result["b"] == 3 * 3
+
+
+def test_quantile_skips_zero_weight_rows() -> None:
+    """Regression: quantile(0) shouldn't pick a zero-weight element.
+
+    Previously, ``np.searchsorted(cumsum_norm, 0, side='left')`` returned
+    0 even when that first sorted element had zero weight, so
+    ``MicroSeries([10, 20, 30], weights=[0, 1, 1]).quantile(0)`` returned
+    10 instead of 20. The fix drops zero-weight rows before computing
+    the CDF.
+    """
+    s = mdf.MicroSeries([10, 20, 30], weights=[0, 1, 1])
+    assert s.quantile(0.0) == 20
+    assert s.quantile(0.5) == 20
+    assert s.quantile(1.0) == 30
+
+    # Internal plateau of zero weight.
+    s = mdf.MicroSeries([10, 20, 30, 40], weights=[1, 0, 1, 1])
+    assert s.quantile(0.0) == 10
+    # Post-filter values [10, 30, 40] with equal weights -> cum=[.33,.67,1].
+    # 0.4 -> smallest cum >= 0.4 is index 1 -> value 30.
+    assert s.quantile(0.4) == 30
+    # The zero-weight value (20) should never be selected.
+    for q in np.linspace(0, 1, 21):
+        assert s.quantile(q) != 20
+
+    # All zero weights -> NaN (defined behaviour).
+    s = mdf.MicroSeries([10, 20, 30], weights=[0, 0, 0])
+    assert np.isnan(s.quantile(0.5))
