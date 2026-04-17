@@ -416,8 +416,9 @@ class MicroDataFrame(pd.DataFrame):
         :return: MicroDataFrame with reset index or None if inplace=True.
         """
         if inplace:
-            weights_backup = self.weights.copy()
-            # Perform in-place reset on the parent DataFrame
+            # Snapshot weight *values* positionally — the index is about
+            # to change and reset_index preserves row order.
+            weight_values = np.asarray(self.weights.values, dtype=float)
             super().reset_index(
                 level=level,
                 drop=drop,
@@ -427,7 +428,7 @@ class MicroDataFrame(pd.DataFrame):
                 allow_duplicates=allow_duplicates,
                 names=names,
             )
-            self.weights = weights_backup
+            self.weights = pd.Series(weight_values, index=self.index, dtype=float)
             self._link_all_weights()
             return None
         else:
@@ -440,7 +441,15 @@ class MicroDataFrame(pd.DataFrame):
                 allow_duplicates=allow_duplicates,
                 names=names,
             )
-            return MicroDataFrame(res, weights=self.weights)
+            out = MicroDataFrame(res, weights=self.weights.values)
+            # Ensure weights align to res.index (reset_index changes the
+            # index but preserves row order, so pass values positionally).
+            out.weights = pd.Series(
+                np.asarray(self.weights.values, dtype=float),
+                index=out.index,
+                dtype=float,
+            )
+            return out
 
     def copy(self, deep: Optional[bool] = True) -> "MicroDataFrame":
         res = super().copy(deep)
@@ -481,8 +490,11 @@ class MicroDataFrame(pd.DataFrame):
             dropped.
         :return: MicroDataFrame or None if inplace=True.
         """
+        row_drop = axis in (0, "index") or index is not None
         if inplace:
-            weights_backup = self.weights.copy()
+            # Snapshot the pre-drop weights keyed by the pre-drop index so
+            # we can reindex to the surviving rows after the drop.
+            pre_drop_weights = pd.Series(self.weights.values, index=self.index.copy())
             # Perform in-place drop on the parent DataFrame
             super().drop(
                 labels=labels,
@@ -493,7 +505,15 @@ class MicroDataFrame(pd.DataFrame):
                 inplace=True,
                 errors=errors,
             )
-            self.weights = weights_backup
+            if row_drop:
+                surviving = pre_drop_weights.reindex(self.index)
+                self.weights = pd.Series(
+                    surviving.values, index=self.index, dtype=float
+                )
+            else:
+                self.weights = pd.Series(
+                    pre_drop_weights.values, index=self.index, dtype=float
+                )
             self._link_all_weights()
             return None
         else:
@@ -506,7 +526,19 @@ class MicroDataFrame(pd.DataFrame):
                 inplace=False,
                 errors=errors,
             )
-            return MicroDataFrame(res, weights=self.weights)
+            if row_drop:
+                # Row drop: keep only the weights for surviving rows,
+                # in the order of the resulting DataFrame.
+                pre_drop_weights = pd.Series(self.weights.values, index=self.index)
+                new_weights = pre_drop_weights.reindex(res.index).values
+            else:
+                new_weights = self.weights.values
+            out = MicroDataFrame(res, weights=new_weights)
+            # Guard against the set_weights path building weights with a
+            # default RangeIndex, which would misalign against res.index
+            # and silently zero weighted aggregations.
+            out.weights = pd.Series(new_weights, index=out.index, dtype=float)
+            return out
 
     def merge(
         self,
