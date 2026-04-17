@@ -639,3 +639,39 @@ def test_quantile_skips_zero_weight_rows() -> None:
     # All zero weights -> NaN (defined behaviour).
     s = mdf.MicroSeries([10, 20, 30], weights=[0, 0, 0])
     assert np.isnan(s.quantile(0.5))
+
+
+def test_top_x_pct_share_handles_ties_and_edges() -> None:
+    """Regression: top_x_pct_share double-counted threshold ties.
+
+    Old implementation: ``self[self >= threshold].sum() / self.sum()``.
+    With constant values every call returned 1.0 regardless of the
+    requested top percent; ``top_x_pct_share(0)`` returned the share of
+    the max bucket instead of 0.
+    """
+    # Constant values: the top p% should hold exactly p% of the total.
+    for p in [0.0, 0.01, 0.1, 0.5, 1.0]:
+        got = mdf.MicroSeries([5] * 10, weights=[1] * 10).top_x_pct_share(p)
+        assert np.isclose(got, p), f"top={p}, got {got}"
+
+    # Non-constant, equal weights.
+    s = mdf.MicroSeries(list(range(1, 11)), weights=[1] * 10)
+    # Sum 1..10 = 55. Top 10% = top 1 row = 10 -> 10/55.
+    assert np.isclose(s.top_x_pct_share(0.1), 10 / 55)
+    # Top 50% = rows 6..10 -> 40/55.
+    assert np.isclose(s.top_x_pct_share(0.5), 40 / 55)
+    # Top 0% = 0, top 100% = 1.
+    assert s.top_x_pct_share(0.0) == 0.0
+    assert s.top_x_pct_share(1.0) == 1.0
+
+    # Bottom share complements the top share.
+    assert np.isclose(s.bottom_x_pct_share(0.1), 1 - s.top_x_pct_share(0.9))
+
+    # Ties with unequal totals.
+    s_ties = mdf.MicroSeries([1, 1, 10, 10], weights=[1, 1, 1, 1])
+    # Top 50% = the two 10s -> 20/22.
+    assert np.isclose(s_ties.top_x_pct_share(0.5), 20 / 22)
+
+    # Downstream helpers still work.
+    assert np.isclose(s_ties.top_10_pct_share(), s_ties.top_x_pct_share(0.1))
+    assert np.isclose(s_ties.top_50_pct_share(), s_ties.top_x_pct_share(0.5))
