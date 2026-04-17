@@ -789,3 +789,33 @@ def test_count_skips_nan_by_default() -> None:
     all_nan = mdf.MicroSeries([np.nan] * 3, weights=[1, 2, 3])
     assert all_nan.count() == 0.0
     assert all_nan.count(skipna=False) == 6.0
+
+
+def test_rank_ties_share_bucket() -> None:
+    """Regression: rank used to assign ties to different ranks/buckets.
+
+    Previously ``rank`` returned the running cumulative weight in sort
+    order, so every row — tied or not — got a distinct value. As a
+    result ``MicroSeries([5]*5, weights=[1]*5).decile_rank()`` returned
+    ``[2, 4, 6, 8, 10]`` rather than all 10. With max-rank semantics,
+    tied values share the cumulative weight at the end of their tie
+    group, so bucketing is stable under ties.
+    """
+    # All tied: every element lands in the top decile.
+    s = mdf.MicroSeries([5] * 5, weights=[1] * 5)
+    np.testing.assert_array_equal(s.rank().values, [5, 5, 5, 5, 5])
+    np.testing.assert_array_equal(s.decile_rank().values, [10] * 5)
+    np.testing.assert_array_equal(s.quintile_rank().values, [5] * 5)
+
+    # Partial ties.
+    s = mdf.MicroSeries([1, 2, 2, 3], weights=[1, 1, 1, 1])
+    np.testing.assert_array_equal(s.rank().values, [1, 3, 3, 4])
+
+    # pct=True normalizes to (0, 1] and still shares ranks on ties.
+    s = mdf.MicroSeries([5] * 4, weights=[1] * 4)
+    np.testing.assert_allclose(s.rank(pct=True).values, [1.0, 1.0, 1.0, 1.0])
+
+    # Non-ties still match the old cumulative-weight behaviour, so the
+    # existing ``test_rank`` expectations hold.
+    s = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
+    np.testing.assert_array_equal(s.rank().values, [4, 9, 15])

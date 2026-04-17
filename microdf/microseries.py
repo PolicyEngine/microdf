@@ -517,19 +517,44 @@ class MicroSeries(pd.Series):
 
     @vector_function
     def rank(self, pct: Optional[bool] = False) -> pd.Series:
-        weights_sum = self.weights.values.sum()
+        """Weighted rank of each element.
+
+        Each element's rank is the cumulative weight of all values that
+        are less than or equal to it. Tied values therefore share the
+        same rank, so downstream bucketing (``decile_rank``,
+        ``quintile_rank``, etc.) lands tied rows in the same bucket.
+
+        :param pct: If True, divide ranks by the total weight so they
+            lie in ``(0, 1]``.
+        :type pct: bool
+        :returns: MicroSeries of ranks aligned to ``self``.
+        :rtype: MicroSeries
+        """
+        weights_sum = np.asarray(self.weights.values, dtype=float).sum()
         if weights_sum == 0:
             raise ZeroDivisionError(
                 "Cannot calculate rank with zero total weight. "
-                "All weights in the MicroSeries are zero, which would result "
-                "in division by zero."
+                "All weights in the MicroSeries are zero, which would "
+                "result in division by zero."
             )
 
-        order = np.argsort(self._values)
-        inverse_order = np.argsort(order)
-        ranks = np.array(self.weights.values)[order].cumsum()[inverse_order]
+        values = np.asarray(self._values)
+        weights = np.asarray(self.weights.values, dtype=float)
+        order = np.argsort(values, kind="mergesort")
+        sorted_values = values[order]
+        sorted_weights = weights[order]
+        cum_w = np.cumsum(sorted_weights)
+        # Max rank semantics: every tied group gets the cumulative
+        # weight at the *end* of the group, so ties share one rank.
+        # searchsorted(side='right') on the sorted values finds the
+        # index just past each tied block in sort order.
+        group_end = np.searchsorted(sorted_values, sorted_values, side="right") - 1
+        sorted_ranks = cum_w[group_end]
+        # Invert the sort to put ranks back into the caller's order.
+        inverse_order = np.argsort(order, kind="mergesort")
+        ranks = sorted_ranks[inverse_order]
         if pct:
-            ranks /= weights_sum
+            ranks = ranks / weights_sum
             ranks = np.where(ranks > 1.0, 1.0, ranks)
         return MicroSeries(ranks, index=self.index, weights=self.weights)
 
