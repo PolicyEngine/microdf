@@ -594,7 +594,17 @@ class MicroDataFrame(pd.DataFrame):
         :param validate: If specified, checks if merge is of specified type.
         :return: MicroDataFrame with merged data.
         """
-        res = super().merge(
+        # Attach the left weights as a temporary column so pandas' merge
+        # propagates them onto every surviving output row (including
+        # many-to-many row duplications, inner-join filtering, and
+        # left-with-missing NaNs). We then strip the column back off.
+        tmp = "__microdf_weights__"
+        # Avoid clobbering if this exact name is already used.
+        while tmp in self.columns or tmp in right.columns:
+            tmp += "_"
+        left_df = pd.DataFrame(self).copy()
+        left_df[tmp] = np.asarray(self.weights.values, dtype=float)
+        res = left_df.merge(
             right,
             how=how,
             on=on,
@@ -608,11 +618,17 @@ class MicroDataFrame(pd.DataFrame):
             indicator=indicator,
             validate=validate,
         )
-
-        # For inner join, both dataframes must have the same weights on
-        # matching rows. For now, we'll use the left dataframe's weights.
-        # This is a simplification and may need more sophisticated handling
-        return MicroDataFrame(res, weights=self.weights)
+        # Pull out the propagated weights. Rows with no left match in a
+        # right/outer join get NaN weight — fill with 0 so they don't
+        # poison later aggregations (a user who needs a different
+        # convention can override afterwards).
+        merged_weights = res[tmp].fillna(0).to_numpy(dtype=float)
+        res = res.drop(columns=[tmp])
+        out = MicroDataFrame(res, weights=merged_weights)
+        # Ensure the weights Series aligns with res.index regardless of
+        # the default-RangeIndex behavior of set_weights.
+        out.weights = pd.Series(merged_weights, index=out.index, dtype=float)
+        return out
 
     def __getattr__(self, name):
         """Allow accessing columns as attributes (e.g., df.column_name).
