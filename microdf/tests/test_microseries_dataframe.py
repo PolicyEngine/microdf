@@ -2,6 +2,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import pytest
 
 import microdf as mdf
 from microdf.microdataframe import MicroDataFrame
@@ -675,3 +676,37 @@ def test_top_x_pct_share_handles_ties_and_edges() -> None:
     # Downstream helpers still work.
     assert np.isclose(s_ties.top_10_pct_share(), s_ties.top_x_pct_share(0.1))
     assert np.isclose(s_ties.top_50_pct_share(), s_ties.top_x_pct_share(0.5))
+
+
+def test_gini_negatives_option_applied() -> None:
+    """Regression: gini(negatives=...) was silently ignored.
+
+    Both branches of the old implementation sorted ``self`` directly
+    rather than the local ``x`` that was mutated by the ``negatives``
+    option, so ``negatives='zero'`` and ``negatives='shift'`` did
+    nothing.
+    """
+    s = mdf.MicroSeries([-5, 0, 10], weights=[1, 1, 1])
+
+    # Leaving negatives in place now warns.
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        _ = s.gini()
+        user_warnings = [x for x in w if issubclass(x.category, UserWarning)]
+        assert len(user_warnings) == 1
+        assert "negative" in str(user_warnings[0].message).lower()
+
+    # 'zero' clamps negatives. Values become [0, 0, 10] with equal
+    # weights; closed-form gini = 2/3.
+    assert np.isclose(s.gini(negatives="zero"), 2 / 3)
+
+    # 'shift' adds |min|. Values become [0, 5, 15]; Gini in [0, 1].
+    shifted = s.gini(negatives="shift")
+    assert 0 <= shifted <= 1
+
+    # All-zero short-circuits to 0 instead of nan/RuntimeWarning.
+    assert mdf.MicroSeries([0, 0, 0], weights=[1, 2, 3]).gini() == 0.0
+
+    # Invalid negatives arg raises.
+    with pytest.raises(ValueError):
+        mdf.MicroSeries([1, 2, 3], weights=[1, 1, 1]).gini(negatives="bogus")

@@ -273,37 +273,57 @@ class MicroSeries(pd.Series):
     def gini(self, negatives: Optional[str] = None) -> float:
         """Calculates Gini index.
 
-        :param negatives: An optional string indicating how to treat negative
-            values of x:
+        :param negatives: An optional string indicating how to treat
+            negative values of x:
             'zero' replaces negative values with zeroes.
             'shift' subtracts the minimum value from all values of x,
             when this minimum is negative. That is, it adds the absolute
             minimum value.
             Defaults to None, which leaves negative values as they are.
-        :type q: str
+        :type negatives: str
         :returns: Gini index.
         :rtype: float
         """
         x = np.array(self).astype("float")
+        w = np.asarray(self.weights.values, dtype=float)
         if negatives == "zero":
-            x[x < 0] = 0
-        if negatives == "shift" and np.amin(x) < 0:
-            x -= np.amin(x)
-        if (self.weights != np.ones(len(self))).any():  # Varying weights.
-            sorted_indices = np.argsort(self)
-            sorted_x = np.array(self[sorted_indices])
-            sorted_w = np.array(self.weights[sorted_indices])
-            cumw = np.cumsum(sorted_w)
-            cumxw = np.cumsum(sorted_x * sorted_w)
-            return np.sum(cumxw[1:] * cumw[:-1] - cumxw[:-1] * cumw[1:]) / (
-                cumxw[-1] * cumw[-1]
+            x = np.where(x < 0, 0.0, x)
+        elif negatives == "shift" and len(x) > 0 and np.amin(x) < 0:
+            x = x - np.amin(x)
+        elif negatives is not None:
+            raise ValueError(
+                f"Unknown negatives option {negatives!r}; expected "
+                "'zero', 'shift', or None."
             )
-        else:
-            sorted_x = np.sort(self)
-            n = len(x)
-            cumxw = np.cumsum(sorted_x)
-            # The above formula, with all weights equal to 1 simplifies to:
-            return (n + 1 - 2 * np.sum(cumxw) / cumxw[-1]) / n
+
+        if len(x) == 0:
+            return np.nan
+        if np.any(x < 0):
+            # The Lorenz-based formula assumes non-negative values; with
+            # negatives it can return values outside [0, 1].
+            warnings.warn(
+                "gini() called on data containing negative values; the "
+                "result is not guaranteed to lie in [0, 1]. Pass "
+                "negatives='zero' or negatives='shift' to handle them.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        # Short-circuit degenerate cases so we don't divide by zero.
+        total = float((x * w).sum())
+        if total == 0:
+            return 0.0
+
+        sorter = np.argsort(x, kind="mergesort")
+        sorted_x = x[sorter]
+        sorted_w = w[sorter]
+        cumw = np.cumsum(sorted_w)
+        cumxw = np.cumsum(sorted_x * sorted_w)
+        # Trapezoidal approximation of the area under the Lorenz curve.
+        return float(
+            np.sum(cumxw[1:] * cumw[:-1] - cumxw[:-1] * cumw[1:])
+            / (cumxw[-1] * cumw[-1])
+        )
 
     @scalar_function
     def top_x_pct_share(self, top_x_pct: float) -> float:
