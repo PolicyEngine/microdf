@@ -710,3 +710,61 @@ def test_gini_negatives_option_applied() -> None:
     # Invalid negatives arg raises.
     with pytest.raises(ValueError):
         mdf.MicroSeries([1, 2, 3], weights=[1, 1, 1]).gini(negatives="bogus")
+
+
+def test_std_var_are_weighted() -> None:
+    """Regression: std/var used to silently fall through to pandas.
+
+    The old implementation had no override, so a MicroSeries with very
+    uneven weights returned the unweighted 1.0. Now std and var treat
+    the weights as frequency counts, matching numpy on the replicated
+    sample.
+    """
+    s = mdf.MicroSeries([1, 2, 3], weights=[100, 1, 1])
+    # Unweighted would be 1.0. Weighted std pulls toward the heavy row.
+    assert s.std() < 1.0
+    assert s.var() < 1.0
+
+    # Integer-replication equivalence.
+    s = mdf.MicroSeries([1, 2, 3], weights=[2, 3, 1])
+    rep = np.array([1, 1, 2, 2, 2, 3])
+    assert np.isclose(s.std(), np.std(rep, ddof=1))
+    assert np.isclose(s.var(), np.var(rep, ddof=1))
+    assert np.isclose(s.var(ddof=0), np.var(rep, ddof=0))
+
+    # NaN handling.
+    s = mdf.MicroSeries([1.0, np.nan, 3.0], weights=[2, 3, 1])
+    assert not np.isnan(s.std())
+    assert np.isnan(s.std(skipna=False))
+
+    # DataFrame dispatch: df.std() / df.var() now return weighted stats.
+    df = mdf.MicroDataFrame({"x": [1, 2, 3], "y": [10, 20, 30]}, weights=[2, 3, 1])
+    np.testing.assert_allclose(
+        df.std().values,
+        [
+            np.std(rep, ddof=1),
+            np.std(np.array([10, 10, 20, 20, 20, 30]), ddof=1),
+        ],
+    )
+
+
+def test_cov_corr_warn_when_fallthrough() -> None:
+    """Regression: cov/corr silently returned unweighted pandas values.
+
+    They still fall through to pandas (a weighted impl is a separate
+    issue) but now emit a UserWarning so callers aren't misled.
+    """
+    s1 = mdf.MicroSeries([1, 2, 3], weights=[1, 1, 1])
+    s2 = mdf.MicroSeries([2, 4, 6], weights=[1, 1, 1])
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        _ = s1.cov(s2)
+        msgs = [str(x.message) for x in w if issubclass(x.category, UserWarning)]
+        assert any("unweighted" in m.lower() for m in msgs)
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        _ = s1.corr(s2)
+        msgs = [str(x.message) for x in w if issubclass(x.category, UserWarning)]
+        assert any("unweighted" in m.lower() for m in msgs)
