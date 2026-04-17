@@ -768,3 +768,24 @@ def test_cov_corr_warn_when_fallthrough() -> None:
         _ = s1.corr(s2)
         msgs = [str(x.message) for x in w if issubclass(x.category, UserWarning)]
         assert any("unweighted" in m.lower() for m in msgs)
+
+
+def test_count_skips_nan_by_default() -> None:
+    """Regression: ``count()`` included NaN-row weight, contrary to pandas.
+
+    Pandas ``Series.count`` skips NaN; MicroSeries returned the full
+    weight sum regardless. The fix matches pandas semantics and adds a
+    ``skipna`` kwarg so callers can opt out.
+    """
+    s = mdf.MicroSeries([1.0, np.nan, 3.0], weights=[10, 20, 30])
+    assert s.count() == 40.0
+    assert s.count(skipna=True) == 40.0
+    assert s.count(skipna=False) == 60.0
+
+    # No NaN: skipna is a no-op.
+    assert mdf.MicroSeries([1, 2, 3], weights=[2, 3, 4]).count() == 9.0
+
+    # All NaN: count skips everything.
+    all_nan = mdf.MicroSeries([np.nan] * 3, weights=[1, 2, 3])
+    assert all_nan.count() == 0.0
+    assert all_nan.count(skipna=False) == 6.0
