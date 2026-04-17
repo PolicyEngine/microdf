@@ -96,7 +96,11 @@ class MicroSeries(pd.Series):
         """
         if weights is None:
             if len(self) > 0:
-                self.weights = pd.Series(np.ones_like(self._values), dtype=float)
+                self.weights = pd.Series(
+                    np.ones_like(self._values),
+                    index=self.index,
+                    dtype=float,
+                )
         else:
             if len(weights) != len(self):
                 raise ValueError(
@@ -107,7 +111,14 @@ class MicroSeries(pd.Series):
             if preserve_old and self.weights is not None:
                 self["old_weights"] = self.weights
 
-            self.weights = pd.Series(weights, dtype=float)
+            # Align weights to self.index so element-wise operations such
+            # as self.multiply(self.weights) (used by .sum(), .weight())
+            # don't silently produce all-NaN when the caller uses a
+            # non-default index. If a pandas Series is passed in, strip
+            # its index first so we position-align rather than label-align.
+            if isinstance(weights, pd.Series):
+                weights = weights.values
+            self.weights = pd.Series(np.asarray(weights), index=self.index, dtype=float)
 
     def nullify_weights(self) -> None:
         """Set all weights to 1, effectively making the Series unweighted.

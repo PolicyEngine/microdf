@@ -445,6 +445,43 @@ def test_mean_no_warning() -> None:
         assert len(user_warnings) == 0
 
 
+def test_sum_with_non_default_index() -> None:
+    """Weighted sum must not silently return 0 with a non-default index.
+
+    Regression test for the bug where ``set_weights`` stored the weights
+    Series with a default ``RangeIndex`` regardless of ``self.index``.
+    Element-wise ops like ``self.multiply(self.weights)`` then aligned on
+    label, producing all-NaN and a silent ``0.0`` from ``.sum()`` while
+    ``.mean()`` (which uses a positional ndarray) stayed correct.
+    """
+    # MicroSeries with custom integer index.
+    s = mdf.MicroSeries([1, 2, 3], index=[100, 200, 300], weights=[10, 20, 30])
+    assert s.sum() == 140.0
+    assert s.weights.index.tolist() == [100, 200, 300]
+
+    # MicroDataFrame with custom integer index.
+    df = mdf.MicroDataFrame(
+        {"x": [1, 2, 3]}, index=[100, 200, 300], weights=[10, 20, 30]
+    )
+    assert df.x.sum() == 140.0
+    assert df.weights.index.tolist() == [100, 200, 300]
+
+    # MicroDataFrame with string index + set_weights via column name.
+    df2 = mdf.MicroDataFrame(
+        {"x": [1, 2, 3], "w": [10, 20, 30]},
+        index=["a", "b", "c"],
+    )
+    df2.set_weights("w")
+    assert df2.x.sum() == 140.0
+    assert df2.weights.index.tolist() == ["a", "b", "c"]
+
+    # Passing a Series with its own index should position-align, not
+    # label-align, so sum does not depend on accidental index alignment.
+    df3 = mdf.MicroDataFrame({"x": [1, 2, 3]}, index=[100, 200, 300])
+    df3.set_weights(pd.Series([10, 20, 30], index=[0, 1, 2]))
+    assert df3.x.sum() == 140.0
+
+
 def test_repr_no_warning() -> None:
     """Internal .values usage in __repr__ should NOT emit a warning."""
     ms = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])

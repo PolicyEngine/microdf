@@ -305,7 +305,11 @@ class MicroDataFrame(pd.DataFrame):
 
         if isinstance(weights, str):
             self.weights_col = weights
-            self.weights = pd.Series(self[weights], dtype=float)
+            self.weights = pd.Series(
+                np.asarray(self[weights]),
+                index=self.index,
+                dtype=float,
+            )
             self._link_all_weights()
         elif weights is not None:
             if len(weights) != len(self):
@@ -314,9 +318,18 @@ class MicroDataFrame(pd.DataFrame):
                     f"length of DataFrame ({len(self)})."
                 )
             self.weights_col = None
+            # Align weights to self.index. Without this, weighted ops
+            # (self[col].multiply(self.weights) in .sum()) align on
+            # label, so any non-default index silently produces all-NaN
+            # and aggregations collapse to 0. If a Series is passed in,
+            # strip its index so we position-align to self.index.
+            if isinstance(weights, pd.Series):
+                weights = weights.values
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=UserWarning)
-                self.weights = pd.Series(weights, dtype=float)
+                self.weights = pd.Series(
+                    np.asarray(weights), index=self.index, dtype=float
+                )
             self._link_all_weights()
 
     def set_weight_col(self, column: str, preserve_old: Optional[bool] = False) -> None:
