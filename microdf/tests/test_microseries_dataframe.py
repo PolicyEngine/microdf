@@ -581,3 +581,32 @@ def test_merge_preserves_weights_per_surviving_row() -> None:
     res = left.merge(right, on="k", how="outer")
     # k=1 -> weight 1, k=2 -> weight 2, k=3 -> weight 0 (right-only).
     assert sorted(res.weights.values) == [0.0, 1.0, 2.0]
+
+
+def test_groupby_does_not_leak_tmp_weights_column() -> None:
+    """Regression: groupby used to mutate self by adding __tmp_weights.
+
+    Previously, ``MicroDataFrame.groupby`` set ``self["__tmp_weights"]``
+    and never cleaned it up, so ``df.columns`` afterwards included the
+    weight column and any later ``df.sum()`` or iteration over columns
+    picked it up as data.
+    """
+    df = mdf.MicroDataFrame({"g": ["a", "a", "b"], "v": [1, 2, 3]}, weights=[1, 2, 3])
+    original_cols = list(df.columns)
+    _ = df.groupby("g").sum()
+    assert list(df.columns) == original_cols
+    assert "__tmp_weights" not in df.columns
+
+    # Groupby by a list of columns should also not leak.
+    df2 = mdf.MicroDataFrame(
+        {"g1": ["a", "a", "b"], "g2": [1, 1, 2], "v": [1, 2, 3]},
+        weights=[1, 2, 3],
+    )
+    orig2 = list(df2.columns)
+    _ = df2.groupby(["g1", "g2"]).v.sum()
+    assert list(df2.columns) == orig2
+
+    # Weighted aggregation is still correct after the fix.
+    result = df.groupby("g").v.sum()
+    assert result["a"] == 1 * 1 + 2 * 2
+    assert result["b"] == 3 * 3

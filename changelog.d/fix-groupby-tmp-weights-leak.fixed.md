@@ -1,0 +1,1 @@
+Fixed `MicroDataFrame.groupby` leaking a `__tmp_weights` column onto the caller. Previously, calling `df.groupby(...)` permanently added the weight column to `df.columns`, so any subsequent `df.sum()` or iteration included it. The implementation now stages the weights on a copy before calling `super().groupby`, leaving `self` untouched.

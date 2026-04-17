@@ -660,10 +660,16 @@ class MicroDataFrame(pd.DataFrame):
         return: DataFrameGroupBy object with columns using weights
         rtype: DataFrameGroupBy
         """
-        self["__tmp_weights"] = self.weights
-        gb = super().groupby(by, *args, **kwargs)
+        # Build the groupby on a *copy* that carries a ``__tmp_weights``
+        # column. We used to set this column on ``self`` directly, which
+        # permanently leaked the weight column onto the caller's
+        # DataFrame — any later ``df.sum()`` or ``list(df.columns)``
+        # would then include it.
+        staged = pd.DataFrame(self).copy()
+        staged["__tmp_weights"] = np.asarray(self.weights.values, dtype=float)
+        gb = staged.groupby(by, *args, **kwargs)
         weights = copy.deepcopy(gb["__tmp_weights"])
-        for col in self.columns:  # df.groupby(...)[col]s use weights
+        for col in staged.columns:  # df.groupby(...)[col]s use weights
             res = gb[col]
             res.__class__ = MicroSeriesGroupBy
             res._init()
