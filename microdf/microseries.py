@@ -212,6 +212,89 @@ class MicroSeries(pd.Series):
 
         return np.average(values, weights=weights)
 
+    def _weighted_variance(self, ddof: int = 1, skipna: bool = True) -> float:
+        """Frequency-weighted variance.
+
+        Uses ``sum(w * (x - wmean)**2) / (sum(w) - ddof)``. With
+        ``ddof=0`` this is the population variance; with ``ddof=1`` it
+        is Bessel-corrected assuming the weights are frequency counts —
+        matching ``np.var(..., ddof=ddof)`` on a replicated sample.
+        """
+        values = np.asarray(self._values, dtype=float)
+        weights = np.asarray(self.weights.values, dtype=float)
+        if skipna:
+            mask = ~np.isnan(values)
+            values = values[mask]
+            weights = weights[mask]
+        elif np.isnan(values).any():
+            return np.nan
+        total_w = weights.sum()
+        if total_w == 0 or total_w - ddof <= 0:
+            return np.nan
+        mean = np.average(values, weights=weights)
+        return float((weights * (values - mean) ** 2).sum() / (total_w - ddof))
+
+    @scalar_function
+    def var(self, ddof: int = 1, skipna: bool = True) -> float:
+        """Calculates the weighted variance of the MicroSeries.
+
+        Treats weights as frequency counts (``sum(w) - ddof`` in the
+        denominator) so that with integer weights the result matches
+        ``np.var`` on the replicated sample.
+
+        :param ddof: Delta degrees of freedom (default 1).
+        :param skipna: Exclude NaN values (default True).
+        :returns: The weighted variance.
+        :rtype: float
+        """
+        return self._weighted_variance(ddof=ddof, skipna=skipna)
+
+    @scalar_function
+    def std(self, ddof: int = 1, skipna: bool = True) -> float:
+        """Calculates the weighted standard deviation of the MicroSeries.
+
+        :param ddof: Delta degrees of freedom (default 1).
+        :param skipna: Exclude NaN values (default True).
+        :returns: The weighted standard deviation.
+        :rtype: float
+        """
+        v = self._weighted_variance(ddof=ddof, skipna=skipna)
+        return float(np.sqrt(v)) if np.isfinite(v) else v
+
+    def cov(self, other, *args, **kwargs):
+        """Pandas ``cov`` — **unweighted**.
+
+        MicroSeries does not yet compute weighted covariance. Emits a
+        ``UserWarning`` so callers aren't silently given an unweighted
+        number after ``.sum()`` and ``.mean()`` worked as expected. See
+        issue tracker for a weighted implementation.
+        """
+        warnings.warn(
+            "MicroSeries.cov() falls through to pandas and is "
+            "unweighted. Use MicroSeries.var()/std() for weighted "
+            "second moments, or compute covariance manually with the "
+            "weights.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return super().cov(other, *args, **kwargs)
+
+    def corr(self, other, *args, **kwargs):
+        """Pandas ``corr`` — **unweighted**.
+
+        MicroSeries does not yet compute weighted correlation. Emits a
+        ``UserWarning`` so callers aren't silently given an unweighted
+        number. See issue tracker for a weighted implementation.
+        """
+        warnings.warn(
+            "MicroSeries.corr() falls through to pandas and is "
+            "unweighted. Compute correlation manually with the weights "
+            "if you need the survey-weighted value.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return super().corr(other, *args, **kwargs)
+
     def quantile(self, q: np.array) -> pd.Series:
         """Calculates weighted quantiles of the MicroSeries.
 
