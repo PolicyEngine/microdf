@@ -1,1 +1,0 @@
-Removed the `MicroSeries.weighted_function` decorator that wrapped `scalar_function` / `vector_function` at class-body execution (not the decorated methods), so the `ZeroDivisionError -> np.NaN` fallback was never reached at runtime. It also referenced `np.NaN`, which was removed in numpy 2.0, so any legitimate trigger would have raised `AttributeError`.

@@ -1,1 +1,0 @@
-Fixed `MicroDataFrame.merge` raising `ValueError` on any row-changing join. The implementation now attaches the left-side weights as a temporary column before the merge so pandas propagates them onto each surviving output row (handling inner filtering, left-with-missing, many-to-many duplication, and outer joins). Right-only outer rows default to a 0 weight.

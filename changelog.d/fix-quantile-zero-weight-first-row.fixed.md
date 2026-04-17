@@ -1,1 +1,0 @@
-Fixed `MicroSeries.quantile` returning values with weight 0. Previously, when the first (or an internal) sorted element had zero weight, the inverse-CDF search still picked it (e.g. `MicroSeries([10, 20, 30], weights=[0, 1, 1]).quantile(0)` returned 10 instead of 20). Zero-weight rows are now dropped before computing the CDF; an all-zero-weight series returns NaN.

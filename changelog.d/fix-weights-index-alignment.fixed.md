@@ -1,1 +1,0 @@
-Aligned weights Series to `self.index` in `MicroSeries.set_weights` and `MicroDataFrame.set_weights` so weighted operations (`.sum()`, `.weight()`, `.top_x_pct_share()`, `.gini()`, etc.) return correct values when the data uses a non-default index. Previously they silently returned `0.0`.

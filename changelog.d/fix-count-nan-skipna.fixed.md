@@ -1,1 +1,0 @@
-Fixed `MicroSeries.count()` silently including NaN-row weights, contrary to pandas semantics. `count()` now skips NaN by default (matching `pandas.Series.count`) and accepts `skipna=False` to recover the old behaviour.
