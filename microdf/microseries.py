@@ -177,12 +177,22 @@ class MicroSeries(pd.Series):
         return self.multiply(self.weights).sum()
 
     @scalar_function
-    def count(self) -> float:
+    def count(self, skipna: bool = True) -> float:
         """Calculates the weighted count of the MicroSeries.
 
+        By default skips NaN values (matching pandas ``Series.count``).
+
+        :param skipna: Exclude NaN values (default True). If False, the
+            weighted count of every row is returned.
+        :type skipna: bool
         :returns: The weighted count.
+        :rtype: float
         """
-        return self.weights.sum()
+        weights = np.asarray(self.weights.values, dtype=float)
+        if not skipna:
+            return float(weights.sum())
+        mask = ~pd.isna(self._values)
+        return float(weights[mask].sum())
 
     @scalar_function
     def mean(self, skipna: bool = True) -> float:
