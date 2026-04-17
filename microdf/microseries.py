@@ -191,6 +191,20 @@ class MicroSeries(pd.Series):
         assert np.all(quantiles >= 0) and np.all(quantiles <= 1), (
             "quantiles should be in [0, 1]"
         )
+        # Drop zero-weight rows before sorting. Without this, q=0 (and
+        # internal plateaus of zero weight) picked a value with 0 weight
+        # that should have been skipped by the inverse CDF. E.g.
+        # MicroSeries([10, 20, 30], weights=[0, 1, 1]).quantile(0)
+        # returned 10 instead of 20.
+        nonzero = sample_weight > 0
+        if not nonzero.any():
+            return (
+                np.nan
+                if np.array(q).shape == ()
+                else pd.Series(np.full(len(quantiles), np.nan), index=quantiles)
+            )
+        values = values[nonzero]
+        sample_weight = sample_weight[nonzero]
         sorter = np.argsort(values)
         values = values[sorter]
         sample_weight = sample_weight[sorter]
