@@ -96,8 +96,10 @@ class _MicroILocIndexer:
 
 class MicroDataFrame(pd.DataFrame):
     def __init__(self, *args, weights=None, **kwargs):
-        """A DataFrame-inheriting class for weighted microdata. Weights can be
-        provided at initialisation, or using set_weights or set_weight_col.
+        """A DataFrame-inheriting class for weighted microdata.
+
+        Weights can be provided at initialisation, or using set_weights or
+        set_weight_col.
 
         :param weights: Array of weights.
         :type weights: np.array
@@ -231,8 +233,9 @@ class MicroDataFrame(pd.DataFrame):
         return fn
 
     def get_args_as_micro_series(*kwarg_names: tuple) -> Callable:
-        """Decorator for auto-parsing column names into MicroSeries objects. If
-        given, kwarg_names limits arguments checked to keyword arguments
+        """Decorator for auto-parsing column names into MicroSeries objects.
+
+        If given, kwarg_names limits arguments checked to keyword arguments
         specified.
 
         :param arg_names: argument names to restrict to.
@@ -292,8 +295,10 @@ class MicroDataFrame(pd.DataFrame):
         weights: Union[np.ndarray, str],
         preserve_old: Optional[bool] = False,
     ) -> None:
-        """Sets the weights for the MicroDataFrame. If a string is received, it
-        will be assumed to be the column name of the weight column.
+        """Sets the weights for the MicroDataFrame.
+
+        If a string is received, it will be assumed to be the column name of
+        the weight column.
 
         :param weights: Array of weights.
         :param preserve_old: If True, keeps the old weights as a column when

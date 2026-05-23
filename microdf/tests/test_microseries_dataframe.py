@@ -449,11 +449,11 @@ def test_mean_no_warning() -> None:
 def test_sum_with_non_default_index() -> None:
     """Weighted sum must not silently return 0 with a non-default index.
 
-    Regression test for the bug where ``set_weights`` stored the weights
-    Series with a default ``RangeIndex`` regardless of ``self.index``.
-    Element-wise ops like ``self.multiply(self.weights)`` then aligned on
-    label, producing all-NaN and a silent ``0.0`` from ``.sum()`` while
-    ``.mean()`` (which uses a positional ndarray) stayed correct.
+    Regression test for the bug where ``set_weights`` stored the weights Series
+    with a default ``RangeIndex`` regardless of ``self.index``. Element-wise
+    ops like ``self.multiply(self.weights)`` then aligned on label, producing
+    all-NaN and a silent ``0.0`` from ``.sum()`` while ``.mean()`` (which uses
+    a positional ndarray) stayed correct.
     """
     # MicroSeries with custom integer index.
     s = mdf.MicroSeries([1, 2, 3], index=[100, 200, 300], weights=[10, 20, 30])
@@ -541,10 +541,9 @@ def test_merge_preserves_weights_per_surviving_row() -> None:
     """Regression: merge must propagate weights onto the merged rows.
 
     Previously the implementation passed ``self.weights`` straight to the
-    MicroDataFrame constructor, so any merge that changed row count
-    (inner filtering, left-with-missing, many-to-many, outer) raised
-    ``ValueError: Length of weights (N) does not match length of
-    DataFrame (M)``.
+    MicroDataFrame constructor, so any merge that changed row count (inner
+    filtering, left-with-missing, many-to-many, outer) raised ``ValueError:
+    Length of weights (N) does not match length of DataFrame (M)``.
     """
     # Inner join filters rows.
     left = mdf.MicroDataFrame(
@@ -587,10 +586,10 @@ def test_merge_preserves_weights_per_surviving_row() -> None:
 def test_groupby_does_not_leak_tmp_weights_column() -> None:
     """Regression: groupby used to mutate self by adding __tmp_weights.
 
-    Previously, ``MicroDataFrame.groupby`` set ``self["__tmp_weights"]``
-    and never cleaned it up, so ``df.columns`` afterwards included the
-    weight column and any later ``df.sum()`` or iteration over columns
-    picked it up as data.
+    Previously, ``MicroDataFrame.groupby`` set ``self["__tmp_weights"]`` and
+    never cleaned it up, so ``df.columns`` afterwards included the weight
+    column and any later ``df.sum()`` or iteration over columns picked it up as
+    data.
     """
     df = mdf.MicroDataFrame({"g": ["a", "a", "b"], "v": [1, 2, 3]}, weights=[1, 2, 3])
     original_cols = list(df.columns)
@@ -616,11 +615,10 @@ def test_groupby_does_not_leak_tmp_weights_column() -> None:
 def test_quantile_skips_zero_weight_rows() -> None:
     """Regression: quantile(0) shouldn't pick a zero-weight element.
 
-    Previously, ``np.searchsorted(cumsum_norm, 0, side='left')`` returned
-    0 even when that first sorted element had zero weight, so
-    ``MicroSeries([10, 20, 30], weights=[0, 1, 1]).quantile(0)`` returned
-    10 instead of 20. The fix drops zero-weight rows before computing
-    the CDF.
+    Previously, ``np.searchsorted(cumsum_norm, 0, side='left')`` returned 0
+    even when that first sorted element had zero weight, so ``MicroSeries([10,
+    20, 30], weights=[0, 1, 1]).quantile(0)`` returned 10 instead of 20. The
+    fix drops zero-weight rows before computing the CDF.
     """
     s = mdf.MicroSeries([10, 20, 30], weights=[0, 1, 1])
     assert s.quantile(0.0) == 20
@@ -681,10 +679,9 @@ def test_top_x_pct_share_handles_ties_and_edges() -> None:
 def test_gini_negatives_option_applied() -> None:
     """Regression: gini(negatives=...) was silently ignored.
 
-    Both branches of the old implementation sorted ``self`` directly
-    rather than the local ``x`` that was mutated by the ``negatives``
-    option, so ``negatives='zero'`` and ``negatives='shift'`` did
-    nothing.
+    Both branches of the old implementation sorted ``self`` directly rather
+    than the local ``x`` that was mutated by the ``negatives`` option, so
+    ``negatives='zero'`` and ``negatives='shift'`` did nothing.
     """
     s = mdf.MicroSeries([-5, 0, 10], weights=[1, 1, 1])
 
@@ -715,10 +712,9 @@ def test_gini_negatives_option_applied() -> None:
 def test_std_var_are_weighted() -> None:
     """Regression: std/var used to silently fall through to pandas.
 
-    The old implementation had no override, so a MicroSeries with very
-    uneven weights returned the unweighted 1.0. Now std and var treat
-    the weights as frequency counts, matching numpy on the replicated
-    sample.
+    The old implementation had no override, so a MicroSeries with very uneven
+    weights returned the unweighted 1.0. Now std and var treat the weights as
+    frequency counts, matching numpy on the replicated sample.
     """
     s = mdf.MicroSeries([1, 2, 3], weights=[100, 1, 1])
     # Unweighted would be 1.0. Weighted std pulls toward the heavy row.
@@ -751,8 +747,8 @@ def test_std_var_are_weighted() -> None:
 def test_cov_corr_warn_when_fallthrough() -> None:
     """Regression: cov/corr silently returned unweighted pandas values.
 
-    They still fall through to pandas (a weighted impl is a separate
-    issue) but now emit a UserWarning so callers aren't misled.
+    They still fall through to pandas (a weighted impl is a separate issue) but
+    now emit a UserWarning so callers aren't misled.
     """
     s1 = mdf.MicroSeries([1, 2, 3], weights=[1, 1, 1])
     s2 = mdf.MicroSeries([2, 4, 6], weights=[1, 1, 1])
@@ -773,9 +769,9 @@ def test_cov_corr_warn_when_fallthrough() -> None:
 def test_count_skips_nan_by_default() -> None:
     """Regression: ``count()`` included NaN-row weight, contrary to pandas.
 
-    Pandas ``Series.count`` skips NaN; MicroSeries returned the full
-    weight sum regardless. The fix matches pandas semantics and adds a
-    ``skipna`` kwarg so callers can opt out.
+    Pandas ``Series.count`` skips NaN; MicroSeries returned the full weight sum
+    regardless. The fix matches pandas semantics and adds a ``skipna`` kwarg so
+    callers can opt out.
     """
     s = mdf.MicroSeries([1.0, np.nan, 3.0], weights=[10, 20, 30])
     assert s.count() == 40.0
@@ -794,12 +790,12 @@ def test_count_skips_nan_by_default() -> None:
 def test_rank_ties_share_bucket() -> None:
     """Regression: rank used to assign ties to different ranks/buckets.
 
-    Previously ``rank`` returned the running cumulative weight in sort
-    order, so every row — tied or not — got a distinct value. As a
-    result ``MicroSeries([5]*5, weights=[1]*5).decile_rank()`` returned
-    ``[2, 4, 6, 8, 10]`` rather than all 10. With max-rank semantics,
-    tied values share the cumulative weight at the end of their tie
-    group, so bucketing is stable under ties.
+    Previously ``rank`` returned the running cumulative weight in sort order,
+    so every row — tied or not — got a distinct value. As a result
+    ``MicroSeries([5]*5, weights=[1]*5).decile_rank()`` returned ``[2, 4, 6, 8,
+    10]`` rather than all 10. With max-rank semantics, tied values share the
+    cumulative weight at the end of their tie group, so bucketing is stable
+    under ties.
     """
     # All tied: every element lands in the top decile.
     s = mdf.MicroSeries([5] * 5, weights=[1] * 5)

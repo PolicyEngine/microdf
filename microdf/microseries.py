@@ -14,10 +14,10 @@ def _weighted_top_share(
 ) -> float:
     """Share of the sum held by the top ``top_x_pct`` of weight.
 
-    Sort by value ascending, cumulate the weight, pick the slice from
-    the top that covers exactly ``top_x_pct`` of total weight, and
-    distribute the tied-at-cutoff row proportionally so constant values
-    return exactly ``top_x_pct`` rather than 1.0.
+    Sort by value ascending, cumulate the weight, pick the slice from the top
+    that covers exactly ``top_x_pct`` of total weight, and distribute the tied-
+    at-cutoff row proportionally so constant values return exactly
+    ``top_x_pct`` rather than 1.0.
     """
     if top_x_pct <= 0:
         return 0.0
@@ -51,8 +51,9 @@ def _weighted_top_share(
 
 class MicroSeries(pd.Series):
     def __init__(self, *args, weights: np.array = None, **kwargs):
-        """A Series-inheriting class for weighted microdata. Weights can be
-        provided at initialisation, or using set_weights.
+        """A Series-inheriting class for weighted microdata.
+
+        Weights can be provided at initialisation, or using set_weights.
 
         :param weights: Array of weights.
         :type weights: np.array
@@ -275,9 +276,9 @@ class MicroSeries(pd.Series):
         """Pandas ``cov`` — **unweighted**.
 
         MicroSeries does not yet compute weighted covariance. Emits a
-        ``UserWarning`` so callers aren't silently given an unweighted
-        number after ``.sum()`` and ``.mean()`` worked as expected. See
-        issue tracker for a weighted implementation.
+        ``UserWarning`` so callers aren't silently given an unweighted number
+        after ``.sum()`` and ``.mean()`` worked as expected. See issue tracker
+        for a weighted implementation.
         """
         warnings.warn(
             "MicroSeries.cov() falls through to pandas and is "
@@ -293,8 +294,8 @@ class MicroSeries(pd.Series):
         """Pandas ``corr`` — **unweighted**.
 
         MicroSeries does not yet compute weighted correlation. Emits a
-        ``UserWarning`` so callers aren't silently given an unweighted
-        number. See issue tracker for a weighted implementation.
+        ``UserWarning`` so callers aren't silently given an unweighted number.
+        See issue tracker for a weighted implementation.
         """
         warnings.warn(
             "MicroSeries.corr() falls through to pandas and is "
@@ -519,13 +520,13 @@ class MicroSeries(pd.Series):
     def rank(self, pct: Optional[bool] = False) -> pd.Series:
         """Weighted rank of each element.
 
-        Each element's rank is the cumulative weight of all values that
-        are less than or equal to it. Tied values therefore share the
-        same rank, so downstream bucketing (``decile_rank``,
-        ``quintile_rank``, etc.) lands tied rows in the same bucket.
+        Each element's rank is the cumulative weight of all values that are
+        less than or equal to it. Tied values therefore share the same rank, so
+        downstream bucketing (``decile_rank``, ``quintile_rank``, etc.) lands
+        tied rows in the same bucket.
 
-        :param pct: If True, divide ranks by the total weight so they
-            lie in ``(0, 1]``.
+        :param pct: If True, divide ranks by the total weight so they lie in
+            ``(0, 1]``.
         :type pct: bool
         :returns: MicroSeries of ranks aligned to ``self``.
         :rtype: MicroSeries
