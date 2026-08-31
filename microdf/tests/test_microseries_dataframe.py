@@ -815,3 +815,25 @@ def test_rank_ties_share_bucket() -> None:
     # existing ``test_rank`` expectations hold.
     s = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
     np.testing.assert_array_equal(s.rank().values, [4, 9, 15])
+
+
+def test_weights_stay_a_series_after_nullify():
+    """nullify_weights must leave weights as an index-aligned Series."""
+    df = mdf.MicroDataFrame(pd.DataFrame({"x": [1, 2, 3]}), weights=[4, 5, 6])
+    df.nullify_weights()
+    assert isinstance(df.weights, pd.Series)
+    assert list(df.weights.index) == list(df.index)
+    assert df.equals(df)
+    assert df.sum()["x"] == 6
+
+
+def test_weights_stay_a_series_after_set_weight_col():
+    """The deprecated set_weight_col must also produce a Series."""
+    df = mdf.MicroDataFrame(pd.DataFrame({"x": [1, 2, 3], "w": [1.0, 2.0, 3.0]}))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        df.set_weight_col("w")
+    assert isinstance(df.weights, pd.Series)
+    assert df.weights_col == "w"
+    assert df.equals(df)
+    assert df.sum()["x"] == 14
