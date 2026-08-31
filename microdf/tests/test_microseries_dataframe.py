@@ -815,3 +815,12 @@ def test_rank_ties_share_bucket() -> None:
     # existing ``test_rank`` expectations hold.
     s = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
     np.testing.assert_array_equal(s.rank().values, [4, 9, 15])
+
+
+def test_nullify_weights_non_default_index():
+    """nullify_weights must align to the index, not a fresh RangeIndex."""
+    s = mdf.MicroSeries([1, 2, 3], index=[10, 11, 12], weights=[1, 2, 3])
+    s.nullify_weights()
+    assert s.sum() == 6
+    assert s.mean() == 2
+    assert list(s.weights.index) == [10, 11, 12]

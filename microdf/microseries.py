@@ -157,7 +157,11 @@ class MicroSeries(pd.Series):
         This is useful for comparing weighted and unweighted statistics or when
         you want to temporarily ignore weights.
         """
-        self.weights = pd.Series(np.ones(len(self)), dtype=float)
+        # Index the ones against self.index: weighted ops are label-aligned
+        # (self.multiply(self.weights) in .sum()/.weight()), so a default
+        # RangeIndex here silently produces all-NaN and collapses every
+        # aggregation to 0 whenever the caller uses a non-default index.
+        self.weights = pd.Series(np.ones(len(self)), index=self.index, dtype=float)
 
     @vector_function
     def weight(self) -> pd.Series:
