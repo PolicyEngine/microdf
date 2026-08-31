@@ -95,6 +95,12 @@ class _MicroILocIndexer:
 
 
 class MicroDataFrame(pd.DataFrame):
+    # Declare ``weights`` as pandas metadata. pandas includes
+    # _metadata attributes in the pickle state, so weights now survive
+    # pickling, to_pickle/read_pickle and copy.deepcopy instead of
+    # vanishing and leaving an AttributeError on the next aggregation.
+    _metadata = ["weights"]
+
     def __init__(self, *args, weights=None, **kwargs):
         """A DataFrame-inheriting class for weighted microdata.
 
@@ -108,6 +114,20 @@ class MicroDataFrame(pd.DataFrame):
         self.weights = None
         self.set_weights(weights)
         self._link_all_weights()
+        self.override_df_functions()
+
+    def __setstate__(self, state) -> None:
+        """Restore a pickled MicroDataFrame.
+
+        The weighted aggregations are installed as per-instance closures by
+        ``override_df_functions``, which only runs in ``__init__`` — a path
+        unpickling skips. Without reinstalling them, ``mdf.sum()`` on an
+        unpickled frame silently fell through to the unweighted pandas
+        implementation.
+        """
+        super().__setstate__(state)
+        if getattr(self, "weights", None) is None:
+            self._link_all_weights()
         self.override_df_functions()
 
     @property

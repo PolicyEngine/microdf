@@ -1,3 +1,4 @@
+import copy
 import warnings
 
 import numpy as np
@@ -815,3 +816,36 @@ def test_rank_ties_share_bucket() -> None:
     # existing ``test_rank`` expectations hold.
     s = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
     np.testing.assert_array_equal(s.rank().values, [4, 9, 15])
+
+
+def test_microseries_survives_pickling():
+    """Weights must survive a pickle round-trip."""
+    import pickle
+
+    s = mdf.MicroSeries([1, 2, 3], index=[7, 8, 9], weights=[1, 2, 3])
+    restored = pickle.loads(pickle.dumps(s))
+    assert isinstance(restored, mdf.MicroSeries)
+    assert restored.sum() == 14
+    assert list(restored.weights) == [1.0, 2.0, 3.0]
+
+
+def test_microdataframe_survives_pickling():
+    """Weights and the weighted aggregations must survive a round-trip."""
+    import pickle
+
+    df = mdf.MicroDataFrame(
+        pd.DataFrame({"x": [1, 2, 3]}, index=[7, 8, 9]), weights=[1, 2, 3]
+    )
+    restored = pickle.loads(pickle.dumps(df))
+    assert isinstance(restored, mdf.MicroDataFrame)
+    assert isinstance(restored.weights, pd.Series)
+    # Would be 6 (unweighted) if the aggregation overrides were not
+    # reinstalled after unpickling.
+    assert restored.sum()["x"] == 14
+
+
+def test_deepcopy_preserves_weights():
+    df = mdf.MicroDataFrame(pd.DataFrame({"x": [1, 2, 3]}), weights=[1, 2, 3])
+    assert copy.deepcopy(df).sum()["x"] == 14
+    s = mdf.MicroSeries([1, 2, 3], weights=[1, 2, 3])
+    assert copy.deepcopy(s).sum() == 14

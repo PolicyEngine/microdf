@@ -50,6 +50,12 @@ def _weighted_top_share(
 
 
 class MicroSeries(pd.Series):
+    # Declare ``weights`` as pandas metadata. pandas includes
+    # _metadata attributes in the pickle state, so weights now survive
+    # pickling, to_pickle/read_pickle and copy.deepcopy instead of
+    # vanishing and leaving an AttributeError on the next aggregation.
+    _metadata = ["weights"]
+
     def __init__(self, *args, weights: np.array = None, **kwargs):
         """A Series-inheriting class for weighted microdata.
 
