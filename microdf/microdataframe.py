@@ -150,9 +150,13 @@ class MicroDataFrame(pd.DataFrame):
                 if pd.api.types.is_numeric_dtype(self[col]):
                     try:
                         results[col] = getattr(self[col], name)(*args, **kwargs)
-                    except Exception:
-                        # Skip columns that can't be aggregated
-                        pass
+                    except TypeError as exc:
+                        # Skip columns whose dtype can't take this aggregation.
+                        # Deliberately narrow: catching every Exception here also
+                        # swallowed real errors (e.g. the ValueError from
+                        # gini(negatives=...)) and returned a silently truncated
+                        # result instead of raising.
+                        logger.debug("skipping column %s in %s: %s", col, name, exc)
             return pd.Series(results)
 
         return fn
@@ -173,9 +177,13 @@ class MicroDataFrame(pd.DataFrame):
                         result = getattr(self[col], name)(*args, **kwargs)
                         results.append(result)
                         columns.append(col)
-                    except Exception:
-                        # Skip columns that can't be aggregated
-                        pass
+                    except TypeError as exc:
+                        # Skip columns whose dtype can't take this aggregation.
+                        # Deliberately narrow: catching every Exception here also
+                        # swallowed real errors (e.g. the ValueError from
+                        # gini(negatives=...)) and returned a silently truncated
+                        # result instead of raising.
+                        logger.debug("skipping column %s in %s: %s", col, name, exc)
 
             if results:
                 df = pd.DataFrame(results)
@@ -208,9 +216,13 @@ class MicroDataFrame(pd.DataFrame):
                             result = getattr(self[col], name)(*args, **kwargs)
                             results.append(result)
                             columns.append(col)
-                        except Exception:
-                            # Skip columns that can't be aggregated
-                            pass
+                        except TypeError as exc:
+                            # Skip columns whose dtype can't take this aggregation.
+                            # Deliberately narrow: catching every Exception here also
+                            # swallowed real errors (e.g. the ValueError from
+                            # gini(negatives=...)) and returned a silently truncated
+                            # result instead of raising.
+                            logger.debug("skipping column %s in %s: %s", col, name, exc)
 
                 if results:
                     df = pd.DataFrame(results)
@@ -225,9 +237,13 @@ class MicroDataFrame(pd.DataFrame):
                     if pd.api.types.is_numeric_dtype(self[col]):
                         try:
                             results[col] = getattr(self[col], name)(*args, **kwargs)
-                        except Exception:
-                            # Skip columns that can't be aggregated
-                            pass
+                        except TypeError as exc:
+                            # Skip columns whose dtype can't take this aggregation.
+                            # Deliberately narrow: catching every Exception here also
+                            # swallowed real errors (e.g. the ValueError from
+                            # gini(negatives=...)) and returned a silently truncated
+                            # result instead of raising.
+                            logger.debug("skipping column %s in %s: %s", col, name, exc)
                 return pd.Series(results)
 
         return fn
@@ -836,9 +852,13 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                             results[col] = getattr(getattr(self, col), name)(
                                 *args, **kwargs
                             )
-                        except Exception:
-                            # Skip columns that can't be aggregated
-                            pass
+                        except TypeError as exc:
+                            # Skip columns whose dtype can't take this aggregation.
+                            # Deliberately narrow: catching every Exception here also
+                            # swallowed real errors (e.g. the ValueError from
+                            # gini(negatives=...)) and returned a silently truncated
+                            # result instead of raising.
+                            logger.debug("skipping column %s in %s: %s", col, name, exc)
                     # Return plain DataFrame - aggregated results don't have
                     # per-row weights (weights were already applied)
                     return pd.DataFrame(results) if results else pd.DataFrame()
@@ -856,9 +876,13 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                             results[col] = getattr(getattr(self, col), name)(
                                 *args, **kwargs
                             )
-                        except Exception:
-                            # Skip columns that can't be aggregated
-                            pass
+                        except TypeError as exc:
+                            # Skip columns whose dtype can't take this aggregation.
+                            # Deliberately narrow: catching every Exception here also
+                            # swallowed real errors (e.g. the ValueError from
+                            # gini(negatives=...)) and returned a silently truncated
+                            # result instead of raising.
+                            logger.debug("skipping column %s in %s: %s", col, name, exc)
                     # Return plain DataFrame - aggregated results don't have
                     # per-row weights (weights were already applied)
                     return pd.DataFrame(results) if results else pd.DataFrame()
@@ -918,8 +942,15 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                                 results[col] = getattr(getattr(res, col), name)(
                                     *args, **kwargs
                                 )
-                            except Exception:
-                                pass
+                            except TypeError as exc:
+                                # Skip columns whose dtype can't take this aggregation.
+                                # Deliberately narrow: catching every Exception here also
+                                # swallowed real errors (e.g. the ValueError from
+                                # gini(negatives=...)) and returned a silently truncated
+                                # result instead of raising.
+                                logger.debug(
+                                    "skipping column %s in %s: %s", col, name, exc
+                                )
                         # Return plain DataFrame - aggregated results don't
                         # have per-row weights (weights were already applied)
                         return pd.DataFrame(results) if results else pd.DataFrame()
@@ -937,8 +968,15 @@ class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
                                 results[col] = getattr(getattr(res, col), name)(
                                     *args, **kwargs
                                 )
-                            except Exception:
-                                pass
+                            except TypeError as exc:
+                                # Skip columns whose dtype can't take this aggregation.
+                                # Deliberately narrow: catching every Exception here also
+                                # swallowed real errors (e.g. the ValueError from
+                                # gini(negatives=...)) and returned a silently truncated
+                                # result instead of raising.
+                                logger.debug(
+                                    "skipping column %s in %s: %s", col, name, exc
+                                )
                         # Return plain DataFrame - aggregated results don't
                         # have per-row weights (weights were already applied)
                         return pd.DataFrame(results) if results else pd.DataFrame()
