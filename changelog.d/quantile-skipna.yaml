@@ -1,0 +1,7 @@
+- bump: minor
+  changes:
+    fixed:
+    - quantile() and median() now skip NaN values by default, so NaN weight no
+      longer inflates the cumulative distribution and pushes the cutoff up.
+    added:
+    - skipna argument on MicroSeries.quantile and MicroSeries.median.

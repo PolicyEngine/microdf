@@ -306,7 +306,7 @@ class MicroSeries(pd.Series):
         )
         return super().corr(other, *args, **kwargs)
 
-    def quantile(self, q: np.array) -> pd.Series:
+    def quantile(self, q: np.array, skipna: bool = True) -> pd.Series:
         """Calculates weighted quantiles of the MicroSeries.
 
         Uses the inverse CDF method: the q-th quantile is the smallest
@@ -315,6 +315,11 @@ class MicroSeries(pd.Series):
 
         :param q: Quantile(s) to calculate, must be in [0, 1].
         :type q: float or np.array
+        :param skipna: Exclude NaN values (default True). NaN sorts to the
+            end of the array, so leaving NaN rows in would let their weight
+            inflate the cumulative distribution and push the cutoff upward.
+            If False, NaN is returned whenever any value is NaN.
+        :type skipna: bool
 
         :return: Weighted quantile value(s).
         :rtype: float or pd.Series
@@ -322,6 +327,13 @@ class MicroSeries(pd.Series):
         values = np.array(self._values)
         quantiles = np.atleast_1d(q)
         sample_weight = np.array(self.weights)
+        na_mask = pd.isna(values)
+        if not skipna and na_mask.any():
+            return (
+                np.nan
+                if np.array(q).shape == ()
+                else pd.Series(np.full(len(quantiles), np.nan), index=quantiles)
+            )
         assert np.all(quantiles >= 0) and np.all(quantiles <= 1), (
             "quantiles should be in [0, 1]"
         )
@@ -330,7 +342,10 @@ class MicroSeries(pd.Series):
         # that should have been skipped by the inverse CDF. E.g.
         # MicroSeries([10, 20, 30], weights=[0, 1, 1]).quantile(0)
         # returned 10 instead of 20.
-        nonzero = sample_weight > 0
+        # Drop NaN rows for the same reason: NaN sorts last, so its weight
+        # would inflate the cumulative distribution and push the cutoff up
+        # (median of [1, nan, 3] returned 3.0 instead of 1.0).
+        nonzero = (sample_weight > 0) & ~na_mask
         if not nonzero.any():
             return (
                 np.nan
@@ -355,13 +370,15 @@ class MicroSeries(pd.Series):
         return pd.Series(result, index=quantiles)
 
     @scalar_function
-    def median(self) -> float:
+    def median(self, skipna: bool = True) -> float:
         """Calculates the weighted median of the MicroSeries.
 
+        :param skipna: Exclude NaN values (default True).
+        :type skipna: bool
         :returns: The weighted median of a DataFrame's column.
         :rtype: float
         """
-        return self.quantile(0.5)
+        return self.quantile(0.5, skipna=skipna)
 
     @scalar_function
     def gini(self, negatives: Optional[str] = None) -> float:
