@@ -310,8 +310,9 @@ class MicroDataFrame(pd.DataFrame):
 
         if isinstance(weights, str):
             self.weights_col = weights
+            # Keep stored weights independent from edits to the source column.
             self.weights = pd.Series(
-                np.asarray(self[weights]),
+                np.array(self[weights], copy=True),
                 index=self.index,
                 dtype=float,
             )
