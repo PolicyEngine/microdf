@@ -1,6 +1,0 @@
-- bump: patch
-  changes:
-    fixed:
-    - DataFrame-level aggregations no longer swallow every exception per
-      column, so genuine argument errors raise instead of returning a
-      silently truncated result.

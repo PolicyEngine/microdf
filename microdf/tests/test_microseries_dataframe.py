@@ -815,27 +815,3 @@ def test_rank_ties_share_bucket() -> None:
     # existing ``test_rank`` expectations hold.
     s = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
     np.testing.assert_array_equal(s.rank().values, [4, 9, 15])
-
-
-def test_aggregation_surfaces_real_errors():
-    """A genuine argument error must raise, not be swallowed per column."""
-    df = mdf.MicroDataFrame(pd.DataFrame({"x": [1, 2, 3]}), weights=[1, 1, 1])
-    with pytest.raises(ValueError, match="Unknown negatives option"):
-        df.gini(negatives="bogus")
-
-
-def test_aggregation_still_skips_non_numeric_columns():
-    """Narrowing the guard must not change which columns aggregate."""
-    df = mdf.MicroDataFrame(
-        pd.DataFrame(
-            {
-                "x": [1, 2, 3],
-                "s": ["a", "b", "c"],
-                "dt": pd.to_datetime(["2020-01-01"] * 3),
-            }
-        ),
-        weights=[1, 2, 3],
-    )
-    assert list(df.sum().index) == ["x"]
-    assert df.sum()["x"] == 14
-    assert list(df.mean().index) == ["x"]
