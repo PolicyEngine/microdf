@@ -29,13 +29,12 @@ import microdf as mdf
 import pandas as pd
 
 # Create sample data with weights
-df = pd.DataFrame({
-    'income': [10_000, 20_000, 30_000, 40_000, 50_000],
-    'weights': [1, 2, 3, 2, 1]
-})
+df = pd.DataFrame(
+    {"income": [10_000, 20_000, 30_000, 40_000, 50_000], "weights": [1, 2, 3, 2, 1]}
+)
 
 # Create a MicroDataFrame
-mdf_df = mdf.MicroDataFrame(df, weights='weights')
+mdf_df = mdf.MicroDataFrame(df, weights="weights")
 
 # All operations are weight-aware
 print(mdf_df.income.mean())  # Weighted mean

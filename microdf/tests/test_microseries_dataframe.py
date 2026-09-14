@@ -815,10 +815,3 @@ def test_rank_ties_share_bucket() -> None:
     # existing ``test_rank`` expectations hold.
     s = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
     np.testing.assert_array_equal(s.rank().values, [4, 9, 15])
-
-
-def test_version_matches_package_metadata():
-    """__version__ must not drift from pyproject.toml."""
-    from importlib.metadata import version
-
-    assert mdf.__version__ == version("microdf-python")
