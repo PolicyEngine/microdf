@@ -327,6 +327,9 @@ class MicroSeries(pd.Series):
         values = np.array(self._values)
         quantiles = np.atleast_1d(q)
         sample_weight = np.array(self.weights)
+        assert np.all(quantiles >= 0) and np.all(quantiles <= 1), (
+            "quantiles should be in [0, 1]"
+        )
         na_mask = pd.isna(values)
         if not skipna and na_mask.any():
             return (
@@ -334,9 +337,6 @@ class MicroSeries(pd.Series):
                 if np.array(q).shape == ()
                 else pd.Series(np.full(len(quantiles), np.nan), index=quantiles)
             )
-        assert np.all(quantiles >= 0) and np.all(quantiles <= 1), (
-            "quantiles should be in [0, 1]"
-        )
         # Drop zero-weight rows before sorting. Without this, q=0 (and
         # internal plateaus of zero weight) picked a value with 0 weight
         # that should have been skipped by the inverse CDF. E.g.
@@ -886,6 +886,17 @@ class MicroSeriesGroupBy(pd.core.groupby.generic.SeriesGroupBy):
                     or name in MicroSeries.AGNOSTIC_FUNCTIONS
                     and is_array
                 ):
+                    if name in MicroSeries.AGNOSTIC_FUNCTIONS and not df.empty:
+                        # Concatenation retains NaNs, group labels, and repeated
+                        # quantiles across pandas versions without stack's
+                        # version-dependent missing-value behavior.
+                        return pd.concat(
+                            [
+                                via_micro_series(row, *args, **kwargs)
+                                for _, row in df.iterrows()
+                            ],
+                            keys=df.index,
+                        )
                     result = df.apply(
                         lambda row: via_micro_series(row, *args, **kwargs),
                         axis=1,

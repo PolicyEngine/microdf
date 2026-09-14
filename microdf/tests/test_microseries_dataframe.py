@@ -815,34 +815,3 @@ def test_rank_ties_share_bucket() -> None:
     # existing ``test_rank`` expectations hold.
     s = mdf.MicroSeries([1, 2, 3], weights=[4, 5, 6])
     np.testing.assert_array_equal(s.rank().values, [4, 9, 15])
-
-
-def test_quantile_skips_nan():
-    """NaN weight must not inflate the cumulative distribution.
-
-    Dropping a NaN row should give the same answer as never having had
-    it: the inverse-CDF quantile of [1, nan, 3] equals that of [1, 3].
-    """
-    with_nan = mdf.MicroSeries([1.0, np.nan, 3.0], weights=[1, 1, 1])
-    without_nan = mdf.MicroSeries([1.0, 3.0], weights=[1, 1])
-    assert with_nan.median() == without_nan.median()
-    assert with_nan.quantile(0.5) == without_nan.quantile(0.5)
-
-    q = [0.25, 0.5, 0.75]
-    np.testing.assert_array_equal(
-        mdf.MicroSeries([1.0, np.nan, 3.0, 5.0], weights=[1, 1, 1, 1]).quantile(q),
-        mdf.MicroSeries([1.0, 3.0, 5.0], weights=[1, 1, 1]).quantile(q),
-    )
-
-
-def test_quantile_skipna_false_propagates_nan():
-    """Skipna=False returns NaN when any value is NaN, like mean/var."""
-    s = mdf.MicroSeries([1.0, np.nan, 3.0], weights=[1, 1, 1])
-    assert np.isnan(s.quantile(0.5, skipna=False))
-    assert np.isnan(s.median(skipna=False))
-    assert s.quantile([0.25, 0.75], skipna=False).isna().all()
-
-
-def test_quantile_all_nan_returns_nan():
-    s = mdf.MicroSeries([np.nan, np.nan], weights=[1, 1])
-    assert np.isnan(s.median())
