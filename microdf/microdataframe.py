@@ -100,7 +100,7 @@ class MicroDataFrame(pd.DataFrame):
     # pickling, to_pickle/read_pickle and copy.deepcopy instead of
     # vanishing and leaving an AttributeError on the next aggregation.
     # Retain the column name for set_weights(..., preserve_old=True).
-    _metadata = ["weights", "weights_col"]
+    _metadata = pd.DataFrame._metadata + ["weights", "weights_col"]
 
     def __init__(self, *args, weights=None, **kwargs):
         """A DataFrame-inheriting class for weighted microdata.

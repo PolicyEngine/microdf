@@ -54,7 +54,8 @@ class MicroSeries(pd.Series):
     # _metadata attributes in the pickle state, so weights now survive
     # pickling, to_pickle/read_pickle and copy.deepcopy instead of
     # vanishing and leaving an AttributeError on the next aggregation.
-    _metadata = ["weights"]
+    # Keep pandas' own metadata, including the Series name.
+    _metadata = pd.Series._metadata + ["weights"]
 
     def __init__(self, *args, weights: np.array = None, **kwargs):
         """A Series-inheriting class for weighted microdata.

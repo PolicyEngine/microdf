@@ -67,3 +67,41 @@ def test_serialization_preserves_weight_column_state(
         assert restored["old_w"].tolist() == [1, 2, 3]
     else:
         assert "old_w" not in restored.columns
+
+
+@pytest.mark.parametrize("operation", ["pickle", "pandas_pickle", "deepcopy"])
+def test_named_microseries_preserves_name_and_weights(operation):
+    """Serialization retains pandas metadata as well as survey weights."""
+    series = mdf.MicroSeries(
+        [1, 2, 3], index=[7, 8, 9], name="group", weights=[1, 2, 3]
+    )
+    if operation == "deepcopy":
+        restored = copy.deepcopy(series)
+    elif operation == "pandas_pickle":
+        buffer = io.BytesIO()
+        series.to_pickle(buffer)
+        buffer.seek(0)
+        restored = pd.read_pickle(buffer)
+    else:
+        restored = pickle.loads(pickle.dumps(series))
+
+    assert restored.name == "group"
+    assert restored.index.equals(series.index)
+    pd.testing.assert_series_equal(restored.weights, series.weights)
+    assert restored.sum() == 14
+
+
+@pytest.mark.parametrize("selected", [False, True])
+def test_grouped_aggregation_retains_index_name(selected):
+    """Copying internal grouped weights must retain the grouping label."""
+    frame = mdf.MicroDataFrame(
+        {"group": ["a", "a", "b", "b"], "value": [1, 2, 3, 4]},
+        weights=[1, 2, 3, 4],
+    )
+    grouped = frame.groupby("group")
+    if selected:
+        grouped = grouped[["value"]]
+    expected = pd.DataFrame(
+        {"value": [5.0, 25.0]}, index=pd.Index(["a", "b"], name="group")
+    )
+    pd.testing.assert_frame_equal(grouped.sum(), expected)
