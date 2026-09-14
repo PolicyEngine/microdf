@@ -1,6 +1,0 @@
-- bump: patch
-  changes:
-    fixed:
-    - Weights now survive pickling, to_pickle/read_pickle and copy.deepcopy;
-      previously they vanished, and an unpickled MicroDataFrame silently
-      returned unweighted aggregations.
