@@ -403,8 +403,9 @@ class MicroSeries(pd.Series):
         w = np.asarray(self.weights.values, dtype=float)
         if negatives == "zero":
             x = np.where(x < 0, 0.0, x)
-        elif negatives == "shift" and len(x) > 0 and np.amin(x) < 0:
-            x = x - np.amin(x)
+        elif negatives == "shift":
+            if len(x) > 0 and np.amin(x) < 0:
+                x = x - np.amin(x)
         elif negatives is not None:
             raise ValueError(
                 f"Unknown negatives option {negatives!r}; expected "
