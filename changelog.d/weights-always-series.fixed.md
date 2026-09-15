@@ -1,0 +1,1 @@
+MicroDataFrame.nullify_weights and set_weight_col now store weights as an index-aligned Series instead of a bare ndarray, so equals() no longer raises. Selected weight-column values remain independent from the source column.

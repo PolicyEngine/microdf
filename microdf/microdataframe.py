@@ -310,8 +310,9 @@ class MicroDataFrame(pd.DataFrame):
 
         if isinstance(weights, str):
             self.weights_col = weights
+            # Keep stored weights independent from edits to the source column.
             self.weights = pd.Series(
-                np.asarray(self[weights]),
+                np.array(self[weights], copy=True),
                 index=self.index,
                 dtype=float,
             )
@@ -362,9 +363,9 @@ class MicroDataFrame(pd.DataFrame):
         if preserve_old and self.weights_col is not None:
             self["old_" + self.weights_col] = self.weights
 
-        self.weights = np.array(self[column])
-        self.weights_col = column
-        self._link_all_weights()
+        # Delegate to set_weights: it validates length and builds an
+        # index-aligned float Series rather than a bare ndarray.
+        self.set_weights(column)
 
     def nullify_weights(self) -> None:
         """Set all weights to 1, effectively making the DataFrame unweighted.
@@ -372,8 +373,10 @@ class MicroDataFrame(pd.DataFrame):
         This is useful for comparing weighted and unweighted statistics or when
         you want to temporarily ignore weights.
         """
-        self.weights = np.ones(len(self))
-        self._link_all_weights()
+        # Route through set_weights so self.weights stays an index-aligned
+        # float Series. Assigning a bare ndarray here broke every caller
+        # that treats it as a Series (equals(), reindex() in __getitem__).
+        self.set_weights(np.ones(len(self)))
 
     def __getitem__(
         self, key: Union[str, List]
