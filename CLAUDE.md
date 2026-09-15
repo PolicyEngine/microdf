@@ -28,7 +28,7 @@
   - Deprecation warnings properly configured with `stacklevel=2`
 
 ## Pull Request Process
-1. Create a feature branch from master
+1. Create a feature branch from main
 2. Make changes and ensure they follow code style guidelines
 3. Add a changelog entry
 4. Create PR with descriptive title and body
