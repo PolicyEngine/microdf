@@ -50,6 +50,13 @@ def _weighted_top_share(
 
 
 class MicroSeries(pd.Series):
+    # Declare ``weights`` as pandas metadata. pandas includes
+    # _metadata attributes in the pickle state, so weights now survive
+    # pickling, to_pickle/read_pickle and copy.deepcopy instead of
+    # vanishing and leaving an AttributeError on the next aggregation.
+    # Keep pandas' own metadata, including the Series name.
+    _metadata = pd.Series._metadata + ["weights"]
+
     def __init__(self, *args, weights: np.array = None, **kwargs):
         """A Series-inheriting class for weighted microdata.
 
@@ -60,6 +67,16 @@ class MicroSeries(pd.Series):
         """
         super().__init__(*args, **kwargs)
         self.set_weights(weights)
+
+    def __finalize__(self, other, method=None, **kwargs) -> "MicroSeries":
+        """Retain copied weights when pandas finalizes a renamed result."""
+        copied_weights = getattr(self, "weights", None) if method == "rename" else None
+        super().__finalize__(other, method=method, **kwargs)
+        if copied_weights is not None:
+            # rename already called copy(); metadata propagation must not
+            # replace those weights with the source's mutable Series.
+            self.weights = copied_weights
+        return self
 
     @property
     def _values(self):
