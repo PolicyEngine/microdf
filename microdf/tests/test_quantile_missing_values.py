@@ -76,3 +76,59 @@ def test_grouped_quantiles_preserve_repeated_requests():
     np.testing.assert_allclose(
         result.to_numpy(), [np.nan, np.nan, 3.0, 3.0], equal_nan=True
     )
+
+
+@pytest.mark.parametrize("quantiles", [[0.75, 0.25], [0.5, 0.5], []])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("sort", [True, False])
+def test_grouped_quantiles_preserve_missing_multiple_keys(quantiles, skipna, sort):
+    """Missing group keys survive alongside missing values and repeated q."""
+    frame = mdf.MicroDataFrame(
+        {
+            "region": ["north", "north", None, "south", "south"],
+            "year": [2024, 2024, 2024, np.nan, 2025],
+            "income": [10.0, np.nan, 20.0, 30.0, 40.0],
+        },
+        weights=[1, 4, 2, 3, 1],
+    )
+    grouped = frame.groupby(["region", "year"], dropna=False, sort=sort)["income"]
+    result = grouped.quantile(quantiles, skipna=skipna)
+
+    # Each retained group has one nonmissing value. With skipna=False,
+    # the north group is NaN because it also contains a missing value.
+    north = 10.0 if skipna else np.nan
+    groups = [("north", 2024.0, north)]
+    if sort:
+        groups += [
+            ("south", 2025.0, 40.0),
+            ("south", np.nan, 30.0),
+            (np.nan, 2024.0, 20.0),
+        ]
+    else:
+        groups += [
+            (np.nan, 2024.0, 20.0),
+            ("south", np.nan, 30.0),
+            ("south", 2025.0, 40.0),
+        ]
+    expected_index = pd.MultiIndex.from_tuples(
+        [(region, year, q) for region, year, _ in groups for q in quantiles],
+        names=["region", "year", None],
+    )
+    expected_values = [value for _, _, value in groups for _ in quantiles]
+    assert result.index.names == expected_index.names
+    if quantiles:
+        for level in range(3):
+            pd.testing.assert_index_equal(
+                result.index.get_level_values(level),
+                expected_index.get_level_values(level),
+            )
+    assert result.index.nlevels == 3
+    np.testing.assert_allclose(result.to_numpy(), expected_values, equal_nan=True)
+    for q in set(quantiles):
+        if quantiles.count(q) == 1:
+            selected = result.xs(q, level=-1)
+            scalar = grouped.quantile(q, skipna=skipna)
+            assert selected.index.equals(scalar.index)
+            np.testing.assert_allclose(
+                selected.to_numpy(), scalar.to_numpy(), equal_nan=True
+            )

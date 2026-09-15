@@ -887,16 +887,36 @@ class MicroSeriesGroupBy(pd.core.groupby.generic.SeriesGroupBy):
                     and is_array
                 ):
                     if name in MicroSeries.AGNOSTIC_FUNCTIONS and not df.empty:
-                        # Concatenation retains NaNs, group labels, and repeated
-                        # quantiles across pandas versions without stack's
-                        # version-dependent missing-value behavior.
-                        return pd.concat(
-                            [
-                                via_micro_series(row, *args, **kwargs)
-                                for _, row in df.iterrows()
-                            ],
-                            keys=df.index,
+                        # Concatenate values without keys: concat rejects missing
+                        # MultiIndex keys even when groupby(dropna=False) retains
+                        # them. Reuse the grouping levels and codes so missing
+                        # labels keep the same representation as scalar results.
+                        results = [
+                            via_micro_series(row, *args, **kwargs)
+                            for _, row in df.iterrows()
+                        ]
+                        result = pd.concat(results)
+                        group_index = (
+                            df.index
+                            if isinstance(df.index, pd.MultiIndex)
+                            else pd.MultiIndex.from_arrays([df.index])
                         )
+                        quantile_codes, quantile_levels = result.index.factorize(
+                            sort=False
+                        )
+                        result.index = pd.MultiIndex(
+                            levels=[*group_index.levels, quantile_levels],
+                            codes=[
+                                codes.repeat(len(results[0]))
+                                for codes in group_index.codes
+                            ]
+                            + [quantile_codes],
+                            names=[*df.index.names, result.index.name],
+                            # Existing group codes are valid; checking would
+                            # rewrite their retained missing labels to -1.
+                            verify_integrity=False,
+                        )
+                        return result
                     result = df.apply(
                         lambda row: via_micro_series(row, *args, **kwargs),
                         axis=1,
