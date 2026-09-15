@@ -1,3 +1,10 @@
+## [1.3.6] - 2026-09-15
+
+### Fixed
+
+- DataFrame-level aggregations now propagate non-TypeError failures instead of silently omitting columns. The documented gini(negatives="shift") option also accepts nonnegative and empty data.
+
+
 ## [1.3.5] - 2026-09-15
 
 ### Fixed
