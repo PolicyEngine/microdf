@@ -1,3 +1,10 @@
+## [1.3.2] - 2026-09-15
+
+### Fixed
+
+- README code block formatting so make lint passes with ruff 0.16.
+
+
 ## [1.3.1] - 2026-04-28
 
 No significant changes.
