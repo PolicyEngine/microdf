@@ -1,0 +1,1 @@
+Weighted quantile() and median() now skip NaN values by default and accept a skipna argument. Quantiles with skipna=False preserve missing groups, and quantile bounds are validated even when values are missing. Grouped vector quantiles retain missing grouping keys with dropna=False, including for multiple keys and empty quantile requests.
