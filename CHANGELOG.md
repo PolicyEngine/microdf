@@ -1,3 +1,10 @@
+## [1.3.4] - 2026-09-15
+
+### Fixed
+
+- MicroDataFrame.nullify_weights and set_weight_col now store weights as an index-aligned Series instead of a bare ndarray, so equals() no longer raises. Selected weight-column values remain independent from the source column.
+
+
 ## [1.3.3] - 2026-09-15
 
 ### Fixed
