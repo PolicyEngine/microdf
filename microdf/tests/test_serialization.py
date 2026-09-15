@@ -105,3 +105,39 @@ def test_grouped_aggregation_retains_index_name(selected):
         {"value": [5.0, 25.0]}, index=pd.Index(["a", "b"], name="group")
     )
     pd.testing.assert_frame_equal(grouped.sum(), expected)
+
+
+@pytest.mark.parametrize("kind", ["frame_columns", "frame_index", "series_index"])
+def test_renamed_weights_are_independent(kind):
+    """Pandas finalization must retain the renamed result's copied weights."""
+    if kind == "series_index":
+        original = mdf.MicroSeries(
+            [10, 20], index=[7, 8], name="income", weights=[1, 2]
+        )
+        renamed = original.rename(index={7: 70})
+        assert renamed.name == "income"
+    else:
+        original = mdf.MicroDataFrame(
+            {"x": [10, 20], "w": [1, 2]}, index=[7, 8], weights="w"
+        )
+        renamed = (
+            original.rename(columns={"x": "income"})
+            if kind == "frame_columns"
+            else original.rename(index={7: 70})
+        )
+        assert renamed.weights_col == "w"
+
+    renamed.weights.iloc[0] = 100
+    pd.testing.assert_series_equal(
+        original.weights, pd.Series([1.0, 2.0], index=[7, 8])
+    )
+    original_total = original.sum() if kind == "series_index" else original.sum()["x"]
+    assert original_total == 10 * 1 + 20 * 2
+
+    original.weights.iloc[1] = 9
+    assert renamed.weights.iloc[1] == 2
+    if kind == "frame_columns":
+        # The renamed frame must still use weighted aggregation after pickle.
+        restored = pickle.loads(pickle.dumps(renamed))
+        assert restored.weights_col == "w"
+        assert restored.sum()["income"] == 10 * 100 + 20 * 2

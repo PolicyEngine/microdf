@@ -117,6 +117,16 @@ class MicroDataFrame(pd.DataFrame):
         self._link_all_weights()
         self.override_df_functions()
 
+    def __finalize__(self, other, method=None, **kwargs) -> "MicroDataFrame":
+        """Retain copied weights when pandas finalizes a renamed result."""
+        copied_weights = getattr(self, "weights", None) if method == "rename" else None
+        super().__finalize__(other, method=method, **kwargs)
+        if copied_weights is not None:
+            # rename already called copy(); metadata propagation must not
+            # replace those weights with the source's mutable Series.
+            self.weights = copied_weights
+        return self
+
     def __setstate__(self, state) -> None:
         """Restore a pickled MicroDataFrame.
 
