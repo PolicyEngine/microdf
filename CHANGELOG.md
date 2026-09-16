@@ -1,3 +1,10 @@
+## [1.4.0] - 2026-09-16
+
+### Added
+
+- MicroSeries.cov and corr now calculate frequency-weighted covariance and Pearson correlation using aligned observations and the left Series weights. Both support pairwise missing-value handling and minimum observation counts; covariance and correlation accept a degrees-of-freedom adjustment. Centered, scaled calculations preserve small differences around large offsets, retain population moments for subnormal positive weights, and avoid overflowing raw frequency-weighted moments when the result is representable. Unsupported correlation methods raise instead of silently using unweighted results.
+
+
 ## [1.3.10] - 2026-09-16
 
 ### Fixed
