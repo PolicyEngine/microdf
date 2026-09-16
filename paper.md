@@ -1,5 +1,5 @@
 ---
-title: "microdf: Weighted DataFrames and Series for survey microdata analysis"
+title: "microdf: Weighted DataFrames and Series for Survey Microdata Analysis"
 tags:
   - Python
   - survey statistics
@@ -28,7 +28,7 @@ bibliography: paper.bib
 
 `microdf` provides weighted data structures for survey microdata analysis in Python. Survey records carry sampling weights: each row stands for many households, and the weights vary by orders of magnitude within a single file. Statistics computed without them describe the sample rather than the population, and the two can differ substantially.
 
-The package's central design choice is that the weight is a property of the data structure rather than an argument to a function. `MicroSeries` and `MicroDataFrame` subclass the pandas [@mckinney2010pandas; @pandas2020] structures and carry a weight vector through the operations an analysis pipeline performs — indexing, merging, grouping, reindexing, type conversion — so that a statistic computed at the end of a pipeline is weighted whether or not the analyst remembers to weight it. Aggregations that pandas defines but that would silently ignore weights are overridden rather than inherited, so a method either returns a weighted result or warns that it cannot.
+The package's central design choice is that the weight is a property of the data structure rather than an argument to a function. `MicroSeries` and `MicroDataFrame` subclass the pandas [@mckinney2010pandas; @pandas2020] structures and carry a weight vector through the operations an analysis pipeline performs. Selection, merging, grouping, reindexing, dropping and type conversion are overridden so that the weight follows the rows it describes, and aggregations that pandas defines but that would silently ignore weights are overridden rather than inherited, so a method either returns a weighted result or warns that it cannot.
 
 On top of that foundation the package implements the estimators distributional analysis reports: quantiles by the inverse cumulative distribution function, frequency-weighted variance, the Gini coefficient from the Lorenz curve, top and bottom shares with proportional handling of records tied at the cutoff, and the Foster-Greer-Thorbecke family of poverty measures [@foster1984fgt].
 
@@ -40,7 +40,7 @@ The first is that the estimators themselves require care. A weighted median is n
 
 The second problem is that weights must stay aligned with the data through every transformation before the estimator runs. Building an analysis dataset means merging administrative variables onto survey records, filtering to a subpopulation, grouping by geography, reindexing after a sort. Each of these is an opportunity for the weight vector to fall out of alignment with the rows it describes, and nothing raises when it does: the pipeline completes and returns a number that is wrong by an amount nobody can see. In our experience maintaining microsimulation datasets, this is a more frequent source of error than the estimator formulas, and a harder one to detect, because the result remains plausible.
 
-`microdf` addresses both. It makes the estimator decisions once, documents them, and tests them: the quantile estimator follows the inverse CDF definition, matching the default behaviour of R's `survey::svyquantile` [@lumley2004survey; @lumley2010complex] so that results can be checked against an established implementation; the variance treats weights as frequencies, so that with integer weights it agrees with `numpy` on the replicated sample; the top-share estimator splits the record at the cutoff proportionally, so a constant distribution returns the share it should. And it keeps the weight attached to the data across the transformations between loading a file and computing a statistic, which is what makes those estimator guarantees worth anything in a real pipeline.
+`microdf` addresses both. It makes the estimator decisions once, documents them, and tests them: the quantile estimator follows the inverse CDF definition, matching the default behaviour of R's `survey::svyquantile` [@lumley2004survey; @lumley2010complex] so that results can be checked against an established implementation; the variance treats weights as frequencies, so that with integer weights it agrees with `numpy` on the replicated sample; the top-share estimator splits the record at the cutoff proportionally, so a constant distribution returns the share it should. And it carries the weight with the data across the transformations between loading a file and computing a statistic, which is what makes those estimator guarantees worth anything in a real pipeline.
 
 # State of the Field
 
@@ -62,7 +62,9 @@ R's `survey` package is the reference implementation for design-based survey inf
 
 `MicroSeries` extends `pandas.Series` with a weight vector of equal length; `MicroDataFrame` extends `pandas.DataFrame`, holds a weight column, and exposes each column as a `MicroSeries`.
 
-Pandas methods are classified into three groups, and the classification is what makes the guarantee hold. *Scalar* methods return a single weighted statistic and are overridden to use the weights. *Vector* methods return a series aligned to the input and carry the weights through to the result. *Agnostic* methods do not depend on weighting and are inherited unchanged. Methods that would need weighting but do not yet implement it, currently `cov` and `corr`, fall through to pandas and emit a warning rather than returning an unweighted number silently. Shape-changing operations — `merge`, `groupby`, `reset_index`, `drop`, `astype` — are overridden so the weight vector follows the rows it describes.
+Pandas methods are classified into three groups. *Scalar* methods return a single weighted statistic and are overridden to use the weights. *Vector* methods return a series aligned to the input and carry the weights through to the result. *Agnostic* methods do not depend on weighting and are inherited unchanged. Methods that would need weighting but do not yet implement it, currently `cov` and `corr`, fall through to pandas and emit a warning rather than returning an unweighted number silently. Shape-changing operations — selection, `merge`, `groupby`, `reset_index`, `drop`, `astype` — are overridden so the weight vector follows the rows it describes.
+
+The classification is explicit rather than inherited, which is a deliberate trade: a method must be considered before it is supported, and one that has not been is not silently assumed safe. Extending the set of preserved operations is the package's main axis of ongoing work.
 
 ```python
 import microdf as mdf
