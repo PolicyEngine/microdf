@@ -9,6 +9,36 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
+def _weighted_centered_vector(
+    values: np.ndarray, weights: np.ndarray
+) -> tuple[np.ndarray, int]:
+    """Return scaled sqrt-weighted deviations and their power-of-two
+    exponent."""
+    # Center relative to a maximum-weight observation: shifting by a low-weight
+    # extreme could erase differences among the influential observations.
+    # A relative mean also preserves nearby values at a large common offset.
+    reference = values[np.argmax(weights)]
+    with np.errstate(over="ignore"):
+        shifted = values - reference
+    exponent = 0
+    if np.isinf(shifted).any():
+        # Opposite finite extremes can overflow their difference. Halving is
+        # exact for those values; restore that factor in the final exponent.
+        shifted = values / 2 - reference / 2
+        exponent = 1
+    magnitude = np.max(np.abs(shifted))
+    if magnitude == 0:
+        return shifted, 0
+    _, shift = np.frexp(magnitude)
+    shifted = np.ldexp(shifted, -shift)
+    shifted -= np.average(shifted, weights=weights)
+    # Weight each vector before taking products, then scale again so squared
+    # deviations never accumulate raw frequencies at the original value scale.
+    shifted *= np.sqrt(weights)
+    _, weight_shift = np.frexp(np.max(np.abs(shifted)))
+    return np.ldexp(shifted, -weight_shift), exponent + int(shift) + int(weight_shift)
+
+
 def _weighted_top_share(
     values: np.ndarray, weights: np.ndarray, top_x_pct: float
 ) -> float:
@@ -378,9 +408,19 @@ class MicroSeries(pd.Series):
         if pair is None:
             return np.nan
         x, y, weights, denominator = pair
-        x = x - np.average(x, weights=weights)
-        y = y - np.average(y, weights=weights)
-        return float(np.sum(weights * x * y) / denominator)
+        if not np.isfinite(x).all() or not np.isfinite(y).all():
+            return np.nan
+        x, x_exponent = _weighted_centered_vector(x, weights)
+        y, y_exponent = _weighted_centered_vector(y, weights)
+        # Combine exponents only after dividing out sum(weights) - ddof.
+        # Neither the original squared scale nor raw weighted sum need fit.
+        denominator, denominator_exponent = np.frexp(denominator)
+        return float(
+            np.ldexp(
+                np.sum(x * y) / denominator,
+                x_exponent + y_exponent - int(denominator_exponent),
+            )
+        )
 
     def corr(
         self,
@@ -415,17 +455,19 @@ class MicroSeries(pd.Series):
         if pair is None:
             return np.nan
         x, y, weights, _ = pair
+        if not np.isfinite(x).all() or not np.isfinite(y).all():
+            return np.nan
         # A weighted mean can round away from identical decimal inputs.
         # Check the retained observations exactly before subtracting it.
         if (x == x[0]).all() or (y == y[0]).all():
             return np.nan
-        x = x - np.average(x, weights=weights)
-        y = y - np.average(y, weights=weights)
-        x_ss = np.sum(weights * x * x)
-        y_ss = np.sum(weights * y * y)
+        x, _ = _weighted_centered_vector(x, weights)
+        y, _ = _weighted_centered_vector(y, weights)
+        x_ss = np.sum(x * x)
+        y_ss = np.sum(y * y)
         if x_ss == 0 or y_ss == 0:
             return np.nan
-        result = np.sum(weights * x * y) / (np.sqrt(x_ss) * np.sqrt(y_ss))
+        result = np.sum(x * y) / (np.sqrt(x_ss) * np.sqrt(y_ss))
         return float(np.clip(result, -1.0, 1.0))
 
     def quantile(self, q: np.array, skipna: bool = True) -> pd.Series:

@@ -1,4 +1,7 @@
 import warnings
+from decimal import Decimal, localcontext
+from fractions import Fraction
+from itertools import permutations
 
 import numpy as np
 import pandas as pd
@@ -169,3 +172,98 @@ def test_corr_does_not_treat_nearby_distinct_values_as_constant():
     left = mdf.MicroSeries(x, weights=[1, 2])
     assert np.isfinite(left.corr(pd.Series([0, 1])))
     assert np.isfinite(mdf.MicroSeries([0, 1], weights=[1, 2]).corr(pd.Series(x)))
+
+
+def exact_weighted_moments(x, y, weights, ddof=1):
+    """Compute moments of the actual input floats with exact rational
+    arithmetic."""
+    x, y, weights = [
+        [Fraction(float(value)) for value in values] for values in (x, y, weights)
+    ]
+    total = sum(weights)
+    xmean = sum(w * value for w, value in zip(weights, x)) / total
+    ymean = sum(w * value for w, value in zip(weights, y)) / total
+    xy = sum(w * (a - xmean) * (b - ymean) for a, b, w in zip(x, y, weights))
+    xx = sum(w * (value - xmean) ** 2 for value, w in zip(x, weights))
+    yy = sum(w * (value - ymean) ** 2 for value, w in zip(y, weights))
+    with localcontext() as context:
+        context.prec = 100
+        product = xx * yy
+        correlation = (Decimal(xy.numerator) / Decimal(xy.denominator)) / (
+            Decimal(product.numerator) / Decimal(product.denominator)
+        ).sqrt()
+    return float(xy / (total - ddof)), float(correlation)
+
+
+@pytest.mark.parametrize("ddof", [0, 1, 2])
+@pytest.mark.parametrize("swap", [False, True])
+def test_cov_corr_preserve_small_differences_at_large_offsets(ddof, swap):
+    # Two distinct points are perfectly linear even two float steps apart.
+    x = np.array([1e12 - 2**-13, 1e12 + 2**-13])
+    y = np.array([0.0, 1.0])
+    if swap:
+        x, y = y, x
+    weights = [1, 2]
+    expected = exact_weighted_moments(x, y, weights, ddof)
+    assert expected[1] == 1.0
+    for shifted_x, shifted_y in [(x, y), (x - x[0], y - y[0])]:
+        left = mdf.MicroSeries(shifted_x, weights=weights)
+        right = pd.Series(shifted_y)
+        np.testing.assert_allclose(
+            [left.cov(right, ddof=ddof), left.corr(right, ddof=ddof)],
+            expected,
+            rtol=2e-15,
+            atol=0,
+        )
+
+
+@pytest.mark.parametrize("frequency", [1, 1_000_000])
+@pytest.mark.parametrize("ddof", [0, 1, 2])
+def test_cov_corr_large_finite_values_do_not_overflow_raw_frequencies(frequency, ddof):
+    x = np.array([1.0, 2.0, 3.0]) * 1e153
+    weights = [frequency] * 3
+    expected = exact_weighted_moments(x, x, weights, ddof)
+    assert np.isfinite(expected).all()
+    assert expected[1] == 1.0
+    left = mdf.MicroSeries(x, weights=weights)
+    with np.errstate(over="raise", invalid="raise"):
+        actual = [left.cov(pd.Series(x), ddof=ddof), left.corr(pd.Series(x), ddof=ddof)]
+    np.testing.assert_allclose(actual, expected, rtol=2e-15, atol=0)
+
+
+@pytest.mark.parametrize("frequency", [0.5, 1, 1_000_000])
+@pytest.mark.parametrize("ddof", [0, 1, 2])
+@pytest.mark.parametrize("scales", [(1.0, 1.0), (1e153, -1e153), (1e200, 1e-200)])
+def test_cov_corr_preserve_frequency_correction_across_value_scales(
+    frequency, ddof, scales
+):
+    x = np.array([1.0, 4.0, 8.0]) * scales[0]
+    y = np.array([5.0, 2.0, 9.0]) * scales[1]
+    weights = np.array([1, 3, 2]) * frequency
+    expected = exact_weighted_moments(x, y, weights, ddof)
+    left = mdf.MicroSeries(x, weights=weights)
+    with np.errstate(over="raise", invalid="raise"):
+        actual = [left.cov(pd.Series(y), ddof=ddof), left.corr(pd.Series(y), ddof=ddof)]
+    np.testing.assert_allclose(actual, expected, rtol=3e-15, atol=0)
+
+
+@pytest.mark.parametrize("huge", [1e16, 1e20])
+@pytest.mark.parametrize("order", list(permutations(range(3))))
+def test_cov_corr_low_weight_extreme_does_not_make_result_depend_on_row_order(
+    huge, order
+):
+    # The large observation contributes to covariance, but using it as the
+    # centering origin must not erase the difference between 1 and 2.
+    x = np.array([huge, 1.0, 2.0])
+    y = np.array([0.0, 1.0, 2.0])
+    weights = np.array([1 / huge, 1.0, 1.0])
+    expected = exact_weighted_moments(x, y, weights, ddof=0)
+    order = list(order)
+    left = mdf.MicroSeries(x[order], weights=weights[order])
+    right = pd.Series(y[order])
+    np.testing.assert_allclose(
+        [left.cov(right, ddof=0), left.corr(right, ddof=0)],
+        expected,
+        rtol=3e-15,
+        atol=0,
+    )
