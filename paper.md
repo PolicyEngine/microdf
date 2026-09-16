@@ -15,6 +15,9 @@ authors:
   - name: Max Ghenis
     orcid: 0000-0002-1335-8277
     affiliation: '1'
+  - name: Nikhil Woodruff
+    orcid: 0009-0009-5004-4910
+    affiliation: '1'
   - name: María Juaristi
     affiliation: '1'
 affiliations:
@@ -95,7 +98,7 @@ The package's role is that of infrastructure: it is not the visible output of an
 
 Arnold Ventures [@arnold_ventures], NEO Philanthropy [@neo_philanthropy], the Gerald Huff Fund for Humanity, and the National Science Foundation (NSF POSE Phase I, Award 2518372) [@nsf_pose] funded this work in the US. The Nuffield Foundation has funded the UK work since September 2024 [@nuffield2024grant]. These funders had no involvement in the design, development, or content of this software or paper. All authors are employed by PolicyEngine and may benefit reputationally from the software's adoption; this relationship is disclosed here as a potential conflict of interest.
 
-We thank all contributors to `microdf`, and Thomas Lumley, whose `survey` package provides the reference against which several of the estimators here are checked.
+We thank Anthony Volk and Jason DeBacker for their contributions to the package, and all other contributors to `microdf`. We also thank Thomas Lumley, whose `survey` package provides the reference against which several of the estimators here are checked.
 
 # AI Usage Disclosure
 
