@@ -238,3 +238,118 @@ def test_series_reset_index_preserves_dataframe_and_invalid_inplace_behavior():
     assert original.weights.iloc[0] == 2
     with pytest.raises(TypeError, match="inplace"):
         original.reset_index(inplace=True)
+
+
+@pytest.mark.parametrize(
+    "select,positions",
+    [
+        (lambda frame: frame.iloc[1:], [1, 2]),
+        (lambda frame: frame[["income"]], [0, 1, 2]),
+        (lambda frame: frame.iloc[:, :1], [0, 1, 2]),
+        (lambda frame: frame.loc[:, ["income"]], [0, 1, 2]),
+        (lambda frame: frame.iloc[[2, 0, 2]], [2, 0, 2]),
+        (lambda frame: frame.reindex(columns=["income"]), [0, 1, 2]),
+    ],
+    ids=["row-slice", "columns", "iloc-columns", "loc-columns", "repeated", "reindex"],
+)
+def test_selected_dataframe_weights_are_independently_mutable(select, positions):
+    source = mdf.MicroDataFrame(
+        {"income": [10.0, 20.0, 30.0], "other": [1, 2, 3]},
+        index=[7, 7, 3],
+        weights=[2, 3, 5],
+    )
+    selected = select(source)
+    expected_weights = np.array([2.0, 3.0, 5.0])[positions]
+    np.testing.assert_array_equal(selected.weights, expected_weights)
+    assert selected.weights.index.equals(selected.index)
+
+    selected.weights.iloc[0] = 100
+    expected_weights[0] = 100
+    np.testing.assert_array_equal(source.weights, [2, 3, 5])
+    assert source.income.sum() == 230  # 10 * 2 + 20 * 3 + 30 * 5.
+    assert selected.income.sum() == np.dot(
+        np.array([10.0, 20.0, 30.0])[positions], expected_weights
+    )
+
+    source.weights.iloc[-1] = 200
+    np.testing.assert_array_equal(selected.weights, expected_weights)
+    assert selected.income.sum() == np.dot(
+        np.array([10.0, 20.0, 30.0])[positions], expected_weights
+    )
+
+
+@pytest.mark.parametrize("series_first", [False, True])
+@pytest.mark.parametrize("options", [{}, {"ignore_index": True}, {"keys": ["a", "b"]}])
+@pytest.mark.parametrize("series_name", ["income", None])
+def test_concat_mixed_dimensions_preserves_series_weights(
+    series_first, options, series_name
+):
+    frame = mdf.MicroDataFrame({"income": [10.0, 20.0]}, index=[7, 7], weights=[2, 3])
+    series = mdf.MicroSeries(
+        [30.0, 40.0], index=[7, 3], name=series_name, weights=[5, 7]
+    )
+    parts = [series, frame] if series_first else [frame, series]
+    plain_parts = [
+        pd.Series(part) if part.ndim == 1 else pd.DataFrame(part) for part in parts
+    ]
+    expected = pd.concat(plain_parts, **options)
+    expected_weights = [5, 7, 2, 3] if series_first else [2, 3, 5, 7]
+
+    result = pd.concat(parts, **options)
+    assert isinstance(result, mdf.MicroDataFrame)
+    pd.testing.assert_frame_equal(pd.DataFrame(result), expected)
+    np.testing.assert_array_equal(result.weights, expected_weights)
+    assert result.weights.index.equals(result.index)
+    for column in expected:
+        assert result[column].sum() == np.nansum(
+            expected[column].to_numpy() * expected_weights
+        )
+
+    result.weights.iloc[0] = 100
+    np.testing.assert_array_equal(frame.weights, [2, 3])
+    np.testing.assert_array_equal(series.weights, [5, 7])
+    series.weights.iloc[-1] = 200
+    series_last_position = 1 if series_first else 3
+    assert result.weights.iloc[series_last_position] == 7
+
+
+@pytest.mark.parametrize("series_first", [False, True])
+@pytest.mark.parametrize("conflicting", [False, True])
+def test_concat_mixed_dimensions_columns_aligns_or_rejects_weights(
+    series_first, conflicting
+):
+    frame = mdf.MicroDataFrame({"income": [10.0, 20.0]}, index=[7, 3], weights=[2, 5])
+    series = mdf.MicroSeries(
+        [30.0, 40.0],
+        index=[3, 7],
+        name="other",
+        weights=[50, 2] if conflicting else [5, 2],
+    )
+    parts = [series, frame] if series_first else [frame, series]
+    if conflicting:
+        with pytest.raises(ValueError, match="weights"):
+            pd.concat(parts, axis=1)
+    else:
+        result = pd.concat(parts, axis=1)
+        np.testing.assert_array_equal(
+            result.weights, [5, 2] if series_first else [2, 5]
+        )
+        assert result.income.sum() == 120  # 10 * 2 + 20 * 5.
+        assert result.other.sum() == 230  # 30 * 5 + 40 * 2.
+
+
+@pytest.mark.parametrize("mapping", [False, True])
+def test_series_to_dataframe_weights_follow_aligned_rows_and_explicit_override(mapping):
+    series = mdf.MicroSeries([10.0, 20.0], index=[7, 3], name="income", weights=[2, 5])
+    data = {"income": series} if mapping else series
+    result = mdf.MicroDataFrame(data, index=[3, 7])
+    np.testing.assert_array_equal(result.weights, [5, 2])
+    assert result.income.sum() == 120  # 20 * 5 + 10 * 2.
+    result.weights.iloc[0] = 100
+    np.testing.assert_array_equal(series.weights, [2, 5])
+
+    explicit = mdf.MicroDataFrame(data, index=[3, 7], weights=[11, 13])
+    np.testing.assert_array_equal(explicit.weights, [11, 13])
+    assert explicit.income.sum() == 350  # 20 * 11 + 10 * 13.
+    with pytest.raises(ValueError, match="weights"):
+        mdf.MicroDataFrame(data, index=[3, 99])

@@ -28,7 +28,10 @@ combined = pd.concat([filled.iloc[:2], filled.iloc[2:]], ignore_index=True)
 assert combined.weights.tolist() == [2, 5, 11]
 ```
 
-Row concatenation combines the inputs' weights. Column concatenation aligns
+Row concatenation combines the inputs' weights, including a mix of
+`MicroDataFrame` and `MicroSeries` inputs in either order. Constructing a
+`MicroDataFrame` from a `MicroSeries` or a one-column mapping containing one
+also retains its weights unless explicit weights are supplied. Column concatenation aligns
 weights to the output rows and requires matching weights wherever inputs
 share a row. Conflicting weights raise `ValueError`. New rows introduced by
 `reindex`, an ambiguous row alignment, and DataFrame transposition also raise

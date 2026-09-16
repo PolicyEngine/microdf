@@ -132,7 +132,7 @@ class WeightPropagationMixin:
         )
 
     def _weighted_result(self, plain, weights):
-        result = type(self)(plain, weights=weights)
+        result = type(self)(plain, weights=weight_series(weights, plain.index))
         if self.ndim == 2:
             result.weights_col = self.__dict__.get("weights_col")
         return result

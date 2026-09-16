@@ -8,7 +8,12 @@ import numpy as np
 import pandas as pd
 
 from microdf.microseries import MicroSeries, MicroSeriesGroupBy
-from microdf._weights import WeightPropagationMixin, finalize_weights, weight_series
+from microdf._weights import (
+    WeightPropagationMixin,
+    aligned_weights,
+    finalize_weights,
+    weight_series,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +36,14 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         :type weights: np.array
         """
         super().__init__(*args, **kwargs)
+        # pandas normalizes mixed-dimensional concat inputs through this
+        # constructor, either as a Series or a one-column mapping. Preserve
+        # that Series' row weights before concat loses the original input.
+        weight_source = args[0] if args else kwargs.get("data")
+        if isinstance(weight_source, dict) and len(weight_source) == 1:
+            weight_source = next(iter(weight_source.values()))
+        if weights is None and isinstance(weight_source, MicroSeries):
+            weights = aligned_weights(weight_source, self.index)
         self.weights = weight_series(np.ones(len(self)), self.index)
         self.weights_col = None
         self.set_weights(weights)
