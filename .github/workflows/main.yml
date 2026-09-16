@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/main.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Default branch checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          version: latest
+      - name: Install dependencies
+        run: uv pip install -e ".[dev]" --system
+      - name: Lint
+        run: make lint
+      - name: Run tests
+        run: make test
+
+  deploy-docs:
+    name: Build and deploy documentation
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.repository == 'PolicyEngine/microdf'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          version: latest
+      - name: Install Python dependencies
+        run: uv pip install -e ".[dev]" --system
+      - name: Install MyST
+        run: npm install -g mystmd
+      - name: Build documentation with MyST
+        working-directory: docs
+        env:
+          BASE_URL: /microdf
+        run: myst build --html
+      - name: Check documentation output
+        run: test -s docs/_build/html/index.html
+      - name: Deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          folder: docs/_build/html
