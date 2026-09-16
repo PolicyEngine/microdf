@@ -1,0 +1,1 @@
+Preserve independent, aligned weights through pandas sorting, sampling, row selection, index resetting, fillna, and concatenation of Micro objects, including duplicate indexes. Reject conflicting or ambiguous weight propagation, and document the limitation of mixed pandas/Micro concatenation.

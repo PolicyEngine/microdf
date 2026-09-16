@@ -6,6 +6,8 @@ from typing import Callable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
+from microdf._weights import WeightPropagationMixin, finalize_weights, weight_series
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +51,7 @@ def _weighted_top_share(
     return top_sum / total_sum
 
 
-class MicroSeries(pd.Series):
+class MicroSeries(WeightPropagationMixin, pd.Series):
     # Declare ``weights`` as pandas metadata. pandas includes
     # _metadata attributes in the pickle state, so weights now survive
     # pickling, to_pickle/read_pickle and copy.deepcopy instead of
@@ -68,15 +70,26 @@ class MicroSeries(pd.Series):
         super().__init__(*args, **kwargs)
         self.set_weights(weights)
 
-    def __finalize__(self, other, method=None, **kwargs) -> "MicroSeries":
-        """Retain copied weights when pandas finalizes a renamed result."""
-        copied_weights = getattr(self, "weights", None) if method == "rename" else None
+    @property
+    def _constructor(self):
+        return MicroSeries
+
+    @property
+    def _constructor_expanddim(self):
+        from microdf.microdataframe import MicroDataFrame
+
+        return MicroDataFrame
+
+    def __finalize__(self, other, method=None, **kwargs):
+        previous = self.__dict__.get("weights")
         super().__finalize__(other, method=method, **kwargs)
-        if copied_weights is not None:
-            # rename already called copy(); metadata propagation must not
-            # replace those weights with the source's mutable Series.
-            self.weights = copied_weights
-        return self
+        return finalize_weights(self, other, method, previous)
+
+    def __setattr__(self, name, value):
+        weights = self.__dict__.get("weights") if name == "index" else None
+        super().__setattr__(name, value)
+        if weights is not None and len(weights) == len(self.index):
+            self.weights = weight_series(weights, self.index)
 
     @property
     def _values(self):
@@ -143,12 +156,7 @@ class MicroSeries(pd.Series):
         :type weights: np.array.
         """
         if weights is None:
-            if len(self) > 0:
-                self.weights = pd.Series(
-                    np.ones_like(self._values),
-                    index=self.index,
-                    dtype=float,
-                )
+            self.weights = weight_series(np.ones(len(self)), self.index)
         else:
             if len(weights) != len(self):
                 raise ValueError(
@@ -166,7 +174,7 @@ class MicroSeries(pd.Series):
             # its index first so we position-align rather than label-align.
             if isinstance(weights, pd.Series):
                 weights = weights.values
-            self.weights = pd.Series(np.asarray(weights), index=self.index, dtype=float)
+            self.weights = weight_series(weights, self.index)
 
     def nullify_weights(self) -> None:
         """Set all weights to 1, effectively making the Series unweighted.
@@ -654,16 +662,14 @@ class MicroSeries(pd.Series):
         )
 
     def groupby(self, *args, **kwargs) -> "MicroSeriesGroupBy":
-        gb = super().groupby(*args, **kwargs)
+        gb = pd.Series(self, copy=False).groupby(*args, **kwargs)
         gb.__class__ = MicroSeriesGroupBy
         gb._init()
         gb.weights = pd.Series(self.weights).groupby(*args, **kwargs)
         return gb
 
     def copy(self, deep: Optional[bool] = True):
-        res = super().copy(deep)
-        res = MicroSeries(res, weights=self.weights.copy(deep))
-        return res
+        return super().copy(deep)
 
     def clip(
         self,
@@ -695,14 +701,21 @@ class MicroSeries(pd.Series):
         equal_weights = self.weights.equals(other.weights)
         return equal_values and equal_weights
 
-    def __getitem__(
-        self, key: Union[str, int, slice, List, np.ndarray]
-    ) -> Union["MicroSeries", pd.Series]:
-        result = super().__getitem__(key)
+    def __getitem__(self, key):
+        if callable(key):
+            key = key(self)
+        result = pd.Series(self, copy=False).__getitem__(key)
         if isinstance(result, pd.Series):
-            weights = self.weights.__getitem__(key)
-            return MicroSeries(result, weights=weights)
+            positions = pd.Series(np.arange(len(self)), index=self.index).__getitem__(
+                key
+            )
+            return MicroSeries(result, weights=self.weights.iloc[np.asarray(positions)])
         return result
+
+    def repeat(self, repeats, axis=None):
+        # Use pandas to validate the repeat counts and axis argument.
+        positions = pd.Series(np.arange(len(self))).repeat(repeats, axis=axis)
+        return self.take(np.asarray(positions))
 
     def __getattr__(self, name: str) -> "MicroSeries":
         return MicroSeries(super().__getattr__(name), weights=self.weights)

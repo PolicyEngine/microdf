@@ -8,93 +8,12 @@ import numpy as np
 import pandas as pd
 
 from microdf.microseries import MicroSeries, MicroSeriesGroupBy
+from microdf._weights import WeightPropagationMixin, finalize_weights, weight_series
 
 logger = logging.getLogger(__name__)
 
 
-class _MicroLocIndexer:
-    """Custom loc indexer that returns MicroDataFrame with proper weights."""
-
-    def __init__(self, mdf: "MicroDataFrame"):
-        self._mdf = mdf
-        # Get the parent's loc indexer
-        self._parent_loc = pd.DataFrame.loc.fget(mdf)
-
-    def __getitem__(self, key):
-        # Use the parent DataFrame's loc indexer
-        result = self._parent_loc[key]
-
-        if isinstance(result, pd.DataFrame):
-            # Get the filtered weights based on the result's index
-            new_weights = self._mdf.weights.reindex(result.index)
-            return MicroDataFrame(result, weights=new_weights)
-        elif isinstance(result, pd.Series):
-            # Single row or column selected
-            if result.name in self._mdf.columns:
-                # Column was selected - return MicroSeries with all weights
-                return MicroSeries(result, weights=self._mdf.weights)
-            else:
-                # Row was selected - return as-is (scalar values for each col)
-                return result
-        else:
-            # Scalar value
-            return result
-
-    def __setitem__(self, key, value):
-        self._parent_loc[key] = value
-        self._mdf._link_all_weights()
-
-    def __getattr__(self, name):
-        """Delegate unknown attributes to the parent loc indexer."""
-        return getattr(self._parent_loc, name)
-
-
-class _MicroILocIndexer:
-    """Custom iloc indexer that returns MicroDataFrame with proper weights."""
-
-    def __init__(self, mdf: "MicroDataFrame"):
-        self._mdf = mdf
-        # Get the parent's iloc indexer
-        self._parent_iloc = pd.DataFrame.iloc.fget(mdf)
-
-    def __getitem__(self, key):
-        # Use the parent DataFrame's iloc indexer
-        result = self._parent_iloc[key]
-
-        if isinstance(result, pd.DataFrame):
-            # Get the filtered weights based on the result's index
-            new_weights = self._mdf.weights.iloc[
-                self._mdf.index.get_indexer(result.index)
-            ]
-            new_weights = pd.Series(new_weights.values, index=result.index)
-            return MicroDataFrame(result, weights=new_weights)
-        elif isinstance(result, pd.Series):
-            # Single row or column selected
-            if isinstance(key, tuple) and len(key) == 2:
-                # df.iloc[:, col_idx] - column selection
-                row_key = key[0]
-                if isinstance(row_key, slice) and row_key == slice(None):
-                    # All rows selected for a column
-                    return MicroSeries(result, weights=self._mdf.weights)
-            # Check if this is a column (result index matches mdf index)
-            if result.index.equals(self._mdf.index):
-                return MicroSeries(result, weights=self._mdf.weights)
-            # Row selection - return as-is
-            return result
-        else:
-            # Scalar value
-            return result
-
-    def __setitem__(self, key, value):
-        self._parent_iloc[key] = value
-        self._mdf._link_all_weights()
-
-    def __getattr__(self, name):
-        """Delegate unknown attributes to the parent iloc indexer."""
-        return getattr(self._parent_iloc, name)
-
-
-class MicroDataFrame(pd.DataFrame):
+class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
     # Declare weight state as pandas metadata. pandas includes
     # _metadata attributes in the pickle state, so weights now survive
     # pickling, to_pickle/read_pickle and copy.deepcopy instead of
@@ -112,20 +31,35 @@ class MicroDataFrame(pd.DataFrame):
         :type weights: np.array
         """
         super().__init__(*args, **kwargs)
-        self.weights = None
+        self.weights = weight_series(np.ones(len(self)), self.index)
+        self.weights_col = None
         self.set_weights(weights)
         self._link_all_weights()
         self.override_df_functions()
 
-    def __finalize__(self, other, method=None, **kwargs) -> "MicroDataFrame":
-        """Retain copied weights when pandas finalizes a renamed result."""
-        copied_weights = getattr(self, "weights", None) if method == "rename" else None
+    @property
+    def _constructor(self):
+        return MicroDataFrame
+
+    # A row or a column-summary Series has no per-observation weights.
+    # _ixs wraps column selections using their unambiguous row provenance.
+    _constructor_sliced = pd.Series
+
+    def _ixs(self, i, axis=0):
+        result = pd.DataFrame(self, copy=False)._ixs(i, axis=axis)
+        if axis == 1:
+            return MicroSeries(result, weights=self.weights)
+        return result
+
+    def _get_item_cache(self, item):
+        # Weight arrays are independently mutable; cached column wrappers would
+        # retain stale copies after an in-place edit to frame.weights.
+        return self._ixs(self.columns.get_loc(item), axis=1)
+
+    def __finalize__(self, other, method=None, **kwargs):
+        previous = self.__dict__.get("weights")
         super().__finalize__(other, method=method, **kwargs)
-        if copied_weights is not None:
-            # rename already called copy(); metadata propagation must not
-            # replace those weights with the source's mutable Series.
-            self.weights = copied_weights
-        return self
+        return finalize_weights(self, other, method, previous)
 
     def __setstate__(self, state) -> None:
         """Restore a pickled MicroDataFrame.
@@ -140,23 +74,6 @@ class MicroDataFrame(pd.DataFrame):
         if getattr(self, "weights", None) is None:
             self._link_all_weights()
         self.override_df_functions()
-
-    @property
-    def loc(self) -> _MicroLocIndexer:
-        """Label-based indexer that preserves MicroDataFrame type and weights.
-
-        :return: Custom loc indexer for MicroDataFrame
-        """
-        return _MicroLocIndexer(self)
-
-    @property
-    def iloc(self) -> _MicroILocIndexer:
-        """Integer-based indexer that preserves MicroDataFrame type and
-        weights.
-
-        :return: Custom iloc indexer for MicroDataFrame
-        """
-        return _MicroILocIndexer(self)
 
     def override_df_functions(self) -> None:
         """Override DataFrame functions to work with weighted operations."""
@@ -331,7 +248,7 @@ class MicroDataFrame(pd.DataFrame):
         pass
 
     def _link_all_weights(self) -> None:
-        if self.weights is None:
+        if self.weights is None or len(self.weights) == 0:
             if len(self) > 0:
                 self.set_weights(np.ones((len(self))))
         # In pandas 3.0+, columns are wrapped as MicroSeries on access via
@@ -425,33 +342,19 @@ class MicroDataFrame(pd.DataFrame):
         # that treats it as a Series (equals(), reindex() in __getitem__).
         self.set_weights(np.ones(len(self)))
 
-    def __getitem__(
-        self, key: Union[str, List]
-    ) -> Union[MicroSeries, "MicroDataFrame"]:
-        # Let pandas handle the initial slicing
-        result = super().__getitem__(key)
-
-        # If the result is a DataFrame, re-synchronize the weights
-        if isinstance(result, pd.DataFrame):
-            new_weights = self.weights.reindex(result.index)
-            return MicroDataFrame(result, weights=new_weights)
-
-        # If the result is a Series (single column), wrap as MicroSeries
-        if isinstance(result, pd.Series):
-            return MicroSeries(result, weights=self.weights)
-
-        # Otherwise, the result is a scalar, so just return it
-        return result
+    def __getitem__(self, key):
+        return super().__getitem__(key)
 
     def catch_series_relapse(self) -> None:
         # In pandas 3.0+, we don't need to track series class changes since
         # __getitem__ always wraps columns as MicroSeries on access.
         pass
 
-    def __setattr__(self, key, value) -> None:
+    def __setattr__(self, key, value):
+        weights = self.__dict__.get("weights") if key == "index" else None
         super().__setattr__(key, value)
-        # No need to call catch_series_relapse in pandas 3.0+ since we wrap
-        # on access rather than store MicroSeries internally.
+        if weights is not None and len(weights) == len(self.index):
+            self.weights = weight_series(weights, self.index)
 
     def reset_index(
         self,
@@ -520,13 +423,7 @@ class MicroDataFrame(pd.DataFrame):
             return out
 
     def copy(self, deep: Optional[bool] = True) -> "MicroDataFrame":
-        res = super().copy(deep)
-        # super().copy() corrupts self's column types to plain Series.
-        # Restore them in O(N) instead of O(N²) by calling
-        # _link_all_weights once rather than per-column __setitem__.
-        self._link_all_weights()
-        res = MicroDataFrame(res, weights=self.weights.copy(deep))
-        return res
+        return super().copy(deep)
 
     def drop(
         self,
@@ -558,55 +455,15 @@ class MicroDataFrame(pd.DataFrame):
             dropped.
         :return: MicroDataFrame or None if inplace=True.
         """
-        row_drop = axis in (0, "index") or index is not None
-        if inplace:
-            # Snapshot the pre-drop weights keyed by the pre-drop index so
-            # we can reindex to the surviving rows after the drop.
-            pre_drop_weights = pd.Series(self.weights.values, index=self.index.copy())
-            # Perform in-place drop on the parent DataFrame
-            super().drop(
-                labels=labels,
-                axis=axis,
-                index=index,
-                columns=columns,
-                level=level,
-                inplace=True,
-                errors=errors,
-            )
-            if row_drop:
-                surviving = pre_drop_weights.reindex(self.index)
-                self.weights = pd.Series(
-                    surviving.values, index=self.index, dtype=float
-                )
-            else:
-                self.weights = pd.Series(
-                    pre_drop_weights.values, index=self.index, dtype=float
-                )
-            self._link_all_weights()
-            return None
-        else:
-            res = super().drop(
-                labels=labels,
-                axis=axis,
-                index=index,
-                columns=columns,
-                level=level,
-                inplace=False,
-                errors=errors,
-            )
-            if row_drop:
-                # Row drop: keep only the weights for surviving rows,
-                # in the order of the resulting DataFrame.
-                pre_drop_weights = pd.Series(self.weights.values, index=self.index)
-                new_weights = pre_drop_weights.reindex(res.index).values
-            else:
-                new_weights = self.weights.values
-            out = MicroDataFrame(res, weights=new_weights)
-            # Guard against the set_weights path building weights with a
-            # default RangeIndex, which would misalign against res.index
-            # and silently zero weighted aggregations.
-            out.weights = pd.Series(new_weights, index=out.index, dtype=float)
-            return out
+        return super().drop(
+            labels=labels,
+            axis=axis,
+            index=index,
+            columns=columns,
+            level=level,
+            inplace=inplace,
+            errors=errors,
+        )
 
     def merge(
         self,
