@@ -1,1 +1,0 @@
-Restore tests and lint on pushes to main and build the deployed documentation with MyST instead of the retired Jupyter Book command. Include and validate the `.nojekyll` marker so GitHub Pages can publish the prebuilt site.

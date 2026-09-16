@@ -1,3 +1,10 @@
+## [1.3.9] - 2026-09-16
+
+### Fixed
+
+- Restore tests and lint on pushes to main and build the deployed documentation with MyST instead of the retired Jupyter Book command. Include and validate the `.nojekyll` marker so GitHub Pages can publish the prebuilt site.
+
+
 ## [1.3.8] - 2026-09-15
 
 ### Fixed
