@@ -744,28 +744,6 @@ def test_std_var_are_weighted() -> None:
     )
 
 
-def test_cov_corr_warn_when_fallthrough() -> None:
-    """Regression: cov/corr silently returned unweighted pandas values.
-
-    They still fall through to pandas (a weighted impl is a separate issue) but
-    now emit a UserWarning so callers aren't misled.
-    """
-    s1 = mdf.MicroSeries([1, 2, 3], weights=[1, 1, 1])
-    s2 = mdf.MicroSeries([2, 4, 6], weights=[1, 1, 1])
-
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        _ = s1.cov(s2)
-        msgs = [str(x.message) for x in w if issubclass(x.category, UserWarning)]
-        assert any("unweighted" in m.lower() for m in msgs)
-
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        _ = s1.corr(s2)
-        msgs = [str(x.message) for x in w if issubclass(x.category, UserWarning)]
-        assert any("unweighted" in m.lower() for m in msgs)
-
-
 def test_count_skips_nan_by_default() -> None:
     """Regression: ``count()`` included NaN-row weight, contrary to pandas.
 

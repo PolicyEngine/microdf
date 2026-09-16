@@ -293,39 +293,140 @@ class MicroSeries(pd.Series):
         v = self._weighted_variance(ddof=ddof, skipna=skipna)
         return float(np.sqrt(v)) if np.isfinite(v) else v
 
-    def cov(self, other, *args, **kwargs):
-        """Pandas ``cov`` — **unweighted**.
+    def _weighted_pair(
+        self,
+        other: pd.Series,
+        min_periods: Optional[int],
+        ddof: int,
+        skipna: bool,
+    ) -> Optional[tuple[np.ndarray, np.ndarray, np.ndarray, float]]:
+        """Align usable paired observations with their left weights."""
+        if not isinstance(other, pd.Series):
+            raise TypeError("other must be a pandas Series or MicroSeries")
+        if not isinstance(ddof, (int, np.integer)):
+            raise TypeError("ddof must be an integer")
+        if min_periods is None:
+            min_periods = 1
+        if not isinstance(min_periods, (int, np.integer)) or min_periods < 0:
+            raise ValueError("min_periods must be a nonnegative integer")
+        if len(self) == 0 or len(other) == 0:
+            return None
 
-        MicroSeries does not yet compute weighted covariance. Emits a
-        ``UserWarning`` so callers aren't silently given an unweighted number
-        after ``.sum()`` and ``.mean()`` worked as expected. See issue tracker
-        for a weighted implementation.
-        """
-        warnings.warn(
-            "MicroSeries.cov() falls through to pandas and is "
-            "unweighted. Use MicroSeries.var()/std() for weighted "
-            "second moments, or compute covariance manually with the "
-            "weights.",
-            UserWarning,
-            stacklevel=2,
+        # Align left row positions so values and weights undergo exactly the
+        # same join, including pandas' expansion of duplicate index labels.
+        positions = pd.Series(np.arange(len(self)), index=self.index)
+        positions, right = positions.align(pd.Series(other), join="inner")
+        positions = positions.to_numpy(dtype=int)
+        x = (
+            pd.Series(self._values)
+            .iloc[positions]
+            .to_numpy(dtype=float, na_value=np.nan)
         )
-        return super().cov(other, *args, **kwargs)
+        y = right.to_numpy(dtype=float, na_value=np.nan)
+        weights = np.asarray(self.weights, dtype=float)[positions]
+        if not np.isfinite(weights).all() or (weights < 0).any():
+            raise ValueError("frequency weights must be finite and nonnegative")
 
-    def corr(self, other, *args, **kwargs):
-        """Pandas ``corr`` — **unweighted**.
-
-        MicroSeries does not yet compute weighted correlation. Emits a
-        ``UserWarning`` so callers aren't silently given an unweighted number.
-        See issue tracker for a weighted implementation.
-        """
-        warnings.warn(
-            "MicroSeries.corr() falls through to pandas and is "
-            "unweighted. Compute correlation manually with the weights "
-            "if you need the survey-weighted value.",
-            UserWarning,
-            stacklevel=2,
+        # Zero frequency means the row is absent, including for skipna=False.
+        positive = weights > 0
+        x, y, weights = x[positive], y[positive], weights[positive]
+        missing = np.isnan(x) | np.isnan(y)
+        if not skipna and missing.any():
+            return None
+        x, y, weights = x[~missing], y[~missing], weights[~missing]
+        total_weight = weights.sum()
+        if not np.isfinite(total_weight):
+            raise ValueError("the sum of frequency weights must be finite")
+        if len(x) < min_periods or total_weight == 0 or total_weight <= ddof:
+            return None
+        return (
+            x,
+            y,
+            weights,
+            float(total_weight - ddof),
         )
-        return super().corr(other, *args, **kwargs)
+
+    def cov(
+        self,
+        other: pd.Series,
+        min_periods: Optional[int] = None,
+        ddof: int = 1,
+        *,
+        skipna: bool = True,
+    ) -> float:
+        """Calculate frequency-weighted covariance with another Series.
+
+        Observations align by index as in pandas, including its duplicate-
+        label join behavior. Only this Series' weights are used; weights on
+        another MicroSeries are ignored. Each aligned left weight must be
+        finite and nonnegative. Zero-weight rows are omitted.
+
+        Uses ``sum(w * (x - xmean) * (y - ymean)) / (sum(w) - ddof)``.
+        Integer weights therefore match covariance on the replicated sample.
+        Missing values are removed pairwise before computing both means.
+
+        :param other: A pandas Series or MicroSeries to align by index.
+        :param min_periods: Minimum usable aligned row pairs, not the sum of
+            frequency weights. Defaults to 1.
+        :param ddof: Degrees of freedom subtracted from the weight total.
+        :param skipna: Drop pairs with a missing value. If False, any missing
+            value in a positive-weight aligned pair produces NaN.
+        :returns: Weighted covariance, or NaN for an empty or insufficient
+            sample (including a weight total no greater than ddof).
+        """
+        pair = self._weighted_pair(other, min_periods, ddof, skipna)
+        if pair is None:
+            return np.nan
+        x, y, weights, denominator = pair
+        x = x - np.average(x, weights=weights)
+        y = y - np.average(y, weights=weights)
+        return float(np.sum(weights * x * y) / denominator)
+
+    def corr(
+        self,
+        other: pd.Series,
+        method: str = "pearson",
+        min_periods: Optional[int] = None,
+        *,
+        ddof: int = 1,
+        skipna: bool = True,
+    ) -> float:
+        """Calculate frequency-weighted Pearson correlation.
+
+        Uses the same aligned pairs and left Series weights for covariance and
+        both variances. Weights on another MicroSeries are ignored. Weights
+        must be finite and nonnegative; zero-weight rows are omitted. Other
+        correlation methods, including callables, are unsupported.
+
+        :param other: A pandas Series or MicroSeries to align by index.
+        :param method: Only "pearson" is supported.
+        :param min_periods: Minimum usable aligned row pairs, not frequency
+            weight total. Defaults to 1.
+        :param ddof: Degrees of freedom for all three moments. It cancels from
+            the correlation but the weight total must exceed it.
+        :param skipna: Drop pairs with a missing value. If False, any missing
+            value in a positive-weight aligned pair produces NaN.
+        :returns: Weighted correlation, or NaN for an empty, insufficient, or
+            constant sample.
+        """
+        if method != "pearson":
+            raise ValueError("weighted correlation only supports method='pearson'")
+        pair = self._weighted_pair(other, min_periods, ddof, skipna)
+        if pair is None:
+            return np.nan
+        x, y, weights, _ = pair
+        # A weighted mean can round away from identical decimal inputs.
+        # Check the retained observations exactly before subtracting it.
+        if (x == x[0]).all() or (y == y[0]).all():
+            return np.nan
+        x = x - np.average(x, weights=weights)
+        y = y - np.average(y, weights=weights)
+        x_ss = np.sum(weights * x * x)
+        y_ss = np.sum(weights * y * y)
+        if x_ss == 0 or y_ss == 0:
+            return np.nan
+        result = np.sum(weights * x * y) / (np.sqrt(x_ss) * np.sqrt(y_ss))
+        return float(np.clip(result, -1.0, 1.0))
 
     def quantile(self, q: np.array, skipna: bool = True) -> pd.Series:
         """Calculates weighted quantiles of the MicroSeries.
