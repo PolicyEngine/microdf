@@ -187,7 +187,7 @@ class MicroSeries(pd.Series):
         :returns: A Series multiplying the MicroSeries by its weight.
         :rtype: pd.Series
         """
-        return self.multiply(self.weights)
+        return pd.Series(self, copy=False).multiply(self.weights)
 
     @scalar_function
     def sum(self) -> float:
@@ -196,7 +196,7 @@ class MicroSeries(pd.Series):
         :returns: The weighted sum.
         :rtype: float
         """
-        return self.multiply(self.weights).sum()
+        return self.weight().sum()
 
     @scalar_function
     def count(self, skipna: bool = True) -> float:
