@@ -17,3 +17,6 @@ docs/_build
 # Codecov coverage reports
 *.xml
 .coverage
+# Build artefacts
+build/
+*.egg-info/
