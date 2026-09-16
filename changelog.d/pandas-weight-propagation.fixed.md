@@ -1,2 +1,0 @@
-Preserve independent, aligned weights through pandas sorting, sampling, row and column selection, index resetting, fillna, and concatenation of Micro objects, including duplicate indexes and mixed MicroDataFrame/MicroSeries inputs. Keep selection weights independently mutable on pandas 2 and 3. Reject conflicting or ambiguous weight propagation, and document the limitation of mixed pandas/Micro concatenation.
-Preserve unweighted pandas DataFrame covariance and correlation matrices without attaching observation weights to column summaries.
