@@ -187,16 +187,38 @@ class MicroSeries(pd.Series):
         :returns: A Series multiplying the MicroSeries by its weight.
         :rtype: pd.Series
         """
-        return self.multiply(self.weights)
+        return pd.Series(self, copy=False).multiply(self.weights)
 
     @scalar_function
-    def sum(self) -> float:
+    def sum(
+        self,
+        axis: Optional[Union[int, str]] = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ) -> float:
         """Calculates the weighted sum of the MicroSeries.
+
+        axis may be 0, 'index' or None, as for pandas Series.sum. skipna,
+        numeric_only and min_count are applied to the weighted values;
+        min_count counts valid observations, not the sum of their weights.
 
         :returns: The weighted sum.
         :rtype: float
         """
-        return self.multiply(self.weights).sum()
+        # Keep the intermediate unweighted so subclass constructors cannot
+        # apply observation weights a second time during the final reduction.
+        values = pd.Series(self)
+        if not self.empty:
+            values = values.multiply(self.weights)
+        return values.sum(
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            min_count=min_count,
+            **kwargs,
+        )
 
     @scalar_function
     def count(self, skipna: bool = True) -> float:
