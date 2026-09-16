@@ -585,6 +585,8 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         replicate_weights,
         method: str = "jackknife",
         fay_k: Optional[float] = None,
+        *,
+        centering: str = "full-sample",
     ) -> float:
         """Standard error of ``statistic`` from a set of replicate weights.
 
@@ -592,22 +594,32 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         the factor appropriate to how the replicates were built, so it works
         for any statistic including the Gini coefficient and quantiles.
 
-        Only valid for replicate weights as published with a survey. Weights
-        calibrated to external targets no longer correspond to the original
-        replication scheme.
+        The factor and centering convention must match the survey design.
+        Supported schemes use a common factor: jackknife covers unstratified
+        JK1 or common-factor delete-group replication, not arbitrary stratified
+        jackknife. Averaged bootstrap requiring additional factors is not
+        supported. See :func:`microdf.replication.replicate_variance` for factors.
 
-        :param statistic: Callable taking a MicroSeries, e.g.
+        Changing main weights without corresponding design-consistent replicate
+        adjustments invalidates the original replicates. Calibration can be
+        valid when repeated appropriately for every replicate.
+
+        :param statistic: Callable taking a MicroSeries and returning a float, e.g.
             ``lambda s: s.median()``.
-        :param replicate_weights: Array or frame of shape ``(len(self), R)``.
+        :param replicate_weights: Array or frame of shape ``(len(self), R)``
+            in the same row order as this series. DataFrame labels are ignored.
         :param method: ``jackknife``, ``brr``, ``bootstrap``,
             ``successive-difference`` or ``fay``.
         :param fay_k: Fay's perturbation constant, for ``method="fay"``.
+        :param centering: ``full-sample`` (default) centers on ``statistic(self)``;
+            ``replicate-mean`` centers on the mean of the replicate estimates.
+            The method's scale factor is unchanged.
         :returns: The estimated standard error.
         """
         from microdf.replication import replicate_standard_error
 
         return replicate_standard_error(
-            self, statistic, replicate_weights, method, fay_k
+            self, statistic, replicate_weights, method, fay_k, centering=centering
         )
 
     @scalar_function
