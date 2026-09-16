@@ -460,7 +460,7 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         if inplace:
             # Snapshot weight *values* positionally — the index is about
             # to change and reset_index preserves row order.
-            weight_values = np.asarray(self.weights.values, dtype=float)
+            weight_values = np.array(self.weights, dtype=float, copy=True)
             super().reset_index(
                 level=level,
                 drop=drop,
@@ -470,7 +470,7 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
                 allow_duplicates=allow_duplicates,
                 names=names,
             )
-            self.weights = pd.Series(weight_values, index=self.index, dtype=float)
+            self.weights = weight_series(weight_values, self.index)
             self._link_all_weights()
             return None
         else:
@@ -483,15 +483,9 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
                 allow_duplicates=allow_duplicates,
                 names=names,
             )
-            out = MicroDataFrame(res, weights=self.weights.values)
-            # Ensure weights align to res.index (reset_index changes the
-            # index but preserves row order, so pass values positionally).
-            out.weights = pd.Series(
-                np.asarray(self.weights.values, dtype=float),
-                index=out.index,
-                dtype=float,
-            )
-            return out
+            # Own a positional copy: reset_index changes labels but
+            # preserves row order.
+            return MicroDataFrame(res, weights=weight_series(self.weights, res.index))
 
     def copy(self, deep: Optional[bool] = True) -> "MicroDataFrame":
         return super().copy(deep)

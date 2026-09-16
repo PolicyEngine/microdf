@@ -120,6 +120,16 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         super().__finalize__(other, method=method, **kwargs)
         return finalize_weights(self, other, method, previous)
 
+    def _construct_result(self, *args, **kwargs):
+        # pandas has already aligned this Series before constructing a binary
+        # result. Retain its row weights, even when pandas 3 also finalizes
+        # metadata from the other operand. Delegate values and names to pandas.
+        result = super()._construct_result(*args, **kwargs)
+        if not isinstance(result, tuple):
+            result.weights = weight_series(self.weights, result.index)
+        # divmod constructs both tuple members through this same hook.
+        return result
+
     def __setattr__(self, name, value):
         weights = self.__dict__.get("weights") if name == "index" else None
         super().__setattr__(name, value)
@@ -890,94 +900,44 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
     def __getattr__(self, name: str) -> "MicroSeries":
         return MicroSeries(super().__getattr__(name), weights=self.weights)
 
-    # operators
+    # Explicit reverse overrides give this subclass priority when a plain
+    # pandas Series is on the left. _construct_result retains aligned weights.
+    def __radd__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__radd__(other)
 
-    def __add__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__add__(other), weights=self.weights)
+    def __rsub__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rsub__(other)
 
-    def __sub__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__sub__(other), weights=self.weights)
+    def __rmul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rmul__(other)
 
-    def __mul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__mul__(other), weights=self.weights)
+    def __rfloordiv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rfloordiv__(other)
 
-    def __floordiv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__floordiv__(other), weights=self.weights)
+    def __rtruediv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rtruediv__(other)
 
-    def __truediv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__truediv__(other), weights=self.weights)
+    def __rmod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rmod__(other)
 
-    def __mod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__mod__(other), weights=self.weights)
+    def __rpow__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rpow__(other)
 
-    def __pow__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__pow__(other), weights=self.weights)
+    def __rand__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rand__(other)
 
-    def __xor__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__xor__(other), weights=self.weights)
+    def __ror__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__ror__(other)
 
-    def __and__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__and__(other), weights=self.weights)
-
-    def __or__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__or__(other), weights=self.weights)
+    def __rxor__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rxor__(other)
 
     def __invert__(self) -> "MicroSeries":
         return MicroSeries(super().__invert__(), weights=self.weights)
 
-    def __radd__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__radd__(other), weights=self.weights)
-
-    def __rsub__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rsub__(other), weights=self.weights)
-
-    def __rmul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rmul__(other), weights=self.weights)
-
-    def __rfloordiv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rfloordiv__(other), weights=self.weights)
-
-    def __rtruediv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rtruediv__(other), weights=self.weights)
-
-    def __rmod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rmod__(other), weights=self.weights)
-
-    def __rpow__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rpow__(other), weights=self.weights)
-
-    def __rand__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rand__(other), weights=self.weights)
-
-    def __ror__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__ror__(other), weights=self.weights)
-
-    def __rxor__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rxor__(other), weights=self.weights)
-
     def sqrt(self) -> "MicroSeries":
         sqrt_values = np.sqrt(self._values)
         return MicroSeries(sqrt_values, index=self.index, weights=self.weights)
-
-    # comparators
-
-    def __lt__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__lt__(other), weights=self.weights)
-
-    def __le__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__le__(other), weights=self.weights)
-
-    def __eq__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__eq__(other), weights=self.weights)
-
-    def __ne__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__ne__(other), weights=self.weights)
-
-    def __ge__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__ge__(other), weights=self.weights)
-
-    def __gt__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__gt__(other), weights=self.weights)
 
     # assignment operators
 
