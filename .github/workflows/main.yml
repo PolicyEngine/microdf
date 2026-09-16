@@ -65,9 +65,13 @@ jobs:
         working-directory: docs
         env:
           BASE_URL: /microdf
-        run: myst build --html
+        run: |
+          myst build --html
+          touch _build/html/.nojekyll
       - name: Check documentation output
-        run: test -s docs/_build/html/index.html
+        run: |
+          test -s docs/_build/html/index.html
+          test -f docs/_build/html/.nojekyll
       - name: Deploy
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: JamesIves/github-pages-deploy-action@v4
