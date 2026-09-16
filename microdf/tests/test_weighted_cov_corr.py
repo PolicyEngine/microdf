@@ -267,3 +267,77 @@ def test_cov_corr_low_weight_extreme_does_not_make_result_depend_on_row_order(
         rtol=3e-15,
         atol=0,
     )
+
+
+def test_cov_corr_smallest_common_positive_weight_cancels_from_population_moments():
+    # The common positive weight cancels: xy = 1, xx = yy = 2 for
+    # centered observations [-1, 0, 1] and [-1, 1, 0].
+    x, y = [1, 2, 3], [3, 5, 4]
+    weights = [np.nextafter(0.0, 1.0)] * 3
+    expected = exact_weighted_moments(x, y, weights, ddof=0)
+    assert expected == (1 / 3, 0.5)
+    left = mdf.MicroSeries(x, weights=weights)
+    right = pd.Series(y)
+    np.testing.assert_allclose(
+        [left.cov(right, ddof=0), left.corr(right, ddof=0)],
+        expected,
+        rtol=3e-15,
+        atol=0,
+    )
+
+
+@pytest.mark.parametrize(
+    "frequency", [np.nextafter(0.0, 1.0), np.finfo(float).tiny, 1.0]
+)
+@pytest.mark.parametrize("multipliers", [[1, 2, 3], [1, 1, 2]])
+@pytest.mark.parametrize("order", list(permutations(range(3))))
+def test_cov_corr_unequal_tiny_and_normal_weights_match_exact_moments(
+    frequency, multipliers, order
+):
+    x, y = np.array([1.0, 2.0, 3.0]), np.array([3.0, 5.0, 4.0])
+    weights = np.array(multipliers) * frequency
+    expected = exact_weighted_moments(x, y, weights, ddof=0)
+    order = list(order)
+    left = mdf.MicroSeries(x[order], weights=weights[order])
+    right = pd.Series(y[order])
+    np.testing.assert_allclose(
+        [left.cov(right, ddof=0), left.corr(right, ddof=0)],
+        expected,
+        rtol=3e-15,
+        atol=0,
+    )
+
+
+@pytest.mark.parametrize(
+    "x,y",
+    [
+        (np.array([1, 2, 3]) * 1e153, np.array([3, 5, 4]) * -1e153),
+        (np.array([1, 2, 3]) * 1e200, np.array([3, 5, 4]) * 1e-200),
+        ([1e12 - 2**-13, 1e12, 1e12 + 2**-13], [3, 5, 4]),
+    ],
+)
+def test_cov_corr_subnormal_weights_preserve_extreme_value_scales(x, y):
+    weights = np.array([1, 2, 3]) * np.nextafter(0.0, 1.0)
+    expected = exact_weighted_moments(x, y, weights, ddof=0)
+    left = mdf.MicroSeries(x, weights=weights)
+    right = pd.Series(y)
+    with np.errstate(over="raise", invalid="raise"):
+        actual = [left.cov(right, ddof=0), left.corr(right, ddof=0)]
+    np.testing.assert_allclose(actual, expected, rtol=3e-15, atol=0)
+
+
+@pytest.mark.parametrize("frequency", [np.nextafter(0.0, 1.0), 0.5])
+@pytest.mark.parametrize("ddof", [0, 1, 2])
+def test_cov_corr_center_weight_scaling_preserves_original_frequency_ddof(
+    frequency, ddof
+):
+    x, y = [1, 2, 3], [3, 5, 4]
+    weights = np.array([1, 2, 3]) * frequency
+    left = mdf.MicroSeries(x, weights=weights)
+    right = pd.Series(y)
+    actual = [left.cov(right, ddof=ddof), left.corr(right, ddof=ddof)]
+    if weights.sum() <= ddof:
+        assert np.isnan(actual).all()
+    else:
+        expected = exact_weighted_moments(x, y, weights, ddof=ddof)
+        np.testing.assert_allclose(actual, expected, rtol=3e-15, atol=0)

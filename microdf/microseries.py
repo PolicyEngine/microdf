@@ -31,7 +31,12 @@ def _weighted_centered_vector(
         return shifted, 0
     _, shift = np.frexp(magnitude)
     shifted = np.ldexp(shifted, -shift)
-    shifted -= np.average(shifted, weights=weights)
+    # Raise tiny mean weights by an exact common power of two so products
+    # with the scaled deviations do not underflow. Never scale down: that
+    # could discard small weights when frequencies span a wide range.
+    _, mean_weight_exponent = np.frexp(np.max(weights))
+    mean_weights = np.ldexp(weights, -min(int(mean_weight_exponent), 0))
+    shifted -= np.average(shifted, weights=mean_weights)
     # Weight each vector before taking products, then scale again so squared
     # deviations never accumulate raw frequencies at the original value scale.
     shifted *= np.sqrt(weights)
