@@ -19,6 +19,7 @@ authors:
     orcid: 0009-0009-5004-4910
     affiliation: '1'
   - name: María Juaristi
+    orcid: 0009-0007-4946-2248
     affiliation: '1'
 affiliations:
   - name: PolicyEngine, Washington, DC, United States
