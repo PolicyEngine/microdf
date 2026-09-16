@@ -246,3 +246,178 @@ def test_replicate_weight_frames_use_positional_rows():
         )
         == 1
     )
+
+
+def _replication_result(series, statistic, replicates, api, **kwargs):
+    if api == "variance":
+        return replicate_variance(series, statistic, replicates, **kwargs)
+    if api == "standard_error":
+        return replicate_standard_error(series, statistic, replicates, **kwargs)
+    return series.replicate_standard_error(statistic, replicates, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "method,fay_k,amplitude,expected_variance",
+    [
+        ("jackknife", None, 5e153, 1.75e308),
+        ("brr", None, 1e154, 1e308),
+        ("bootstrap", None, 1e154, 1e308),
+        ("successive-difference", None, 5e153, 1e308),
+        ("fay", 0.5, 5e153, 1e308),
+    ],
+)
+@pytest.mark.parametrize("centering", ["full-sample", "replicate-mean"])
+@pytest.mark.parametrize("api", ["variance", "standard_error", "series_method"])
+def test_large_finite_replicate_variance(
+    method, fay_k, amplitude, expected_variance, centering, api
+):
+    series = MicroSeries([0.0, 2 * amplitude], weights=[1, 1])
+    replicates = np.tile([[2, 0], [0, 2]], (1, 4))
+    # Eight deviations are +/- amplitude. The factors are 7/8, 1/8 or 1/2.
+    # Every method has a finite variance despite an overflowing raw sum.
+    expected = expected_variance if api == "variance" else np.sqrt(expected_variance)
+    observed = _replication_result(
+        series,
+        lambda sample: sample.mean(),
+        replicates,
+        api,
+        method=method,
+        fay_k=fay_k,
+        centering=centering,
+    )
+    assert observed == pytest.approx(expected, rel=1e-14, abs=0)
+
+
+@pytest.mark.parametrize("centering", ["full-sample", "replicate-mean"])
+@pytest.mark.parametrize("api", ["variance", "standard_error", "series_method"])
+def test_identical_large_replicates_have_zero_variance(centering, api):
+    series = MicroSeries([1e308, 1e308], weights=[1, 1])
+    replicates = np.array([[2, 0, 2, 0], [0, 2, 0, 2]])
+    # The median remains finite even though summing the four estimates overflows.
+    assert (
+        _replication_result(
+            series,
+            lambda sample: sample.median(),
+            replicates,
+            api,
+            method="brr",
+            centering=centering,
+        )
+        == 0
+    )
+
+
+@pytest.mark.parametrize(
+    "method,fay_k,variance_multiplier",
+    [
+        ("jackknife", None, 3),
+        ("brr", None, 1),
+        ("bootstrap", None, 1),
+        ("successive-difference", None, 4),
+        ("fay", 0.5, 4),
+    ],
+)
+@pytest.mark.parametrize("offset", [0.0, float(2**53)])
+@pytest.mark.parametrize("centering", ["full-sample", "replicate-mean"])
+@pytest.mark.parametrize("api", ["variance", "standard_error", "series_method"])
+def test_replicate_centering_preserves_small_differences(
+    method, fay_k, variance_multiplier, offset, centering, api
+):
+    series = MicroSeries([offset, offset + 2], weights=[1, 1])
+    replicates = np.array([[2, 0, 2, 0], [0, 2, 0, 2]])
+    # The exact replicate mean has deviations +/-1, including at 2**53.
+    # Full-sample centering must retain the callback's rounded mean at 2**53,
+    # so its deviations are 0 and 2, giving twice the centered variance.
+    expected = variance_multiplier
+    if offset and centering == "full-sample":
+        expected *= 2
+    if api != "variance":
+        expected = np.sqrt(expected)
+    observed = _replication_result(
+        series,
+        lambda sample: sample.mean(),
+        replicates,
+        api,
+        method=method,
+        fay_k=fay_k,
+        centering=centering,
+    )
+    assert observed == pytest.approx(expected, rel=1e-14, abs=0)
+
+
+@pytest.mark.parametrize(
+    "amplitude,method,fay_k,expected_variance",
+    [
+        (2.0**-537, "brr", None, 2.0**-1074),
+        (2.0**-550, "fay", 1 - 2.0**-53, 2.0**-994),
+    ],
+)
+@pytest.mark.parametrize("centering", ["full-sample", "replicate-mean"])
+@pytest.mark.parametrize("api", ["variance", "standard_error", "series_method"])
+def test_small_deviations_keep_representable_variance(
+    amplitude, method, fay_k, expected_variance, centering, api
+):
+    series = MicroSeries([-amplitude, amplitude], weights=[1, 1])
+    replicates = np.array([[2, 0, 2, 0], [0, 2, 0, 2]])
+    # BRR variance is amplitude**2. Fay's factor multiplies that by 2**106;
+    # it must be applied before rounding the initially unrepresentable square.
+    expected = expected_variance if api == "variance" else np.sqrt(expected_variance)
+    observed = _replication_result(
+        series,
+        lambda sample: sample.mean(),
+        replicates,
+        api,
+        method=method,
+        fay_k=fay_k,
+        centering=centering,
+    )
+    assert observed == expected
+
+
+@pytest.mark.parametrize("centering", ["full-sample", "replicate-mean"])
+def test_finite_replicates_with_unrepresentable_variance(centering):
+    series = MicroSeries([-1e308, 1e308], weights=[1, 1])
+    replicates = np.array([[1, 0], [0, 1]])
+    # A weighted total gives finite estimates +/-1e308 and a zero point estimate.
+    with np.errstate(over="ignore", invalid="ignore"):
+        observed = replicate_variance(
+            series,
+            lambda sample: sample.sum(),
+            replicates,
+            method="brr",
+            centering=centering,
+        )
+    assert observed == np.inf
+
+
+@pytest.mark.parametrize(
+    "point,estimates,centering,expected",
+    [
+        (0.0, [0.0, np.inf], "full-sample", np.inf),
+        (np.inf, [0.0, 1.0], "full-sample", np.inf),
+        (np.inf, [0.0, np.inf], "full-sample", np.nan),
+        (np.nan, [0.0, 1.0], "full-sample", np.nan),
+        (0.0, [0.0, np.nan], "full-sample", np.nan),
+        (0.0, [0.0, np.inf], "replicate-mean", np.nan),
+        (0.0, [np.inf, -np.inf], "replicate-mean", np.nan),
+        (0.0, [0.0, np.nan], "replicate-mean", np.nan),
+    ],
+)
+def test_nonfinite_callback_results_keep_existing_behavior(
+    point, estimates, centering, expected
+):
+    series = MicroSeries([1, 2], weights=[1, 1])
+    replicates = np.array([[2, 0], [0, 2]])
+    results = iter([point, *estimates] if centering == "full-sample" else estimates)
+    with np.errstate(over="ignore", invalid="ignore"):
+        observed = replicate_variance(
+            series,
+            lambda sample: next(results),
+            replicates,
+            method="brr",
+            centering=centering,
+        )
+    if np.isnan(expected):
+        assert np.isnan(observed)
+    else:
+        assert observed == expected

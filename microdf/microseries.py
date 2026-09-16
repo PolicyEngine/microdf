@@ -591,8 +591,10 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         """Standard error of ``statistic`` from a set of replicate weights.
 
         Recomputes the statistic once per replicate and scales the spread by
-        the factor appropriate to how the replicates were built, so it works
-        for any statistic including the Gini coefficient and quantiles.
+        the factor appropriate to how the replicates were built. Statistical
+        validity depends on both the statistic and the survey design.
+        Nonsmooth statistics such as quantiles can require an appropriate
+        replication method or smoothing of replicate estimates.
 
         The factor and centering convention must match the survey design.
         Supported schemes use a common factor: jackknife covers unstratified

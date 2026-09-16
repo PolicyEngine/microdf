@@ -2,9 +2,10 @@
 
 Many survey products publish a set of replicate weight vectors alongside the
 main weight. Recomputing a statistic once per replicate and measuring the
-spread gives a variance estimate that requires no analytic formula, which is
-what makes it usable for statistics such as the Gini coefficient or a quantile
-where the analytic variance is awkward.
+spread gives a variance estimate without an analytic variance formula. Its
+statistical validity depends on both the statistic and the replication design.
+Nonsmooth statistics such as quantiles can require an appropriate replication
+method or smoothing; these functions apply the supplied statistic directly.
 
 The scale factor and centering convention must match the survey's replication
 design. The default centers on the full-sample estimate; ``replicate-mean``
@@ -64,6 +65,8 @@ def replicate_variance(
     difference, and ``1 / (R * (1 - fay_k)**2)`` for Fay's BRR. Select the
     factor and center specified by the survey; arbitrary stratified jackknife
     and averaged-bootstrap schemes requiring other factors are unsupported.
+    Validity also depends on the statistic: nonsmooth quantiles can require
+    an appropriate replication method or smoothing of replicate estimates.
 
     :param series: A MicroSeries. Its own weights give the point estimate.
     :param statistic: Callable taking a MicroSeries and returning a float,
@@ -130,9 +133,38 @@ def replicate_variance(
         estimates.append(float(statistic(replicate)))
 
     estimates = np.asarray(estimates)
-    if centering == "replicate-mean":
-        center = float(np.mean(estimates))
-    return factor * float(np.sum(np.square(estimates - center)))
+    if not np.all(np.isfinite(estimates)) or (
+        center is not None and not np.isfinite(center)
+    ):
+        # Retain the original infinity/NaN propagation for nonfinite callbacks.
+        if centering == "replicate-mean":
+            center = float(np.mean(estimates))
+        return factor * float(np.sum(np.square(estimates - center)))
+
+    with np.errstate(over="ignore"):
+        if centering == "replicate-mean":
+            # Keep the common offset out of the mean so small differences are
+            # preserved even when the absolute mean is not representable.
+            deviations = estimates - estimates[0]
+            if not np.all(np.isfinite(deviations)):
+                return float("inf")
+            deviations -= np.mean(deviations)
+        else:
+            deviations = estimates - center
+
+    scale = np.max(np.abs(deviations))
+    if scale == 0:
+        return 0.0
+    if not np.isfinite(scale):
+        return float("inf")
+
+    scaled_squares = np.sum(np.square(deviations / scale))
+    # Restore the scale by its binary exponent after applying the factor.
+    # Squaring scale first could overflow, or underflow before Fay's factor
+    # brings a tiny squared deviation back into the representable range.
+    significand, exponent = np.frexp(scale)
+    with np.errstate(over="ignore"):
+        return float(np.ldexp(significand**2 * factor * scaled_squares, 2 * exponent))
 
 
 def replicate_standard_error(
