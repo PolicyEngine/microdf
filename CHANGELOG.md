@@ -1,3 +1,10 @@
+## [1.3.10] - 2026-09-16
+
+### Fixed
+
+- DataFrame and Series sums accept positional and named axes, skipna and min_count without silently dropping columns, including numeric columns with duplicate labels. DataFrame row sums retain independent observation weights without multiplying them into row values, and empty numeric row sums follow pandas min_count behavior. Explicit axis=None follows the installed pandas version.
+
+
 ## [1.3.9] - 2026-09-16
 
 ### Fixed
