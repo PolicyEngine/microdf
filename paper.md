@@ -43,17 +43,17 @@ The first is that the estimators themselves require care. A weighted median is n
 
 The second problem is that weights must stay aligned with the data through every transformation before the estimator runs. Building an analysis dataset means merging administrative variables onto survey records, filtering to a subpopulation, grouping by geography, reindexing after a sort. Each of these is an opportunity for the weight vector to fall out of alignment with the rows it describes, and nothing raises when it does: the pipeline completes and returns a number that is wrong by an amount nobody can see. In our experience maintaining microsimulation datasets, this is a more frequent source of error than the estimator formulas, and a harder one to detect, because the result remains plausible.
 
-`microdf` addresses both. It makes the estimator decisions once, documents them, and tests them: the quantile estimator follows the inverse CDF definition, matching the default behaviour of R's `survey::svyquantile` [@lumley2004survey; @lumley2010complex] so that results can be checked against an established implementation; the variance treats weights as frequencies, so that with integer weights it agrees with `numpy` on the replicated sample; the top-share estimator splits the record at the cutoff proportionally, so a constant distribution returns the share it should. And it carries the weight with the data across the transformations between loading a file and computing a statistic, which is what makes those estimator guarantees worth anything in a real pipeline.
+`microdf` addresses both. It makes the estimator decisions once, documents them, and tests them: the quantile estimator follows the inverse CDF definition, matching the default behaviour of R's `survey::svyquantile` [@lumley2004survey; @lumley2010complex] so that results can be checked against an established implementation; the variance treats weights as frequencies, so that with integer weights it agrees with `numpy` on the replicated sample; the top-share estimator splits the record at the cutoff proportionally, so a constant distribution returns the share it should. And it carries the weight with the data across the transformations between loading a file and computing a statistic, so those estimator guarantees still hold at the point the statistic is taken.
 
 # State of the Field
 
-Several tools compute weighted statistics, but the combination `microdf` occupies — pandas-native structures, a distributional estimator set, and replicate-weight variance without a complex-survey design object — is not otherwise filled.
+Several tools compute weighted statistics. `microdf` combines pandas-native structures, a distributional estimator set, and replicate-weight variance without requiring a complex-survey design object.
 
 | Tool | Weighted quantiles | Inequality and poverty measures | pandas-native | Design-based variance |
 |---|---|---|---|---|
 | `microdf` | Yes | Gini, top and bottom shares, FGT poverty | Yes | Replicate weights |
 | `samplics` [@samplics] | Yes | No | Partly | Yes |
-| `statsmodels` [@seabold2010statsmodels] | Limited | No | Partly | Partly |
+| `statsmodels` [@seabold2010statsmodels] | `DescrStatsW` only | No | Partly | Via its survey module |
 | R `survey` [@lumley2004survey] | Yes | Limited | No (R) | Yes |
 | pandas + manual weighting | Hand-written | Hand-written | Yes | No |
 
@@ -65,28 +65,33 @@ R's `survey` package is the reference implementation for design-based survey inf
 
 `MicroSeries` extends `pandas.Series` with a weight vector of equal length; `MicroDataFrame` extends `pandas.DataFrame`, holds a weight column, and exposes each column as a `MicroSeries`.
 
-Pandas methods are classified into three groups. *Scalar* methods return a single weighted statistic and are overridden to use the weights. *Vector* methods return a series aligned to the input and carry the weights through to the result. *Agnostic* methods do not depend on weighting and are inherited unchanged. Methods that would need weighting but do not yet implement it, currently `cov` and `corr`, fall through to pandas and emit a warning rather than returning an unweighted number silently. Shape-changing operations — selection, `merge`, `groupby`, `reset_index`, `drop`, `astype` — are overridden so the weight vector follows the rows it describes.
+Pandas methods are classified into three groups. *Scalar* methods return a single weighted statistic and are overridden to use the weights. *Vector* methods return a series aligned to the input and carry the weights through to the result. *Agnostic* methods return either a scalar or a vector depending on their arguments, and are dispatched accordingly. Methods that would need weighting but do not yet implement it, currently `cov` and `corr`, fall through to pandas and emit a warning rather than returning an unweighted number silently. Shape-changing operations — selection, `merge`, `groupby`, `reset_index`, `drop`, `astype` — are overridden so the weight vector follows the rows it describes.
 
-The classification is explicit rather than inherited, which is a deliberate trade: a method must be considered before it is supported, and one that has not been is not silently assumed safe. Extending the set of preserved operations is the package's main axis of ongoing work.
+The classification is explicit rather than inherited, which is a deliberate trade: a method must be considered before it is supported, and one that has not been is not silently assumed safe.
 
 ```python
 import microdf as mdf
 
 df = mdf.MicroDataFrame(
-    {"income": [10_000, 30_000, 120_000], "threshold": [15_000, 15_000, 15_000]},
+    {
+        "household_id": [1, 2, 3],
+        "income": [10_000, 30_000, 120_000],
+        "threshold": [15_000, 15_000, 15_000],
+    },
     weights=[800, 1_200, 50],
 )
 
-df.income.median()            # 30000.0, weighted
+df.income.median()            # 30000, weighted
 df.income.gini()              # Lorenz-curve Gini over the weighted distribution
 df.income.top_10_pct_share()  # proportional split at the cutoff
 df.poverty_rate("income", "threshold")
 
-regional = df.merge(geography, on="household_id")  # weights follow the join
-regional.groupby("region").income.median()         # and the grouping
+# Weights follow a join and a grouping.
+regional = df.merge(geography, on="household_id")
+regional.groupby("region").income.median()
 ```
 
-Standard errors come from replicate weights rather than an analytic formula, so they are available for every estimator rather than the few with tractable variance:
+Standard errors come from replicate weights rather than an analytic formula, so they are available for every estimator rather than the few with tractable variance. The scale applied to the spread across replicates depends on how they were constructed [@wolter2007variance], including the successive-difference scheme used for the ACS and CPS [@fay1995successive]:
 
 ```python
 series.replicate_standard_error(
@@ -98,7 +103,7 @@ Statistics requiring a decision take it as an explicit argument rather than choo
 
 # Research Impact Statement
 
-`microdf` has been public since June 2018, with 749 commits across 16 contributors and 11 releases. It is a dependency of both `policyengine-us` and `policyengine-uk`, and therefore sits in the computational path of PolicyEngine's published distributional estimates — the poverty rates, decile impacts, and Gini changes reported in its analyses and through its web application [@policyengine_py]. It is also used directly in standalone policy studies, including analyses of free school meals, extended childcare entitlements, and national insurance reforms.
+`microdf` has been public since June 2018, with over 750 commits across nine contributors and eleven tagged releases. It is a dependency of both `policyengine-us` and `policyengine-uk`, and therefore sits in the computational path of PolicyEngine's published distributional estimates — the poverty rates, decile impacts, and Gini changes reported in its analyses and through its web application [@policyengine_py]. It is also used directly in standalone policy studies, including analyses of free school meals, extended childcare entitlements, and national insurance reforms.
 
 The package's role is that of infrastructure: it is not the visible output of an analysis, but the layer that determines whether a reported poverty rate is a population estimate or a sample artefact. Its adoption is best measured by the analyses that depend on it rather than by direct use.
 
