@@ -31,15 +31,15 @@ bibliography: paper.bib
 
 `microdf` provides weighted data structures for survey microdata analysis in Python. Survey records carry sampling weights: each row stands for many households, and the weights vary by orders of magnitude within a single file. Statistics computed without them describe the sample rather than the population, and the two can differ substantially.
 
-The package's central design choice is that the weight is a property of the data structure rather than an argument to a function. `MicroSeries` and `MicroDataFrame` subclass the pandas [@mckinney2010pandas; @pandas2020] structures and carry a weight vector through the operations an analysis pipeline performs. Selection, merging, grouping, reindexing, dropping and type conversion are overridden so that the weight follows the rows it describes, and aggregations that pandas defines but that would silently ignore weights are overridden rather than inherited, so a method either returns a weighted result or warns that it cannot.
+The package's central design choice is that the weight is a property of the data structure rather than an argument to a function. `MicroSeries` and `MicroDataFrame` subclass the pandas [@mckinney2010pandas; @pandas2020] structures and carry a weight vector through the operations an analysis pipeline performs. Selection, merging, grouping, reindexing, dropping and type conversion are overridden so that the weight follows the rows it describes, and aggregations that pandas defines but that would silently ignore weights are overridden rather than inherited.
 
-On top of that foundation the package implements the estimators distributional analysis reports: quantiles by the inverse cumulative distribution function, frequency-weighted variance, the Gini coefficient from the Lorenz curve, top and bottom shares with proportional handling of records tied at the cutoff, and the Foster-Greer-Thorbecke family of poverty measures [@foster1984fgt].
+On top of that foundation the package implements the estimators distributional analysis reports: quantiles by the inverse cumulative distribution function, frequency-weighted variance, the Gini coefficient from the Lorenz curve, top and bottom shares with proportional handling of records tied at the cutoff, and poverty measures in the Foster-Greer-Thorbecke form [@foster1984fgt]: the headcount rate, and aggregate poverty and squared-poverty gaps.
 
 # Statement of Need
 
 Analysts working with survey microdata in Python face two distinct problems, and the second is the one that causes silent errors.
 
-The first is that the estimators themselves require care. A weighted median is not the median of the weighted values. A weighted variance requires deciding whether weights are frequencies or precision weights, and the two give different answers. A top-1% share requires deciding what happens to the records straddling the cutoff: assigning them wholly to one side introduces a bias that grows as weights grow coarser. These are solvable problems, but each is a decision that hand-written code makes implicitly, usually without recording it, so implementations diverge between analysts on exactly the edge cases that matter.
+The first is in the estimators. A weighted median is not the median of the weighted values. A weighted variance requires deciding whether weights are frequencies or precision weights, and the two give different answers. A top-1% share requires deciding what happens to the records straddling the cutoff: assigning them wholly to one side introduces a bias that grows as weights grow coarser. These are solvable problems, but each is a decision that hand-written code makes implicitly, usually without recording it, so implementations diverge between analysts on exactly the edge cases that matter.
 
 The second problem is that weights must stay aligned with the data through every transformation before the estimator runs. Building an analysis dataset means merging administrative variables onto survey records, filtering to a subpopulation, grouping by geography, reindexing after a sort. Each of these is an opportunity for the weight vector to fall out of alignment with the rows it describes, and nothing raises when it does: the pipeline completes and returns a number that is wrong by an amount nobody can see. In our experience maintaining microsimulation datasets, this is a more frequent source of error than the estimator formulas, and a harder one to detect, because the result remains plausible.
 
@@ -53,7 +53,7 @@ Several tools compute weighted statistics. `microdf` combines pandas-native stru
 |---|---|---|---|---|
 | `microdf` | Yes | Gini, top and bottom shares, FGT poverty | Yes | Replicate weights |
 | `samplics` [@samplics] | Yes | No | Partly | Yes |
-| `statsmodels` [@seabold2010statsmodels] | `DescrStatsW` only | No | Partly | Via its survey module |
+| `statsmodels` [@seabold2010statsmodels] | `DescrStatsW` only | No | Partly | No |
 | R `survey` [@lumley2004survey] | Yes | Limited | No (R) | Yes |
 | pandas + manual weighting | Hand-written | Hand-written | Yes | No |
 
@@ -91,7 +91,7 @@ regional = df.merge(geography, on="household_id")
 regional.groupby("region").income.median()
 ```
 
-Standard errors come from replicate weights rather than an analytic formula, so they are available for every estimator rather than the few with tractable variance. The scale applied to the spread across replicates depends on how they were constructed [@wolter2007variance], including the successive-difference scheme used for the ACS and CPS [@fay1995successive]:
+Standard errors come from replicate weights rather than an analytic formula, so they are available for every estimator rather than the few with tractable variance. The scale applied to the spread across replicates depends on how they were constructed [@wolter2007variance], including the Fay-type replication with a 4/R scale used for the ACS and the CPS ASEC [@fay1995successive], which publish 80 and 160 replicates respectively:
 
 ```python
 series.replicate_standard_error(
@@ -99,13 +99,11 @@ series.replicate_standard_error(
 )
 ```
 
-Statistics requiring a decision take it as an explicit argument rather than choosing silently: `gini` accepts a `negatives` policy, `var` takes `ddof`, and behaviour on zero-weight records is documented and tested. The estimators are small and independently checkable: weighted quantiles sort by value, accumulate weight, and return the smallest value whose cumulative weight share reaches `q`, after dropping zero-weight records so they cannot be selected; the Gini is computed from the Lorenz curve over weighted cumulative population and income; poverty measures follow the FGT family, with rate, gap, deep gap, and squared gap.
+Statistics requiring a decision take it as an explicit argument rather than choosing silently: `gini` accepts a `negatives` policy, `var` takes `ddof`, and behaviour on zero-weight records is documented and tested. The estimators are small and independently checkable: weighted quantiles sort by value, accumulate weight, and return the smallest value whose cumulative weight share reaches `q`, after dropping zero-weight records so they cannot be selected; the Gini is computed from the Lorenz curve over weighted cumulative population and income; poverty measures follow Foster, Greer and Thorbecke in form, reported as a headcount rate and as aggregate gaps rather than as normalised indices, with deep variants at half the threshold.
 
 # Research Impact Statement
 
-`microdf` has been public since June 2018, with over 750 commits across nine contributors and eleven tagged releases. It is a dependency of both `policyengine-us` and `policyengine-uk`, and therefore sits in the computational path of PolicyEngine's published distributional estimates — the poverty rates, decile impacts, and Gini changes reported in its analyses and through its web application [@policyengine_py]. It is also used directly in standalone policy studies, including analyses of free school meals, extended childcare entitlements, and national insurance reforms.
-
-The package's role is that of infrastructure: it is not the visible output of an analysis, but the layer that determines whether a reported poverty rate is a population estimate or a sample artefact. Its adoption is best measured by the analyses that depend on it rather than by direct use.
+`microdf` has been public since June 2018, with over 750 commits across eight contributors and eleven tagged releases. It is a dependency of `policyengine` [@policyengine_py], and therefore sits in the computational path of the distributional estimates that package produces — the poverty rates, decile impacts, and Gini changes reported through PolicyEngine's analyses and its web application at [policyengine.org](https://policyengine.org). It is also used directly in public policy reform analysis in the United Kingdom and the United States.
 
 # Acknowledgements
 
@@ -115,6 +113,6 @@ We thank Anthony Volk and Jason DeBacker for their contributions to the package,
 
 # AI Usage Disclosure
 
-The authors used generative AI tools, specifically Claude Opus by Anthropic [@claude2026], to assist with code refactoring, test authoring, and drafting of this paper. Human authors reviewed, edited, and validated all AI-assisted outputs, and made all decisions regarding estimator definitions and software design. The authors remain fully responsible for the accuracy, originality, and correctness of all submitted materials.
+The authors used generative AI tools, specifically Claude by Anthropic [@claude2026], to assist with code refactoring, test authoring, and drafting of this paper. Human authors reviewed, edited, and validated all AI-assisted outputs, and made all decisions regarding estimator definitions and software design. The authors remain fully responsible for the accuracy, originality, and correctness of all submitted materials.
 
 # References
