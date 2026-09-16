@@ -47,11 +47,11 @@ The second problem is that weights must stay aligned with the data through every
 
 # State of the Field
 
-Several tools compute weighted statistics, but the combination `microdf` occupies — pandas-native structures, a distributional estimator set, and no complex-survey design object — is not otherwise filled.
+Several tools compute weighted statistics, but the combination `microdf` occupies — pandas-native structures, a distributional estimator set, and replicate-weight variance without a complex-survey design object — is not otherwise filled.
 
 | Tool | Weighted quantiles | Inequality and poverty measures | pandas-native | Design-based variance |
 |---|---|---|---|---|
-| `microdf` | Yes | Gini, top and bottom shares, FGT poverty | Yes | No |
+| `microdf` | Yes | Gini, top and bottom shares, FGT poverty | Yes | Replicate weights |
 | `samplics` [@samplics] | Yes | No | Partly | Yes |
 | `statsmodels` [@seabold2010statsmodels] | Limited | No | Partly | Partly |
 | R `survey` [@lumley2004survey] | Yes | Limited | No (R) | Yes |
@@ -59,7 +59,7 @@ Several tools compute weighted statistics, but the combination `microdf` occupie
 
 R's `survey` package is the reference implementation for design-based survey inference and remains the right tool when standard errors under a complex design are required. `samplics` brings much of that machinery to Python, again centred on sampling design. Neither is built around the inequality and poverty estimators that distributional policy analysis reports, and neither returns objects that behave like a `DataFrame` in an existing pandas pipeline.
 
-`microdf` deliberately does not implement design-based variance estimation. Its weights are population weights: it estimates the statistic, not the sampling error around it. Analysts needing standard errors under a stratified or clustered design should use `survey` or `samplics`. The trade is a much smaller interface, and statistics that compose with the pandas code analysts already have.
+`microdf` estimates variance from replicate weights rather than from a survey design specification. Given the replicate weight matrix that products such as the CPS and ACS publish, it recomputes a statistic once per replicate and scales the spread by the factor for the replication scheme, which requires no analytic formula and therefore works for the Gini coefficient and quantiles as readily as for a mean. What it does not do is derive variance from stratum and cluster identifiers, so analysts who need standard errors under a design specification, or who hold no replicate weights, should use `survey` or `samplics`. The replicate estimators also assume weights as published: weights calibrated to external targets no longer correspond to the original replication scheme.
 
 # Software Design
 
@@ -84,6 +84,14 @@ df.poverty_rate("income", "threshold")
 
 regional = df.merge(geography, on="household_id")  # weights follow the join
 regional.groupby("region").income.median()         # and the grouping
+```
+
+Standard errors come from replicate weights rather than an analytic formula, so they are available for every estimator rather than the few with tractable variance:
+
+```python
+series.replicate_standard_error(
+    lambda s: s.gini(), replicate_weights, method="successive-difference"
+)
 ```
 
 Statistics requiring a decision take it as an explicit argument rather than choosing silently: `gini` accepts a `negatives` policy, `var` takes `ddof`, and behaviour on zero-weight records is documented and tested. The estimators are small and independently checkable: weighted quantiles sort by value, accumulate weight, and return the smallest value whose cumulative weight share reaches `q`, after dropping zero-weight records so they cannot be selected; the Gini is computed from the Lorenz curve over weighted cumulative population and income; poverty measures follow the FGT family, with rate, gap, deep gap, and squared gap.
