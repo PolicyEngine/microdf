@@ -15,7 +15,9 @@ no longer correspond to the original replication scheme, and applying these
 estimators to them does not describe the variance of the resulting estimator.
 """
 
-from typing import Callable, Optional, Union
+from __future__ import annotations
+
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -44,9 +46,9 @@ def _fay_factor(r: int, fay_k: float) -> float:
 def replicate_variance(
     series,
     statistic: Callable,
-    replicate_weights: Union[np.ndarray, pd.DataFrame],
+    replicate_weights: np.ndarray | pd.DataFrame,
     method: str = "jackknife",
-    fay_k: Optional[float] = None,
+    fay_k: float | None = None,
 ) -> float:
     """Variance of ``statistic`` estimated from replicate weights.
 
@@ -95,9 +97,7 @@ def replicate_variance(
 
     deviations = []
     for column in range(n_replicates):
-        replicate = MicroSeries(
-            values, weights=weights[:, column], index=index
-        )
+        replicate = MicroSeries(values, weights=weights[:, column], index=index)
         deviations.append(float(statistic(replicate)) - point)
 
     return factor * float(np.sum(np.square(deviations)))
@@ -106,18 +106,14 @@ def replicate_variance(
 def replicate_standard_error(
     series,
     statistic: Callable,
-    replicate_weights: Union[np.ndarray, pd.DataFrame],
+    replicate_weights: np.ndarray | pd.DataFrame,
     method: str = "jackknife",
-    fay_k: Optional[float] = None,
+    fay_k: float | None = None,
 ) -> float:
     """Standard error of ``statistic``, the square root of its variance.
 
     Takes the same arguments as :func:`replicate_variance`.
     """
     return float(
-        np.sqrt(
-            replicate_variance(
-                series, statistic, replicate_weights, method, fay_k
-            )
-        )
+        np.sqrt(replicate_variance(series, statistic, replicate_weights, method, fay_k))
     )
