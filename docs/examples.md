@@ -41,6 +41,13 @@ new Micro object with appropriate weights when that choice is intentional.
 A single DataFrame row is a plain pandas `Series`, because its entries are
 columns rather than weighted observations.
 
+`MicroDataFrame.cov()` and `.corr()` retain pandas' unweighted calculations
+and return plain pandas `DataFrame` matrices. Their rows describe columns,
+so observation weights do not apply to the result or subsequent operations
+such as `.sum()`. These methods accept the installed pandas version's
+arguments and defaults, including missing-value handling and correlation
+methods.
+
 Use Micro objects for **every input** to `pd.concat`. A mixed concat raises
 `ValueError` when pandas calls the Micro object's hooks. If a plain pandas
 object comes first, pandas can bypass those hooks and return an unweighted

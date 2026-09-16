@@ -353,3 +353,126 @@ def test_series_to_dataframe_weights_follow_aligned_rows_and_explicit_override(m
     assert explicit.income.sum() == 350  # 20 * 11 + 10 * 13.
     with pytest.raises(ValueError, match="weights"):
         mdf.MicroDataFrame(data, index=[3, 99])
+
+
+@pytest.mark.parametrize("method", ["cov", "corr"])
+@pytest.mark.parametrize("coincident_labels", [False, True])
+def test_dataframe_matrix_summaries_are_plain_and_unweighted(method, coincident_labels):
+    if coincident_labels:
+        frame = mdf.MicroDataFrame(
+            {"x": [10.0, 20.0], "y": [4.0, 8.0]},
+            index=["x", "y"],
+            weights=[2, 3],
+        )
+        # Sample covariance divides centered cross-products by n - 1.
+        covariance = [[50.0, 20.0], [20.0, 8.0]]
+        correlation = [[1.0, 1.0], [1.0, 1.0]]
+    else:
+        frame = mdf.MicroDataFrame(
+            {"x": [10.0, 20.0, 30.0], "y": [4.0, 8.0, 6.0]},
+            weights=[2, 3, 5],
+        )
+        # Centered x = [-10, 0, 10], y = [-2, 2, 0]; n - 1 = 2.
+        covariance = [[100.0, 10.0], [10.0, 4.0]]
+        correlation = [[1.0, 0.5], [0.5, 1.0]]
+    expected = pd.DataFrame(
+        covariance if method == "cov" else correlation,
+        index=frame.columns,
+        columns=frame.columns,
+    )
+
+    result = getattr(frame, method)()
+
+    assert type(result) is pd.DataFrame
+    pd.testing.assert_frame_equal(result, expected)
+    # Chaining a sum must not apply observation weights to column summaries.
+    pd.testing.assert_series_equal(result.sum(), expected.sum())
+    assert not hasattr(result, "weights")
+
+
+@pytest.mark.parametrize(
+    "method,args,kwargs",
+    [
+        ("cov", (), {}),
+        ("cov", (2, 0), {}),
+        ("cov", (), {"min_periods": 4, "ddof": 2}),
+        ("cov", (), {"min_periods": 2, "ddof": 0, "numeric_only": True}),
+        ("corr", (), {}),
+        ("corr", ("pearson", 2, True), {}),
+        ("corr", (), {"method": "spearman", "min_periods": 2}),
+        ("corr", (), {"min_periods": 4}),
+        ("corr", (), {"method": lambda x, y: np.dot(x, y), "min_periods": 2}),
+    ],
+)
+@pytest.mark.parametrize("missing", [False, True])
+def test_dataframe_matrix_summaries_preserve_pandas_arguments(
+    method, args, kwargs, missing
+):
+    data = {
+        "x": [10.0, 20.0, 30.0, 40.0],
+        "y": [4.0, 8.0, np.nan if missing else 6.0, 9.0],
+        "flag": [True, False, True, True],
+    }
+    frame = mdf.MicroDataFrame(data, index=[7, 7, 3, 9], weights=[2, 3, 5, 7])
+    expected = getattr(pd.DataFrame(data, index=frame.index), method)(*args, **kwargs)
+
+    result = getattr(frame, method)(*args, **kwargs)
+
+    assert type(result) is pd.DataFrame
+    pd.testing.assert_frame_equal(result, expected)
+    pd.testing.assert_series_equal(result.sum(), expected.sum())
+
+
+@pytest.mark.parametrize("method", ["cov", "corr"])
+def test_dataframe_matrix_summaries_preserve_numeric_only_and_errors(method):
+    data = {"x": [10.0, 20.0, 30.0], "y": [4.0, 8.0, 6.0], "label": ["a", "b", "c"]}
+    frame = mdf.MicroDataFrame(data, weights=[2, 3, 5])
+    plain = pd.DataFrame(data)
+    expected = getattr(plain, method)(numeric_only=True)
+
+    result = getattr(frame, method)(numeric_only=True)
+
+    assert type(result) is pd.DataFrame
+    pd.testing.assert_frame_equal(result, expected)
+    for kwargs in [{}, {"numeric_only": False}]:
+        with pytest.raises((TypeError, ValueError)) as pandas_error:
+            getattr(plain, method)(**kwargs)
+        with pytest.raises(type(pandas_error.value)) as microdf_error:
+            getattr(frame, method)(**kwargs)
+        assert str(microdf_error.value) == str(pandas_error.value)
+
+
+def test_dataframe_correlation_preserves_optional_kendall_support():
+    data = {"x": [10.0, 20.0, 30.0], "y": [4.0, 8.0, 6.0]}
+    frame = mdf.MicroDataFrame(data, weights=[2, 3, 5])
+    try:
+        expected = pd.DataFrame(data).corr(method="kendall")
+    except ImportError as pandas_error:
+        # Kendall requires scipy; delegation preserves pandas' dependency error.
+        with pytest.raises(type(pandas_error)) as microdf_error:
+            frame.corr(method="kendall")
+        assert str(microdf_error.value) == str(pandas_error)
+    else:
+        result = frame.corr(method="kendall")
+        assert type(result) is pd.DataFrame
+        pd.testing.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["cov", "corr"])
+def test_dataframe_matrix_summaries_preserve_pandas_metadata(method):
+    data = {"x": [10.0, 20.0, 30.0], "y": [4.0, 8.0, 6.0]}
+    frame = mdf.MicroDataFrame(data, weights=[2, 3, 5])
+    plain = pd.DataFrame(data)
+    for source in [frame, plain]:
+        source.attrs = {"survey": {"year": 2026}}
+        source.flags.allows_duplicate_labels = False
+        source.columns.name = "measure"
+    expected = getattr(plain, method)()
+
+    result = getattr(frame, method)()
+
+    assert type(result) is pd.DataFrame
+    pd.testing.assert_frame_equal(result, expected)
+    assert result.attrs == expected.attrs
+    result.attrs["survey"]["year"] = 2025
+    assert frame.attrs["survey"]["year"] == 2026

@@ -74,6 +74,17 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         super().__finalize__(other, method=method, **kwargs)
         return finalize_weights(self, other, method, previous)
 
+    @wraps(pd.DataFrame.cov)
+    def cov(self, *args, **kwargs) -> pd.DataFrame:
+        # Column summaries have no observation weights, even if labels match.
+        result = pd.DataFrame(self, copy=False).cov(*args, **kwargs)
+        return result.__finalize__(self, method="cov")
+
+    @wraps(pd.DataFrame.corr)
+    def corr(self, *args, **kwargs) -> pd.DataFrame:
+        result = pd.DataFrame(self, copy=False).corr(*args, **kwargs)
+        return result.__finalize__(self, method="corr")
+
     def __setstate__(self, state) -> None:
         """Restore a pickled MicroDataFrame.
 
