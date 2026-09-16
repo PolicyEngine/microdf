@@ -1,0 +1,1 @@
+- Added variance and standard error estimation from replicate weights, supporting jackknife, BRR, Fay's BRR, bootstrap and successive-difference schemes, for any statistic in the package.
