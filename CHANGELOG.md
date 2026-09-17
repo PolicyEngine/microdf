@@ -1,3 +1,10 @@
+## [1.5.1] - 2026-09-17
+
+### Fixed
+
+- Preserve label-aligned calling Series weights in binary operators and named arithmetic and comparison methods across pandas versions. Keep DataFrame reset-index weights independently mutable.
+
+
 ## [1.5.0] - 2026-09-17
 
 ### Added
