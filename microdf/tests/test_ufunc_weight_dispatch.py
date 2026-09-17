@@ -314,3 +314,29 @@ def test_binary_ufunc_defers_to_higher_priority_pandas_subclasses(base, weighted
         source.__array_ufunc__(np.maximum, "__call__", *plain_inputs) is NotImplemented
     )
     assert weighted.__array_ufunc__(np.maximum, "__call__", *inputs) is NotImplemented
+
+
+@pytest.mark.parametrize("ufunc", [np.divmod, np.maximum, np.add])
+@pytest.mark.parametrize("weighted_first", [True, False])
+def test_binary_ufunc_preserves_pandas_result_metadata(ufunc, weighted_first):
+    source = pd.Series([10, 20], index=["b", "a"], name="income")
+    other = pd.Series([23, 41], index=["a", "b"], name="income")
+    source.attrs = {"units": {"currency": "USD"}}
+    other.attrs = {"units": {"currency": "EUR"}}
+    weighted = MicroSeries(source, weights=[2, 9])
+    weighted.attrs = source.attrs.copy()
+    plain_inputs = (source, other) if weighted_first else (other, source)
+    inputs = (weighted, other) if weighted_first else (other, weighted)
+    expected = ufunc(*plain_inputs)
+
+    actual = ufunc(*inputs)
+
+    if not isinstance(expected, tuple):
+        actual, expected = (actual,), (expected,)
+    for result, plain in zip(actual, expected):
+        pd.testing.assert_series_equal(pd.Series(result), plain)
+        assert result.attrs == plain.attrs
+        if result.attrs:
+            result.attrs["units"]["currency"] = "changed"
+    assert source.attrs == weighted.attrs == {"units": {"currency": "USD"}}
+    assert other.attrs == {"units": {"currency": "EUR"}}

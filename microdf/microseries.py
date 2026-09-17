@@ -150,7 +150,9 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
             # pandas' generic ufunc reconstruction drops metadata for multiple
             # Series. Start from the first operand so reverse calls also align
             # every input's labels, then recover only unambiguous row weights.
-            plain = tuple(pd.Series(value, copy=False) for value in inputs)
+            plain = tuple(
+                pd.Series(value, copy=False).__finalize__(value) for value in inputs
+            )
             result = pd.Series.__array_ufunc__(
                 plain[0], ufunc, method, *plain, **kwargs
             )
@@ -159,7 +161,7 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
                 if isinstance(value, pd.Series):
                     return self._weighted_result(
                         value, aligned_weights(self, value.index)
-                    )
+                    ).__finalize__(value)
                 return value
 
             if isinstance(result, tuple):
