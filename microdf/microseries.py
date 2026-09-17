@@ -125,19 +125,30 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         return MicroDataFrame
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        # Preserve pandas' deferral to foreign handlers and higher priorities.
+        # Preserve deferral to foreign handlers. A higher-priority Series
+        # inheriting pandas' handler cannot take over: pandas would defer back
+        # to our distinct handler, so handle that case through plain Series.
         known_handlers = (
             pd.Series.__array_ufunc__,
             MicroSeries.__array_ufunc__,
             type(self).__array_ufunc__,
         )
-        for value in inputs:
+        inherited_series_priority = False
+        dispatch_index = 0
+        for position, value in enumerate(inputs):
             if value is not self and isinstance(value, (pd.Series, pd.DataFrame)):
-                if (
-                    value.__array_priority__ > self.__array_priority__
-                    or type(value).__array_ufunc__ not in known_handlers
-                ):
+                handler = type(value).__array_ufunc__
+                if handler not in known_handlers:
                     return NotImplemented
+                if value.__array_priority__ > self.__array_priority__:
+                    if (
+                        isinstance(value, pd.Series)
+                        and handler is pd.Series.__array_ufunc__
+                    ):
+                        inherited_series_priority = True
+                        dispatch_index = position
+                    else:
+                        return NotImplemented
 
         out = kwargs.get("out")
         has_output = out is not None and any(value is not None for value in out)
@@ -145,16 +156,16 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
             method == "__call__"
             and len(inputs) == 2
             and all(isinstance(value, pd.Series) for value in inputs)
-            and not has_output
+            and (not has_output or inherited_series_priority)
         ):
             # pandas' generic ufunc reconstruction drops metadata for multiple
-            # Series. Start from the first operand so reverse calls also align
-            # every input's labels, then recover only unambiguous row weights.
+            # Series. Preserve pandas' selected handler receiver because it
+            # determines alignment order, including positional output masks.
             plain = tuple(
                 pd.Series(value, copy=False).__finalize__(value) for value in inputs
             )
             result = pd.Series.__array_ufunc__(
-                plain[0], ufunc, method, *plain, **kwargs
+                plain[dispatch_index], ufunc, method, *plain, **kwargs
             )
 
             def restore_weights(value):
