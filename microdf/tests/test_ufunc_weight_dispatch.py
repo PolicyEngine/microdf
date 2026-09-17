@@ -512,3 +512,129 @@ def test_inherited_priority_series_rejects_unknown_row_weights(weighted_first):
 
     with pytest.raises(ValueError, match="weights"):
         np.maximum(*inputs)
+
+
+@pytest.mark.parametrize("weighted_first", [True, False])
+@pytest.mark.parametrize(
+    "row_error,output_kind,masked",
+    [
+        ("unknown-input", "input", False),
+        ("unknown-input", "array", False),
+        ("unknown-input", "array", True),
+        ("unknown-input", "series", False),
+        ("unknown-input", "micro", False),
+        ("unknown-output", "micro", False),
+        ("ambiguous-output", "micro", False),
+    ],
+)
+def test_inherited_priority_row_rejection_preserves_inputs_and_outputs(
+    weighted_first, row_error, output_kind, masked
+):
+    class HigherPrioritySeries(pd.Series):
+        __array_priority__ = MicroSeries.__array_priority__ + 1
+
+    source = pd.Series(
+        [1.0, 2.0, 4.0], index=pd.Index(["b", "a", "c"], name="row"), name="amount"
+    )
+    weighted = MicroSeries(source, weights=[3, 7, 11])
+    weighted.attrs = {"units": {"currency": "USD"}}
+    other_labels = (
+        ["b", "a", "unknown"] if row_error == "unknown-input" else source.index
+    )
+    higher = HigherPrioritySeries([9.0, 8.0, 6.0], index=other_labels, name="amount")
+    inputs = (weighted, higher) if weighted_first else (higher, weighted)
+    result_index = higher.index if weighted_first else source.index.union(higher.index)
+    if output_kind == "input":
+        out = weighted
+    elif output_kind == "array":
+        out = np.full(len(result_index), -99.0)
+    else:
+        output_labels = (
+            ["b", "a", "unknown"]
+            if row_error == "unknown-output"
+            else ["b", "a", "a"]
+            if row_error == "ambiguous-output"
+            else result_index
+        )
+        destination = pd.Series(-99.0, index=output_labels, name="destination")
+        out = (
+            MicroSeries(destination, weights=np.arange(len(destination)) + 19)
+            if output_kind == "micro"
+            else destination
+        )
+        out.attrs = {"purpose": "unchanged"}
+    original_output = np.array(out, copy=True)
+    original_weights = weighted.weights.copy()
+    output_weights = out.weights.copy() if isinstance(out, MicroSeries) else None
+    original_index = out.index.copy() if isinstance(out, pd.Series) else None
+    original_attrs = out.attrs.copy() if isinstance(out, pd.Series) else None
+    kwargs = {"where": np.arange(len(out)) % 2 == 0} if masked else {}
+
+    with pytest.raises(ValueError):
+        np.maximum(*inputs, out=out, **kwargs)
+
+    pd.testing.assert_series_equal(pd.Series(weighted), source)
+    pd.testing.assert_series_equal(weighted.weights, original_weights)
+    assert weighted.attrs == {"units": {"currency": "USD"}}
+    assert weighted.sum() == 61  # 1 * 3 + 2 * 7 + 4 * 11.
+    np.testing.assert_array_equal(np.asarray(out), original_output)
+    if isinstance(out, pd.Series):
+        pd.testing.assert_index_equal(out.index, original_index)
+        assert out.attrs == original_attrs
+        assert out.name == ("amount" if output_kind == "input" else "destination")
+    if output_weights is not None:
+        pd.testing.assert_series_equal(out.weights, output_weights)
+
+
+@pytest.mark.parametrize("weighted_first", [True, False])
+def test_inherited_priority_valid_aliased_output_matches_pandas(weighted_first):
+    class HigherPrioritySeries(pd.Series):
+        __array_priority__ = MicroSeries.__array_priority__ + 1
+
+    source = pd.Series([6.0, 18.0, 30.0], index=["b", "a", "c"], name="amount")
+    higher = HigherPrioritySeries(
+        [9.0, 15.0, 45.0], index=["c", "a", "b"], name="amount"
+    )
+    weighted = MicroSeries(source.copy(), weights=[7, 2, 5])
+    plain_inputs = (source, higher) if weighted_first else (higher, source)
+    inputs = (weighted, higher) if weighted_first else (higher, weighted)
+    expected = np.maximum(*plain_inputs, out=source)
+
+    result = np.maximum(*inputs, out=weighted)
+
+    pd.testing.assert_series_equal(pd.Series(weighted), source)
+    pd.testing.assert_series_equal(pd.Series(result), expected)
+    pd.testing.assert_series_equal(
+        weighted.weights, pd.Series([7.0, 2.0, 5.0], index=source.index)
+    )
+    assert (result is weighted) == (expected is source)
+    assert np.shares_memory(
+        np.asarray(result), np.asarray(weighted)
+    ) == np.shares_memory(np.asarray(expected), np.asarray(source))
+
+
+@pytest.mark.parametrize("weighted_first", [True, False])
+def test_foreign_ufunc_handler_receives_out_before_weight_validation(weighted_first):
+    calls = []
+    sentinel = object()
+
+    class ForeignSeries(pd.Series):
+        __array_priority__ = MicroSeries.__array_priority__ + 1
+
+        def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+            calls.append((ufunc, method, inputs, kwargs))
+            return sentinel
+
+    weighted = MicroSeries([1.0, 2.0], index=["a", "b"], weights=[3, 7])
+    other = ForeignSeries([9.0, 8.0], index=["a", "unknown"])
+    inputs = (weighted, other) if weighted_first else (other, weighted)
+    out = np.full(2, -99.0)
+
+    assert np.maximum(*inputs, out=out) is sentinel
+
+    assert len(calls) == 1
+    ufunc, method, received_inputs, kwargs = calls[0]
+    assert ufunc is np.maximum and method == "__call__"
+    assert all(actual is expected for actual, expected in zip(received_inputs, inputs))
+    assert kwargs["out"][0] is out
+    np.testing.assert_array_equal(out, [-99.0, -99.0])

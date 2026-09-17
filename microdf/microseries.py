@@ -164,6 +164,14 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
             plain = tuple(
                 pd.Series(value, copy=False).__finalize__(value) for value in inputs
             )
+            if has_output:
+                # Match pandas' receiver-based alignment before it writes out.
+                # Reconstruction must not discover invalid row weights later.
+                result_index = plain[dispatch_index].index.union(plain[1].index)
+                aligned_weights(self, result_index)
+                for output in out:
+                    if isinstance(output, MicroSeries):
+                        aligned_weights(output, result_index)
             result = pd.Series.__array_ufunc__(
                 plain[dispatch_index], ufunc, method, *plain, **kwargs
             )
