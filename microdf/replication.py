@@ -117,7 +117,10 @@ def replicate_variance(
         known = ", ".join(sorted([*METHOD_FACTORS, "fay"]))
         raise ValueError(f"Unknown method {method!r}; expected one of {known}")
 
-    center = float(statistic(series)) if centering == "full-sample" else None
+    # Keep in-place callback transformations out of the caller and replicates.
+    center = (
+        float(statistic(series.copy(deep=True))) if centering == "full-sample" else None
+    )
     values = series.array
     index = series.index
 

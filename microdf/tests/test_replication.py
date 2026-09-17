@@ -421,3 +421,124 @@ def test_nonfinite_callback_results_keep_existing_behavior(
         assert np.isnan(observed)
     else:
         assert observed == expected
+
+
+@pytest.mark.parametrize("inplace", [False, True])
+@pytest.mark.parametrize("centering", ["full-sample", "replicate-mean"])
+@pytest.mark.parametrize("api", ["variance", "standard_error", "series_method"])
+def test_callback_transforms_each_sample_once(inplace, centering, api):
+    series = MicroSeries([120.0, 180.0], weights=[1, 1])
+    replicates = np.array([[2.0, 0.0], [0.0, 2.0]])
+    original_values = pd.Series(series).copy(deep=True)
+    original_weights = series.weights.copy(deep=True)
+    original_replicates = replicates.copy()
+    calls = []
+
+    def total_after_allowance(sample):
+        calls.append(sample.weights.tolist())
+        if inplace:
+            sample -= 100
+            return sample.sum()
+        return (sample - 100).sum()
+
+    # Transformed values are 20 and 80; totals are 100, 40 and 160.
+    # BRR variance is ((40 - 100)**2 + (160 - 100)**2) / 2 = 3600.
+    expected = 3600 if api == "variance" else 60
+    assert (
+        _replication_result(
+            series,
+            total_after_allowance,
+            replicates,
+            api,
+            method="brr",
+            centering=centering,
+        )
+        == expected
+    )
+    expected_calls = [[2.0, 0.0], [0.0, 2.0]]
+    if centering == "full-sample":
+        expected_calls.insert(0, [1.0, 1.0])
+    assert calls == expected_calls
+    pd.testing.assert_series_equal(pd.Series(series), original_values)
+    pd.testing.assert_series_equal(series.weights, original_weights)
+    np.testing.assert_array_equal(replicates, original_replicates)
+
+
+@pytest.mark.parametrize("centering", ["full-sample", "replicate-mean"])
+@pytest.mark.parametrize("api", ["variance", "standard_error", "series_method"])
+def test_callbacks_isolate_values_weights_and_metadata(centering, api):
+    series = MicroSeries(
+        [120, 180],
+        weights=[1, 1],
+        index=pd.Index(["a", "b"], name="person"),
+        name="income",
+        dtype="Int64",
+    )
+    replicates = np.array([[2.0, 0.0], [0.0, 2.0]])
+    original = series.copy(deep=True)
+    original_replicates = replicates.copy()
+    calls = []
+
+    def mutating_total(sample):
+        assert sample.tolist() == [120, 180]
+        assert sample.dtype == original.dtype
+        assert sample.name == "income"
+        pd.testing.assert_index_equal(sample.index, original.index)
+        calls.append(sample.weights.tolist())
+        sample -= 100
+        estimate = sample.sum()
+        sample.weights.iloc[:] = 7
+        sample.index = pd.Index(["x", "y"], name="changed")
+        sample.name = "changed"
+        return estimate
+
+    expected = 3600 if api == "variance" else 60
+    assert (
+        _replication_result(
+            series, mutating_total, replicates, api, method="brr", centering=centering
+        )
+        == expected
+    )
+    expected_calls = [[2.0, 0.0], [0.0, 2.0]]
+    if centering == "full-sample":
+        expected_calls.insert(0, [1.0, 1.0])
+    assert calls == expected_calls
+    pd.testing.assert_series_equal(pd.Series(series), pd.Series(original))
+    pd.testing.assert_series_equal(series.weights, original.weights)
+    np.testing.assert_array_equal(replicates, original_replicates)
+
+
+@pytest.mark.parametrize("centering", ["full-sample", "replicate-mean"])
+@pytest.mark.parametrize("api", ["variance", "standard_error", "series_method"])
+def test_callback_exception_preserves_inputs(centering, api):
+    series = MicroSeries(
+        [120.0, 180.0], weights=[1, 1], index=["a", "b"], name="income"
+    )
+    replicates = np.array([[2.0, 0.0], [0.0, 2.0]])
+    original = series.copy(deep=True)
+    original_replicates = replicates.copy()
+    callback_error = ValueError("statistic failed after mutation")
+    calls = []
+
+    def failing_statistic(sample):
+        calls.append(sample.weights.tolist())
+        sample -= 100
+        sample.weights.iloc[:] = 7
+        sample.index = ["x", "y"]
+        sample.name = "changed"
+        raise callback_error
+
+    with pytest.raises(ValueError, match="statistic failed") as raised:
+        _replication_result(
+            series,
+            failing_statistic,
+            replicates,
+            api,
+            method="brr",
+            centering=centering,
+        )
+    assert raised.value is callback_error
+    assert calls == ([[1.0, 1.0]] if centering == "full-sample" else [[2.0, 0.0]])
+    pd.testing.assert_series_equal(pd.Series(series), pd.Series(original))
+    pd.testing.assert_series_equal(series.weights, original.weights)
+    np.testing.assert_array_equal(replicates, original_replicates)
