@@ -2,6 +2,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from .microdataframe import MicroDataFrame, MicroDataFrameGroupBy
 from .microseries import MicroSeries, MicroSeriesGroupBy
+from .replication import replicate_standard_error, replicate_variance
 
 name = "microdf"
 
@@ -19,4 +20,7 @@ __all__ = [
     # microdataframe.py
     "MicroDataFrame",
     "MicroDataFrameGroupBy",
+    # replication.py
+    "replicate_variance",
+    "replicate_standard_error",
 ]
