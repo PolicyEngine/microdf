@@ -1,3 +1,10 @@
+## [1.5.2] - 2026-09-17
+
+### Fixed
+
+- Preserve aligned, independent MicroSeries weights in binary NumPy operations such as maximum and in both results of divmod with a pandas Series on the left, including interoperability with higher-priority Series subclasses that inherit pandas' NumPy handling. Reject unknown or ambiguous row weights before writing explicit output buffers.
+
+
 ## [1.5.1] - 2026-09-17
 
 ### Fixed
