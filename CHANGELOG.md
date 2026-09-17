@@ -1,3 +1,10 @@
+## [1.5.0] - 2026-09-17
+
+### Added
+
+- Added variance and standard error estimation from replicate weights for scalar statistics, preserving input dtypes and supporting common-factor jackknife, BRR, Fay's BRR, bootstrap and successive-difference schemes with explicit full-sample or replicate-mean centering. Reference-relative centering and scaled accumulation preserve representable variances at extreme magnitudes. Full-sample callbacks receive independent copies so in-place transformations preserve caller data and subsequent replicate inputs. Statistical validity depends on the statistic and survey design; nonsmooth quantiles can require an appropriate replication method or smoothing.
+
+
 ## [1.4.1] - 2026-09-16
 
 ### Fixed
