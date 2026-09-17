@@ -6,7 +6,12 @@ from typing import Callable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from microdf._weights import WeightPropagationMixin, finalize_weights, weight_series
+from microdf._weights import (
+    WeightPropagationMixin,
+    aligned_weights,
+    finalize_weights,
+    weight_series,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +99,10 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
     # Keep pandas' own metadata, including the Series name.
     _metadata = pd.Series._metadata + ["weights"]
 
+    # These operands previously shared pandas' ufunc handler with MicroSeries.
+    # Keep inherited fallback paths working after overriding that handler.
+    _HANDLED_TYPES = pd.Series._HANDLED_TYPES + (pd.Series, pd.DataFrame)
+
     def __init__(self, *args, weights: np.array = None, **kwargs):
         """A Series-inheriting class for weighted microdata.
 
@@ -114,6 +123,75 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         from microdf.microdataframe import MicroDataFrame
 
         return MicroDataFrame
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # Preserve deferral to foreign handlers. A higher-priority Series
+        # inheriting pandas' handler cannot take over: pandas would defer back
+        # to our distinct handler, so handle that case through plain Series.
+        known_handlers = (
+            pd.Series.__array_ufunc__,
+            MicroSeries.__array_ufunc__,
+            type(self).__array_ufunc__,
+        )
+        inherited_series_priority = False
+        dispatch_index = 0
+        for position, value in enumerate(inputs):
+            if value is not self and isinstance(value, (pd.Series, pd.DataFrame)):
+                handler = type(value).__array_ufunc__
+                if handler not in known_handlers:
+                    return NotImplemented
+                if value.__array_priority__ > self.__array_priority__:
+                    if (
+                        isinstance(value, pd.Series)
+                        and handler is pd.Series.__array_ufunc__
+                    ):
+                        inherited_series_priority = True
+                        dispatch_index = position
+                    else:
+                        return NotImplemented
+
+        out = kwargs.get("out")
+        has_output = out is not None and any(value is not None for value in out)
+        if (
+            method == "__call__"
+            and len(inputs) == 2
+            and all(isinstance(value, pd.Series) for value in inputs)
+            and (not has_output or inherited_series_priority)
+        ):
+            # pandas' generic ufunc reconstruction drops metadata for multiple
+            # Series. Preserve pandas' selected handler receiver because it
+            # determines alignment order, including positional output masks.
+            plain = tuple(
+                pd.Series(value, copy=False).__finalize__(value) for value in inputs
+            )
+            if has_output:
+                # Match pandas' receiver-based alignment before it writes out.
+                # Reconstruction must not discover invalid row weights later.
+                result_index = plain[dispatch_index].index.union(plain[1].index)
+                aligned_weights(self, result_index)
+                for output in out:
+                    if isinstance(output, MicroSeries):
+                        aligned_weights(output, result_index)
+            result = pd.Series.__array_ufunc__(
+                plain[dispatch_index], ufunc, method, *plain, **kwargs
+            )
+
+            def restore_weights(value):
+                if isinstance(value, pd.Series):
+                    return self._weighted_result(
+                        value, aligned_weights(self, value.index)
+                    ).__finalize__(value)
+                return value
+
+            if isinstance(result, tuple):
+                return tuple(restore_weights(value) for value in result)
+            return restore_weights(result)
+        return super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
+
+    def __rdivmod__(self, other) -> tuple["MicroSeries", "MicroSeries"]:
+        # An explicit override gives the weighted subclass priority over a
+        # plain Series on the left, as for the other reverse operators.
+        return super().__rdivmod__(other)
 
     def __finalize__(self, other, method=None, **kwargs):
         previous = self.__dict__.get("weights")
