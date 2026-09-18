@@ -1,3 +1,10 @@
+## [1.5.4] - 2026-09-18
+
+### Changed
+
+- The README now opens with the problem the package solves rather than a description of its classes.
+
+
 ## [1.5.3] - 2026-09-18
 
 ### Fixed
