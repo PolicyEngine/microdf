@@ -1,3 +1,10 @@
+## [1.5.9] - 2026-09-18
+
+### Changed
+
+- Adds an API reference to the documentation.
+
+
 ## [1.5.8] - 2026-09-18
 
 ### Changed
