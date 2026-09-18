@@ -44,20 +44,22 @@ The second problem is that weights must stay aligned with the data through every
 
 `microdf` addresses both. It makes the estimator decisions once, documents them and tests them: the quantile estimator follows the inverse CDF definition and matches the default behaviour of R's `survey::svyquantile` [@lumley2004survey; @lumley2010complex], so results can be checked against an established implementation; the variance treats weights as frequencies, so with integer weights it agrees with `numpy` on the replicated sample; the top-share estimator splits the record at the cutoff proportionally, so a constant distribution returns the share it should. It also carries the weight with the data through every transformation between loading a file and computing a statistic, so those guarantees hold at the point the statistic is taken.
 
+`microdf` began in June 2018, before any of PolicyEngine's microsimulation packages, is installed and used independently of them, and is described here as a standalone library rather than as part of the model that depends on it [@policyengine_py]. The replicate-weight variance estimation is new since that work and is documented here for the first time.
+
 # State of the field
 
 Several tools compute weighted statistics. `microdf` combines pandas-native structures, a distributional estimator set, and replicate-weight variance without requiring a complex-survey design object.
 
-|  | `microdf` | `samplics` [@samplics] | `statsmodels` [@seabold2010statsmodels] | R `survey` [@lumley2004survey] | pandas, weighted by hand |
+|  | `microdf` | R `survey` + `convey` [@lumley2004survey; @convey] | `samplics` [@samplics] | `statsmodels` [@seabold2010statsmodels] | pandas, weighted by hand |
 |---|---|---|---|---|---|
-| Weighted quantiles | Yes | Yes | `DescrStatsW` only | Yes | Hand-written |
-| Inequality and poverty measures | Gini, top and bottom shares, FGT poverty | No | No | Limited | Hand-written |
-| pandas-native | Yes | Partly | Partly | No (R) | Yes |
-| Design-based variance | Replicate weights | Yes | No | Yes | No |
+| Weighted quantiles | Yes | Yes | Yes | `DescrStatsW` only | Hand-written |
+| Inequality and poverty measures | Gini, top and bottom shares, FGT poverty | Yes | No | No | Hand-written |
+| pandas-native | Yes | No (R) | Partly | Partly | Yes |
+| Design-based variance | Replicate weights | Yes | Yes | No | No |
 
-R's `survey` package is the reference implementation for design-based survey inference and remains the right tool when standard errors under a complex design are required. `samplics` brings much of that machinery to Python, also centred on sampling design. Neither implements the inequality and poverty estimators that distributional policy analysis reports, and neither returns objects that behave like a `DataFrame` in an existing pandas pipeline.
+R's `survey` package is the reference implementation for design-based survey inference and remains the right tool when standard errors under a complex design are required. `convey` [@convey] adds the inequality and poverty estimators on top of it, and is the closest existing equivalent to what `microdf` provides. Both require a survey design object, and both are in R. `samplics` brings design-based inference to Python, though it is now archived in favour of `svy`; neither implements distributional estimators, and neither returns objects that behave like a `DataFrame` in an existing pandas pipeline. `statsmodels`' `DescrStatsW` covers weighted moments, quantiles and covariance, but is a statistics container rather than a data structure that survives a merge or a groupby. What `microdf` offers that these do not is the combination: distributional estimators on a weighted object that stays a `DataFrame` through the transformations that precede them.
 
-`microdf` estimates variance from replicate weights. Given the replicate weight matrix that products such as the CPS and ACS publish, it recomputes a statistic once per replicate and scales the spread by the factor for the replication scheme. This needs no analytic formula, so it works for the Gini coefficient and quantiles as readily as for a mean. It does not derive variance from stratum and cluster identifiers, so analysts who need standard errors under a design specification, or who hold no replicate weights, should use `survey` or `samplics`. The replicate estimators also assume weights as published: weights calibrated to external targets no longer correspond to the original replication scheme.
+`microdf` estimates variance from replicate weights. Given the replicate weight matrix that products such as the CPS and ACS publish, it recomputes a statistic once per replicate and scales the spread by the factor for the replication scheme. This needs no analytic formula, so it works for the Gini coefficient and quantiles as readily as for a mean. It does not derive variance from stratum and cluster identifiers, so analysts who need standard errors under a design specification, or who hold no replicate weights, should use `survey`, `convey` or `svy`. The replicate estimators also assume weights as published: weights calibrated to external targets no longer correspond to the original replication scheme.
 
 # Software design
 
@@ -89,7 +91,7 @@ regional = df.merge(geography, on="household_id")
 regional.groupby("region").income.median()
 ```
 
-Standard errors come from replicate weights, so they are available for every estimator, including those with no tractable variance formula. The scale applied to the spread across replicates depends on how the replicates were constructed [@wolter2007variance], including the Fay-type replication with a 4/R scale used for the ACS and the CPS ASEC [@fay1995successive], which publish 80 and 160 replicates respectively:
+Standard errors come from replicate weights, so they are available for every estimator, including those with no tractable variance formula. The scale applied to the spread across replicates depends on how the replicates were constructed [@wolter2007variance], including the successive-difference replication with a 4/R scale used for the ACS and the CPS ASEC [@fay1995successive], which publish 80 and 160 replicates respectively:
 
 ```python
 series.replicate_standard_error(
