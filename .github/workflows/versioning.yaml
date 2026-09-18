@@ -49,6 +49,9 @@ jobs:
       name: Publish to PyPI
       if: (github.event.head_commit.message == 'Update package version')
       runs-on: ubuntu-latest
+      permissions:
+        contents: write
+        id-token: write
       steps:
         - name: Checkout code
           uses: actions/checkout@v6
@@ -69,7 +72,7 @@ jobs:
           run: |
             make build
         - name: Publish a git tag
-          run: ".github/publish-git-tag.sh || true"
+          run: ".github/publish-git-tag.sh"
         - name: Publish to PyPI
           uses: pypa/gh-action-pypi-publish@release/v1
           with:
