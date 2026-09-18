@@ -22,3 +22,12 @@ fi
 echo "Tagging ${TAG}"
 git tag "${TAG}"
 git push origin "${TAG}"
+
+# Zenodo archives on the GitHub release, not the tag, so a tag alone leaves the
+# DOI pointing at whatever was last released by hand.
+if gh release view "${TAG}" >/dev/null 2>&1; then
+  echo "Release ${TAG} already exists; nothing to do."
+else
+  echo "Creating release ${TAG}"
+  gh release create "${TAG}" --title "${TAG}" --generate-notes
+fi
