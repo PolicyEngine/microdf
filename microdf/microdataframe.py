@@ -7,7 +7,15 @@ from typing import Callable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from microdf.microseries import MicroSeries, MicroSeriesGroupBy
+from microdf.microseries import (
+    MicroSeries,
+    MicroSeriesGroupBy,
+    _pair_options,
+    _usable_pair,
+    _validate_frequency_weights,
+    _weighted_correlation,
+    _weighted_covariance,
+)
 from microdf._weights import (
     WeightPropagationMixin,
     aligned_weights,
@@ -33,7 +41,7 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         set_weight_col.
 
         :param weights: Array of weights.
-        :type weights: np.array
+        :type weights: np.ndarray
         """
         super().__init__(*args, **kwargs)
         # pandas normalizes mixed-dimensional concat inputs through this
@@ -74,16 +82,99 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         super().__finalize__(other, method=method, **kwargs)
         return finalize_weights(self, other, method, previous)
 
-    @wraps(pd.DataFrame.cov)
-    def cov(self, *args, **kwargs) -> pd.DataFrame:
-        # Column summaries have no observation weights, even if labels match.
-        result = pd.DataFrame(self, copy=False).cov(*args, **kwargs)
-        return result.__finalize__(self, method="cov")
+    def cov(
+        self,
+        min_periods: Optional[int] = None,
+        ddof: int = 1,
+        numeric_only: bool = False,
+    ) -> pd.DataFrame:
+        """Pairwise frequency-weighted covariance of the columns.
 
-    @wraps(pd.DataFrame.corr)
-    def corr(self, *args, **kwargs) -> pd.DataFrame:
-        result = pd.DataFrame(self, copy=False).corr(*args, **kwargs)
-        return result.__finalize__(self, method="corr")
+        Every cell uses the estimator of :meth:`MicroSeries.cov` with this
+        frame's weights: ``sum(w * (x - xmean) * (y - ymean)) / (sum(w) -
+        ddof)`` over the rows where both columns are present and the weight
+        is positive. Integer weights therefore match ``pandas.DataFrame.cov``
+        on the replicated sample. Missing values are removed pairwise, so
+        each cell can use a different set of rows, as in pandas.
+
+        The result is a plain ``pandas.DataFrame``: it summarises columns,
+        so it carries no row weights.
+
+        :param min_periods: Minimum usable row pairs per cell, not the sum
+            of frequency weights. Cells with fewer are NaN. Defaults to 1.
+        :param ddof: Degrees of freedom subtracted from the weight total.
+        :param numeric_only: Use only numeric columns. Otherwise every column
+            is converted to float, raising the error pandas raises.
+        :returns: Covariance matrix indexed by column in both directions.
+        """
+        return self._weighted_pairwise(
+            "cov", min_periods=min_periods, ddof=ddof, numeric_only=numeric_only
+        )
+
+    def corr(
+        self,
+        method: str = "pearson",
+        min_periods: int = 1,
+        numeric_only: bool = False,
+    ) -> pd.DataFrame:
+        """Pairwise frequency-weighted Pearson correlation of the columns.
+
+        Every cell uses the estimator of :meth:`MicroSeries.corr` with this
+        frame's weights over the rows where both columns are present and the
+        weight is positive. Constant columns give NaN. Only ``"pearson"`` is
+        supported, as on :meth:`MicroSeries.corr`; for an unweighted rank
+        correlation convert to ``pandas.DataFrame`` first.
+
+        The result is a plain ``pandas.DataFrame``: it summarises columns, so
+        it carries no row weights.
+
+        :param method: Only "pearson" is supported.
+        :param min_periods: Minimum usable row pairs per cell, not the sum of
+            frequency weights. Cells with fewer are NaN.
+        :param numeric_only: Use only numeric columns. Otherwise every column
+            is converted to float, raising the error pandas raises.
+        :returns: Correlation matrix indexed by column in both directions.
+        """
+        if method != "pearson":
+            raise ValueError("weighted correlation only supports method='pearson'")
+        return self._weighted_pairwise(
+            "corr", min_periods=min_periods, ddof=1, numeric_only=numeric_only
+        )
+
+    def _weighted_pairwise(
+        self,
+        statistic: str,
+        *,
+        min_periods: Optional[int],
+        ddof: int,
+        numeric_only: bool,
+    ) -> pd.DataFrame:
+        """Fill a symmetric column matrix one usable pair at a time."""
+        min_periods, ddof = _pair_options(min_periods, ddof)
+        data = self._get_numeric_data() if numeric_only else self
+        frame = pd.DataFrame(data, copy=False)
+        # The conversion pandas uses, so non-numeric columns raise its error.
+        values = frame.to_numpy(dtype=float, na_value=np.nan)
+        weights = np.asarray(self.weights, dtype=float)
+        _validate_frequency_weights(weights)
+        columns = frame.columns
+        matrix = np.full((len(columns), len(columns)), np.nan)
+        for i in range(len(columns)):
+            for j in range(i, len(columns)):
+                pair = _usable_pair(
+                    values[:, i], values[:, j], weights, min_periods, ddof, True
+                )
+                if pair is None:
+                    continue
+                x, y, pair_weights, denominator = pair
+                if statistic == "cov":
+                    cell = _weighted_covariance(x, y, pair_weights, denominator)
+                else:
+                    cell = _weighted_correlation(x, y, pair_weights)
+                matrix[i, j] = matrix[j, i] = cell
+        result = pd.DataFrame(matrix, index=columns, columns=columns)
+        # Column summaries have no observation weights, even if labels match.
+        return pd.DataFrame.__finalize__(result, self, method=statistic)
 
     def __setstate__(self, state) -> None:
         """Restore a pickled MicroDataFrame.
@@ -338,7 +429,7 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         :param weights: Array of weights.
         :param preserve_old: If True, keeps the old weights as a column when
             new weights are provided.
-        :type weights: np.array
+        :type weights: np.ndarray
         """
         if preserve_old and self.weights_col is not None:
             self["old_" + self.weights_col] = self.weights

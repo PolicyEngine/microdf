@@ -4,3 +4,4 @@ sections:
 - file: examples
   sections:
   - file: gini
+- file: api

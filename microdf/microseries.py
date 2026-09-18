@@ -51,6 +51,84 @@ def _weighted_centered_vector(
     return np.ldexp(shifted, -weight_shift), exponent + int(shift) + int(weight_shift)
 
 
+def _pair_options(min_periods: Optional[int], ddof: int) -> tuple[int, int]:
+    """Validate the row minimum and degrees of freedom for paired moments."""
+    if not isinstance(ddof, (int, np.integer)):
+        raise TypeError("ddof must be an integer")
+    if min_periods is None:
+        min_periods = 1
+    if not isinstance(min_periods, (int, np.integer)) or min_periods < 0:
+        raise ValueError("min_periods must be a nonnegative integer")
+    return int(min_periods), int(ddof)
+
+
+def _validate_frequency_weights(weights: np.ndarray) -> None:
+    """Reject weights that cannot be frequencies."""
+    if not np.isfinite(weights).all() or (weights < 0).any():
+        raise ValueError("frequency weights must be finite and nonnegative")
+
+
+def _usable_pair(
+    x: np.ndarray,
+    y: np.ndarray,
+    weights: np.ndarray,
+    min_periods: int,
+    ddof: int,
+    skipna: bool,
+) -> Optional[tuple[np.ndarray, np.ndarray, np.ndarray, float]]:
+    """Keep the present, positively weighted rows of an aligned pair."""
+    # Zero frequency means the row is absent, including for skipna=False.
+    positive = weights > 0
+    x, y, weights = x[positive], y[positive], weights[positive]
+    missing = np.isnan(x) | np.isnan(y)
+    if not skipna and missing.any():
+        return None
+    x, y, weights = x[~missing], y[~missing], weights[~missing]
+    total_weight = weights.sum()
+    if not np.isfinite(total_weight):
+        raise ValueError("the sum of frequency weights must be finite")
+    if len(x) < min_periods or total_weight == 0 or total_weight <= ddof:
+        return None
+    return x, y, weights, float(total_weight - ddof)
+
+
+def _weighted_covariance(
+    x: np.ndarray, y: np.ndarray, weights: np.ndarray, denominator: float
+) -> float:
+    """Frequency-weighted covariance of a usable pair."""
+    if not np.isfinite(x).all() or not np.isfinite(y).all():
+        return np.nan
+    x, x_exponent = _weighted_centered_vector(x, weights)
+    y, y_exponent = _weighted_centered_vector(y, weights)
+    # Combine exponents only after dividing out sum(weights) - ddof.
+    # Neither the original squared scale nor raw weighted sum need fit.
+    denominator, denominator_exponent = np.frexp(denominator)
+    return float(
+        np.ldexp(
+            np.sum(x * y) / denominator,
+            x_exponent + y_exponent - int(denominator_exponent),
+        )
+    )
+
+
+def _weighted_correlation(x: np.ndarray, y: np.ndarray, weights: np.ndarray) -> float:
+    """Frequency-weighted Pearson correlation of a usable pair."""
+    if not np.isfinite(x).all() or not np.isfinite(y).all():
+        return np.nan
+    # A weighted mean can round away from identical decimal inputs.
+    # Check the retained observations exactly before subtracting it.
+    if (x == x[0]).all() or (y == y[0]).all():
+        return np.nan
+    x, _ = _weighted_centered_vector(x, weights)
+    y, _ = _weighted_centered_vector(y, weights)
+    x_ss = np.sum(x * x)
+    y_ss = np.sum(y * y)
+    if x_ss == 0 or y_ss == 0:
+        return np.nan
+    result = np.sum(x * y) / (np.sqrt(x_ss) * np.sqrt(y_ss))
+    return float(np.clip(result, -1.0, 1.0))
+
+
 def _weighted_top_share(
     values: np.ndarray, weights: np.ndarray, top_x_pct: float
 ) -> float:
@@ -103,13 +181,13 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
     # Keep inherited fallback paths working after overriding that handler.
     _HANDLED_TYPES = pd.Series._HANDLED_TYPES + (pd.Series, pd.DataFrame)
 
-    def __init__(self, *args, weights: np.array = None, **kwargs):
+    def __init__(self, *args, weights: np.ndarray = None, **kwargs):
         """A Series-inheriting class for weighted microdata.
 
         Weights can be provided at initialisation, or using set_weights.
 
         :param weights: Array of weights.
-        :type weights: np.array
+        :type weights: np.ndarray
         """
         super().__init__(*args, **kwargs)
         self.set_weights(weights)
@@ -269,14 +347,14 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         return fn
 
     def set_weights(
-        self, weights: np.array, preserve_old: Optional[bool] = False
+        self, weights: np.ndarray, preserve_old: Optional[bool] = False
     ) -> None:
         """Sets the weight values.
 
         :param weights: Array of weights.
         :param preserve_old: If True, keeps the old weights as a column when
             new weights are provided.
-        :type weights: np.array.
+        :type weights: np.ndarray.
         """
         if weights is None:
             self.weights = weight_series(np.ones(len(self)), self.index)
@@ -456,12 +534,7 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         """Align usable paired observations with their left weights."""
         if not isinstance(other, pd.Series):
             raise TypeError("other must be a pandas Series or MicroSeries")
-        if not isinstance(ddof, (int, np.integer)):
-            raise TypeError("ddof must be an integer")
-        if min_periods is None:
-            min_periods = 1
-        if not isinstance(min_periods, (int, np.integer)) or min_periods < 0:
-            raise ValueError("min_periods must be a nonnegative integer")
+        min_periods, ddof = _pair_options(min_periods, ddof)
         if len(self) == 0 or len(other) == 0:
             return None
 
@@ -477,27 +550,8 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         )
         y = right.to_numpy(dtype=float, na_value=np.nan)
         weights = np.asarray(self.weights, dtype=float)[positions]
-        if not np.isfinite(weights).all() or (weights < 0).any():
-            raise ValueError("frequency weights must be finite and nonnegative")
-
-        # Zero frequency means the row is absent, including for skipna=False.
-        positive = weights > 0
-        x, y, weights = x[positive], y[positive], weights[positive]
-        missing = np.isnan(x) | np.isnan(y)
-        if not skipna and missing.any():
-            return None
-        x, y, weights = x[~missing], y[~missing], weights[~missing]
-        total_weight = weights.sum()
-        if not np.isfinite(total_weight):
-            raise ValueError("the sum of frequency weights must be finite")
-        if len(x) < min_periods or total_weight == 0 or total_weight <= ddof:
-            return None
-        return (
-            x,
-            y,
-            weights,
-            float(total_weight - ddof),
-        )
+        _validate_frequency_weights(weights)
+        return _usable_pair(x, y, weights, min_periods, ddof, skipna)
 
     def cov(
         self,
@@ -531,19 +585,7 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         if pair is None:
             return np.nan
         x, y, weights, denominator = pair
-        if not np.isfinite(x).all() or not np.isfinite(y).all():
-            return np.nan
-        x, x_exponent = _weighted_centered_vector(x, weights)
-        y, y_exponent = _weighted_centered_vector(y, weights)
-        # Combine exponents only after dividing out sum(weights) - ddof.
-        # Neither the original squared scale nor raw weighted sum need fit.
-        denominator, denominator_exponent = np.frexp(denominator)
-        return float(
-            np.ldexp(
-                np.sum(x * y) / denominator,
-                x_exponent + y_exponent - int(denominator_exponent),
-            )
-        )
+        return _weighted_covariance(x, y, weights, denominator)
 
     def corr(
         self,
@@ -578,22 +620,9 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         if pair is None:
             return np.nan
         x, y, weights, _ = pair
-        if not np.isfinite(x).all() or not np.isfinite(y).all():
-            return np.nan
-        # A weighted mean can round away from identical decimal inputs.
-        # Check the retained observations exactly before subtracting it.
-        if (x == x[0]).all() or (y == y[0]).all():
-            return np.nan
-        x, _ = _weighted_centered_vector(x, weights)
-        y, _ = _weighted_centered_vector(y, weights)
-        x_ss = np.sum(x * x)
-        y_ss = np.sum(y * y)
-        if x_ss == 0 or y_ss == 0:
-            return np.nan
-        result = np.sum(x * y) / (np.sqrt(x_ss) * np.sqrt(y_ss))
-        return float(np.clip(result, -1.0, 1.0))
+        return _weighted_correlation(x, y, weights)
 
-    def quantile(self, q: np.array, skipna: bool = True) -> pd.Series:
+    def quantile(self, q: np.ndarray, skipna: bool = True) -> pd.Series:
         """Calculates weighted quantiles of the MicroSeries.
 
         Uses the inverse CDF method: the q-th quantile is the smallest
@@ -601,7 +630,7 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         the default behavior of R's survey::svyquantile.
 
         :param q: Quantile(s) to calculate, must be in [0, 1].
-        :type q: float or np.array
+        :type q: float or np.ndarray
         :param skipna: Exclude NaN values (default True). NaN sorts to the
             end of the array, so leaving NaN rows in would let their weight
             inflate the cumulative distribution and push the cutoff upward.
@@ -945,6 +974,11 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
 
     @vector_function
     def quintile_rank(self) -> "MicroSeries":
+        """Calculate weighted quintile ranks (1-5).
+
+        :returns: MicroSeries of quintile ranks.
+        :rtype: MicroSeries
+        """
         return MicroSeries(
             np.minimum(np.ceil(self.rank(pct=True) * 5), 5),
             weights=self.weights,
@@ -952,6 +986,11 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
 
     @vector_function
     def quartile_rank(self) -> "MicroSeries":
+        """Calculate weighted quartile ranks (1-4).
+
+        :returns: MicroSeries of quartile ranks.
+        :rtype: MicroSeries
+        """
         return MicroSeries(
             np.minimum(np.ceil(self.rank(pct=True) * 4), 4),
             weights=self.weights,
@@ -959,6 +998,11 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
 
     @vector_function
     def percentile_rank(self) -> "MicroSeries":
+        """Calculate weighted percentile ranks (1-100).
+
+        :returns: MicroSeries of percentile ranks.
+        :rtype: MicroSeries
+        """
         return MicroSeries(
             np.minimum(np.ceil(self.rank(pct=True) * 100), 100),
             weights=self.weights,

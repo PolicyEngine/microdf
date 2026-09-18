@@ -20,6 +20,7 @@ project:
     - file: examples.md
       children:
         - file: gini.ipynb
+    - file: api.md
 site:
   options:
     logo: microdf_logo.png

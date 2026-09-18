@@ -1,0 +1,37 @@
+{
+  "upload_type": "software",
+  "title": "microdf: Weighted DataFrames and Series for Survey Microdata Analysis",
+  "description": "<p>Weighted pandas DataFrames and Series for survey microdata analysis. <code>microdf</code> carries survey weights inside the object, so they stay aligned with their rows through merges, filters, grouping and reindexing, and it implements weighted estimators &mdash; quantiles, variance, Gini, top shares, poverty rates &mdash; with documented conventions rather than ad hoc ones.</p>",
+  "license": "MIT",
+  "access_right": "open",
+  "creators": [
+    {
+      "name": "Ahmadi, Vahid",
+      "orcid": "0009-0004-1093-6272",
+      "affiliation": "PolicyEngine"
+    },
+    {
+      "name": "Ghenis, Max",
+      "orcid": "0000-0002-1335-8277",
+      "affiliation": "PolicyEngine"
+    },
+    {
+      "name": "Juaristi, María",
+      "orcid": "0009-0007-4946-2248",
+      "affiliation": "PolicyEngine"
+    },
+    {
+      "name": "Woodruff, Nikhil",
+      "orcid": "0009-0009-5004-4910",
+      "affiliation": "PolicyEngine"
+    }
+  ],
+  "keywords": [
+    "survey microdata",
+    "sampling weights",
+    "inequality",
+    "poverty measurement",
+    "microsimulation",
+    "pandas"
+  ]
+}
