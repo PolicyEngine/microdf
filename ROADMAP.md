@@ -6,4 +6,4 @@
 * Presets for working with common datasets, e.g. suggesting the appropriate weight for SCF and CPS
 * Standard error calculations for surveys with replicate weight files
 
-See the [issues page](https://github.com/PSLmodels/microdf/issues) to view and suggest other items.
+See the [issues page](https://github.com/PolicyEngine/microdf/issues) to view and suggest other items.

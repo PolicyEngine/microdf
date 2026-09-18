@@ -1,8 +1,17 @@
+from importlib.metadata import PackageNotFoundError, version
+
 from .microdataframe import MicroDataFrame, MicroDataFrameGroupBy
 from .microseries import MicroSeries, MicroSeriesGroupBy
+from .replication import replicate_standard_error, replicate_variance
 
 name = "microdf"
-__version__ = "0.1.0"
+
+# Read the version from package metadata so it can't drift from
+# pyproject.toml (the automated bump only touches pyproject).
+try:
+    __version__ = version("microdf-python")
+except PackageNotFoundError:  # pragma: no cover - running from a source tree
+    __version__ = "unknown"
 
 __all__ = [
     # microseries.py
@@ -11,4 +20,7 @@ __all__ = [
     # microdataframe.py
     "MicroDataFrame",
     "MicroDataFrameGroupBy",
+    # replication.py
+    "replicate_variance",
+    "replicate_standard_error",
 ]

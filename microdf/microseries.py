@@ -6,7 +6,49 @@ from typing import Callable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
+from microdf._weights import (
+    WeightPropagationMixin,
+    aligned_weights,
+    finalize_weights,
+    weight_series,
+)
+
 logger = logging.getLogger(__name__)
+
+
+def _weighted_centered_vector(
+    values: np.ndarray, weights: np.ndarray
+) -> tuple[np.ndarray, int]:
+    """Return scaled sqrt-weighted deviations and their power-of-two
+    exponent."""
+    # Center relative to a maximum-weight observation: shifting by a low-weight
+    # extreme could erase differences among the influential observations.
+    # A relative mean also preserves nearby values at a large common offset.
+    reference = values[np.argmax(weights)]
+    with np.errstate(over="ignore"):
+        shifted = values - reference
+    exponent = 0
+    if np.isinf(shifted).any():
+        # Opposite finite extremes can overflow their difference. Halving is
+        # exact for those values; restore that factor in the final exponent.
+        shifted = values / 2 - reference / 2
+        exponent = 1
+    magnitude = np.max(np.abs(shifted))
+    if magnitude == 0:
+        return shifted, 0
+    _, shift = np.frexp(magnitude)
+    shifted = np.ldexp(shifted, -shift)
+    # Raise tiny mean weights by an exact common power of two so products
+    # with the scaled deviations do not underflow. Never scale down: that
+    # could discard small weights when frequencies span a wide range.
+    _, mean_weight_exponent = np.frexp(np.max(weights))
+    mean_weights = np.ldexp(weights, -min(int(mean_weight_exponent), 0))
+    shifted -= np.average(shifted, weights=mean_weights)
+    # Weight each vector before taking products, then scale again so squared
+    # deviations never accumulate raw frequencies at the original value scale.
+    shifted *= np.sqrt(weights)
+    _, weight_shift = np.frexp(np.max(np.abs(shifted)))
+    return np.ldexp(shifted, -weight_shift), exponent + int(shift) + int(weight_shift)
 
 
 def _weighted_top_share(
@@ -49,7 +91,18 @@ def _weighted_top_share(
     return top_sum / total_sum
 
 
-class MicroSeries(pd.Series):
+class MicroSeries(WeightPropagationMixin, pd.Series):
+    # Declare ``weights`` as pandas metadata. pandas includes
+    # _metadata attributes in the pickle state, so weights now survive
+    # pickling, to_pickle/read_pickle and copy.deepcopy instead of
+    # vanishing and leaving an AttributeError on the next aggregation.
+    # Keep pandas' own metadata, including the Series name.
+    _metadata = pd.Series._metadata + ["weights"]
+
+    # These operands previously shared pandas' ufunc handler with MicroSeries.
+    # Keep inherited fallback paths working after overriding that handler.
+    _HANDLED_TYPES = pd.Series._HANDLED_TYPES + (pd.Series, pd.DataFrame)
+
     def __init__(self, *args, weights: np.array = None, **kwargs):
         """A Series-inheriting class for weighted microdata.
 
@@ -60,6 +113,106 @@ class MicroSeries(pd.Series):
         """
         super().__init__(*args, **kwargs)
         self.set_weights(weights)
+
+    @property
+    def _constructor(self):
+        return MicroSeries
+
+    @property
+    def _constructor_expanddim(self):
+        from microdf.microdataframe import MicroDataFrame
+
+        return MicroDataFrame
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # Preserve deferral to foreign handlers. A higher-priority Series
+        # inheriting pandas' handler cannot take over: pandas would defer back
+        # to our distinct handler, so handle that case through plain Series.
+        known_handlers = (
+            pd.Series.__array_ufunc__,
+            MicroSeries.__array_ufunc__,
+            type(self).__array_ufunc__,
+        )
+        inherited_series_priority = False
+        dispatch_index = 0
+        for position, value in enumerate(inputs):
+            if value is not self and isinstance(value, (pd.Series, pd.DataFrame)):
+                handler = type(value).__array_ufunc__
+                if handler not in known_handlers:
+                    return NotImplemented
+                if value.__array_priority__ > self.__array_priority__:
+                    if (
+                        isinstance(value, pd.Series)
+                        and handler is pd.Series.__array_ufunc__
+                    ):
+                        inherited_series_priority = True
+                        dispatch_index = position
+                    else:
+                        return NotImplemented
+
+        out = kwargs.get("out")
+        has_output = out is not None and any(value is not None for value in out)
+        if (
+            method == "__call__"
+            and len(inputs) == 2
+            and all(isinstance(value, pd.Series) for value in inputs)
+            and (not has_output or inherited_series_priority)
+        ):
+            # pandas' generic ufunc reconstruction drops metadata for multiple
+            # Series. Preserve pandas' selected handler receiver because it
+            # determines alignment order, including positional output masks.
+            plain = tuple(
+                pd.Series(value, copy=False).__finalize__(value) for value in inputs
+            )
+            if has_output:
+                # Match pandas' receiver-based alignment before it writes out.
+                # Reconstruction must not discover invalid row weights later.
+                result_index = plain[dispatch_index].index.union(plain[1].index)
+                aligned_weights(self, result_index)
+                for output in out:
+                    if isinstance(output, MicroSeries):
+                        aligned_weights(output, result_index)
+            result = pd.Series.__array_ufunc__(
+                plain[dispatch_index], ufunc, method, *plain, **kwargs
+            )
+
+            def restore_weights(value):
+                if isinstance(value, pd.Series):
+                    return self._weighted_result(
+                        value, aligned_weights(self, value.index)
+                    ).__finalize__(value)
+                return value
+
+            if isinstance(result, tuple):
+                return tuple(restore_weights(value) for value in result)
+            return restore_weights(result)
+        return super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
+
+    def __rdivmod__(self, other) -> tuple["MicroSeries", "MicroSeries"]:
+        # An explicit override gives the weighted subclass priority over a
+        # plain Series on the left, as for the other reverse operators.
+        return super().__rdivmod__(other)
+
+    def __finalize__(self, other, method=None, **kwargs):
+        previous = self.__dict__.get("weights")
+        super().__finalize__(other, method=method, **kwargs)
+        return finalize_weights(self, other, method, previous)
+
+    def _construct_result(self, *args, **kwargs):
+        # pandas has already aligned this Series before constructing a binary
+        # result. Retain its row weights, even when pandas 3 also finalizes
+        # metadata from the other operand. Delegate values and names to pandas.
+        result = super()._construct_result(*args, **kwargs)
+        if not isinstance(result, tuple):
+            result.weights = weight_series(self.weights, result.index)
+        # divmod constructs both tuple members through this same hook.
+        return result
+
+    def __setattr__(self, name, value):
+        weights = self.__dict__.get("weights") if name == "index" else None
+        super().__setattr__(name, value)
+        if weights is not None and len(weights) == len(self.index):
+            self.weights = weight_series(weights, self.index)
 
     @property
     def _values(self):
@@ -126,12 +279,7 @@ class MicroSeries(pd.Series):
         :type weights: np.array.
         """
         if weights is None:
-            if len(self) > 0:
-                self.weights = pd.Series(
-                    np.ones_like(self._values),
-                    index=self.index,
-                    dtype=float,
-                )
+            self.weights = weight_series(np.ones(len(self)), self.index)
         else:
             if len(weights) != len(self):
                 raise ValueError(
@@ -149,7 +297,7 @@ class MicroSeries(pd.Series):
             # its index first so we position-align rather than label-align.
             if isinstance(weights, pd.Series):
                 weights = weights.values
-            self.weights = pd.Series(np.asarray(weights), index=self.index, dtype=float)
+            self.weights = weight_series(weights, self.index)
 
     def nullify_weights(self) -> None:
         """Set all weights to 1, effectively making the Series unweighted.
@@ -157,7 +305,11 @@ class MicroSeries(pd.Series):
         This is useful for comparing weighted and unweighted statistics or when
         you want to temporarily ignore weights.
         """
-        self.weights = pd.Series(np.ones(len(self)), dtype=float)
+        # Index the ones against self.index: weighted ops are label-aligned
+        # (self.multiply(self.weights) in .sum()/.weight()), so a default
+        # RangeIndex here silently produces all-NaN and collapses every
+        # aggregation to 0 whenever the caller uses a non-default index.
+        self.weights = pd.Series(np.ones(len(self)), index=self.index, dtype=float)
 
     @vector_function
     def weight(self) -> pd.Series:
@@ -166,16 +318,38 @@ class MicroSeries(pd.Series):
         :returns: A Series multiplying the MicroSeries by its weight.
         :rtype: pd.Series
         """
-        return self.multiply(self.weights)
+        return pd.Series(self, copy=False).multiply(self.weights)
 
     @scalar_function
-    def sum(self) -> float:
+    def sum(
+        self,
+        axis: Optional[Union[int, str]] = 0,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        min_count: int = 0,
+        **kwargs,
+    ) -> float:
         """Calculates the weighted sum of the MicroSeries.
+
+        axis may be 0, 'index' or None, as for pandas Series.sum. skipna,
+        numeric_only and min_count are applied to the weighted values;
+        min_count counts valid observations, not the sum of their weights.
 
         :returns: The weighted sum.
         :rtype: float
         """
-        return self.multiply(self.weights).sum()
+        # Keep the intermediate unweighted so subclass constructors cannot
+        # apply observation weights a second time during the final reduction.
+        values = pd.Series(self)
+        if not self.empty:
+            values = values.multiply(self.weights)
+        return values.sum(
+            axis=axis,
+            skipna=skipna,
+            numeric_only=numeric_only,
+            min_count=min_count,
+            **kwargs,
+        )
 
     @scalar_function
     def count(self, skipna: bool = True) -> float:
@@ -272,41 +446,154 @@ class MicroSeries(pd.Series):
         v = self._weighted_variance(ddof=ddof, skipna=skipna)
         return float(np.sqrt(v)) if np.isfinite(v) else v
 
-    def cov(self, other, *args, **kwargs):
-        """Pandas ``cov`` — **unweighted**.
+    def _weighted_pair(
+        self,
+        other: pd.Series,
+        min_periods: Optional[int],
+        ddof: int,
+        skipna: bool,
+    ) -> Optional[tuple[np.ndarray, np.ndarray, np.ndarray, float]]:
+        """Align usable paired observations with their left weights."""
+        if not isinstance(other, pd.Series):
+            raise TypeError("other must be a pandas Series or MicroSeries")
+        if not isinstance(ddof, (int, np.integer)):
+            raise TypeError("ddof must be an integer")
+        if min_periods is None:
+            min_periods = 1
+        if not isinstance(min_periods, (int, np.integer)) or min_periods < 0:
+            raise ValueError("min_periods must be a nonnegative integer")
+        if len(self) == 0 or len(other) == 0:
+            return None
 
-        MicroSeries does not yet compute weighted covariance. Emits a
-        ``UserWarning`` so callers aren't silently given an unweighted number
-        after ``.sum()`` and ``.mean()`` worked as expected. See issue tracker
-        for a weighted implementation.
-        """
-        warnings.warn(
-            "MicroSeries.cov() falls through to pandas and is "
-            "unweighted. Use MicroSeries.var()/std() for weighted "
-            "second moments, or compute covariance manually with the "
-            "weights.",
-            UserWarning,
-            stacklevel=2,
+        # Align left row positions so values and weights undergo exactly the
+        # same join, including pandas' expansion of duplicate index labels.
+        positions = pd.Series(np.arange(len(self)), index=self.index)
+        positions, right = positions.align(pd.Series(other), join="inner")
+        positions = positions.to_numpy(dtype=int)
+        x = (
+            pd.Series(self._values)
+            .iloc[positions]
+            .to_numpy(dtype=float, na_value=np.nan)
         )
-        return super().cov(other, *args, **kwargs)
+        y = right.to_numpy(dtype=float, na_value=np.nan)
+        weights = np.asarray(self.weights, dtype=float)[positions]
+        if not np.isfinite(weights).all() or (weights < 0).any():
+            raise ValueError("frequency weights must be finite and nonnegative")
 
-    def corr(self, other, *args, **kwargs):
-        """Pandas ``corr`` — **unweighted**.
-
-        MicroSeries does not yet compute weighted correlation. Emits a
-        ``UserWarning`` so callers aren't silently given an unweighted number.
-        See issue tracker for a weighted implementation.
-        """
-        warnings.warn(
-            "MicroSeries.corr() falls through to pandas and is "
-            "unweighted. Compute correlation manually with the weights "
-            "if you need the survey-weighted value.",
-            UserWarning,
-            stacklevel=2,
+        # Zero frequency means the row is absent, including for skipna=False.
+        positive = weights > 0
+        x, y, weights = x[positive], y[positive], weights[positive]
+        missing = np.isnan(x) | np.isnan(y)
+        if not skipna and missing.any():
+            return None
+        x, y, weights = x[~missing], y[~missing], weights[~missing]
+        total_weight = weights.sum()
+        if not np.isfinite(total_weight):
+            raise ValueError("the sum of frequency weights must be finite")
+        if len(x) < min_periods or total_weight == 0 or total_weight <= ddof:
+            return None
+        return (
+            x,
+            y,
+            weights,
+            float(total_weight - ddof),
         )
-        return super().corr(other, *args, **kwargs)
 
-    def quantile(self, q: np.array) -> pd.Series:
+    def cov(
+        self,
+        other: pd.Series,
+        min_periods: Optional[int] = None,
+        ddof: int = 1,
+        *,
+        skipna: bool = True,
+    ) -> float:
+        """Calculate frequency-weighted covariance with another Series.
+
+        Observations align by index as in pandas, including its duplicate-
+        label join behavior. Only this Series' weights are used; weights on
+        another MicroSeries are ignored. Each aligned left weight must be
+        finite and nonnegative. Zero-weight rows are omitted.
+
+        Uses ``sum(w * (x - xmean) * (y - ymean)) / (sum(w) - ddof)``.
+        Integer weights therefore match covariance on the replicated sample.
+        Missing values are removed pairwise before computing both means.
+
+        :param other: A pandas Series or MicroSeries to align by index.
+        :param min_periods: Minimum usable aligned row pairs, not the sum of
+            frequency weights. Defaults to 1.
+        :param ddof: Degrees of freedom subtracted from the weight total.
+        :param skipna: Drop pairs with a missing value. If False, any missing
+            value in a positive-weight aligned pair produces NaN.
+        :returns: Weighted covariance, or NaN for an empty or insufficient
+            sample (including a weight total no greater than ddof).
+        """
+        pair = self._weighted_pair(other, min_periods, ddof, skipna)
+        if pair is None:
+            return np.nan
+        x, y, weights, denominator = pair
+        if not np.isfinite(x).all() or not np.isfinite(y).all():
+            return np.nan
+        x, x_exponent = _weighted_centered_vector(x, weights)
+        y, y_exponent = _weighted_centered_vector(y, weights)
+        # Combine exponents only after dividing out sum(weights) - ddof.
+        # Neither the original squared scale nor raw weighted sum need fit.
+        denominator, denominator_exponent = np.frexp(denominator)
+        return float(
+            np.ldexp(
+                np.sum(x * y) / denominator,
+                x_exponent + y_exponent - int(denominator_exponent),
+            )
+        )
+
+    def corr(
+        self,
+        other: pd.Series,
+        method: str = "pearson",
+        min_periods: Optional[int] = None,
+        *,
+        ddof: int = 1,
+        skipna: bool = True,
+    ) -> float:
+        """Calculate frequency-weighted Pearson correlation.
+
+        Uses the same aligned pairs and left Series weights for covariance and
+        both variances. Weights on another MicroSeries are ignored. Weights
+        must be finite and nonnegative; zero-weight rows are omitted. Other
+        correlation methods, including callables, are unsupported.
+
+        :param other: A pandas Series or MicroSeries to align by index.
+        :param method: Only "pearson" is supported.
+        :param min_periods: Minimum usable aligned row pairs, not frequency
+            weight total. Defaults to 1.
+        :param ddof: Degrees of freedom for all three moments. It cancels from
+            the correlation but the weight total must exceed it.
+        :param skipna: Drop pairs with a missing value. If False, any missing
+            value in a positive-weight aligned pair produces NaN.
+        :returns: Weighted correlation, or NaN for an empty, insufficient, or
+            constant sample.
+        """
+        if method != "pearson":
+            raise ValueError("weighted correlation only supports method='pearson'")
+        pair = self._weighted_pair(other, min_periods, ddof, skipna)
+        if pair is None:
+            return np.nan
+        x, y, weights, _ = pair
+        if not np.isfinite(x).all() or not np.isfinite(y).all():
+            return np.nan
+        # A weighted mean can round away from identical decimal inputs.
+        # Check the retained observations exactly before subtracting it.
+        if (x == x[0]).all() or (y == y[0]).all():
+            return np.nan
+        x, _ = _weighted_centered_vector(x, weights)
+        y, _ = _weighted_centered_vector(y, weights)
+        x_ss = np.sum(x * x)
+        y_ss = np.sum(y * y)
+        if x_ss == 0 or y_ss == 0:
+            return np.nan
+        result = np.sum(x * y) / (np.sqrt(x_ss) * np.sqrt(y_ss))
+        return float(np.clip(result, -1.0, 1.0))
+
+    def quantile(self, q: np.array, skipna: bool = True) -> pd.Series:
         """Calculates weighted quantiles of the MicroSeries.
 
         Uses the inverse CDF method: the q-th quantile is the smallest
@@ -315,6 +602,11 @@ class MicroSeries(pd.Series):
 
         :param q: Quantile(s) to calculate, must be in [0, 1].
         :type q: float or np.array
+        :param skipna: Exclude NaN values (default True). NaN sorts to the
+            end of the array, so leaving NaN rows in would let their weight
+            inflate the cumulative distribution and push the cutoff upward.
+            If False, NaN is returned whenever any value is NaN.
+        :type skipna: bool
 
         :return: Weighted quantile value(s).
         :rtype: float or pd.Series
@@ -325,12 +617,22 @@ class MicroSeries(pd.Series):
         assert np.all(quantiles >= 0) and np.all(quantiles <= 1), (
             "quantiles should be in [0, 1]"
         )
+        na_mask = pd.isna(values)
+        if not skipna and na_mask.any():
+            return (
+                np.nan
+                if np.array(q).shape == ()
+                else pd.Series(np.full(len(quantiles), np.nan), index=quantiles)
+            )
         # Drop zero-weight rows before sorting. Without this, q=0 (and
         # internal plateaus of zero weight) picked a value with 0 weight
         # that should have been skipped by the inverse CDF. E.g.
         # MicroSeries([10, 20, 30], weights=[0, 1, 1]).quantile(0)
         # returned 10 instead of 20.
-        nonzero = sample_weight > 0
+        # Drop NaN rows for the same reason: NaN sorts last, so its weight
+        # would inflate the cumulative distribution and push the cutoff up
+        # (median of [1, nan, 3] returned 3.0 instead of 1.0).
+        nonzero = (sample_weight > 0) & ~na_mask
         if not nonzero.any():
             return (
                 np.nan
@@ -355,13 +657,60 @@ class MicroSeries(pd.Series):
         return pd.Series(result, index=quantiles)
 
     @scalar_function
-    def median(self) -> float:
+    def median(self, skipna: bool = True) -> float:
         """Calculates the weighted median of the MicroSeries.
 
+        :param skipna: Exclude NaN values (default True).
+        :type skipna: bool
         :returns: The weighted median of a DataFrame's column.
         :rtype: float
         """
-        return self.quantile(0.5)
+        return self.quantile(0.5, skipna=skipna)
+
+    def replicate_standard_error(
+        self,
+        statistic: Callable,
+        replicate_weights,
+        method: str = "jackknife",
+        fay_k: Optional[float] = None,
+        *,
+        centering: str = "full-sample",
+    ) -> float:
+        """Standard error of ``statistic`` from a set of replicate weights.
+
+        Recomputes the statistic once per replicate and scales the spread by
+        the factor appropriate to how the replicates were built. Statistical
+        validity depends on both the statistic and the survey design.
+        Nonsmooth statistics such as quantiles can require an appropriate
+        replication method or smoothing of replicate estimates.
+
+        The factor and centering convention must match the survey design.
+        Supported schemes use a common factor: jackknife covers unstratified
+        JK1 or common-factor delete-group replication, not arbitrary stratified
+        jackknife. Averaged bootstrap requiring additional factors is not
+        supported. See :func:`microdf.replication.replicate_variance` for factors.
+
+        Changing main weights without corresponding design-consistent replicate
+        adjustments invalidates the original replicates. Calibration can be
+        valid when repeated appropriately for every replicate.
+
+        :param statistic: Callable taking a MicroSeries and returning a float, e.g.
+            ``lambda s: s.median()``.
+        :param replicate_weights: Array or frame of shape ``(len(self), R)``
+            in the same row order as this series. DataFrame labels are ignored.
+        :param method: ``jackknife``, ``brr``, ``bootstrap``,
+            ``successive-difference`` or ``fay``.
+        :param fay_k: Fay's perturbation constant, for ``method="fay"``.
+        :param centering: ``full-sample`` (default) centers on ``statistic(self)``;
+            ``replicate-mean`` centers on the mean of the replicate estimates.
+            The method's scale factor is unchanged.
+        :returns: The estimated standard error.
+        """
+        from microdf.replication import replicate_standard_error
+
+        return replicate_standard_error(
+            self, statistic, replicate_weights, method, fay_k, centering=centering
+        )
 
     @scalar_function
     def gini(self, negatives: Optional[str] = None) -> float:
@@ -382,8 +731,9 @@ class MicroSeries(pd.Series):
         w = np.asarray(self.weights.values, dtype=float)
         if negatives == "zero":
             x = np.where(x < 0, 0.0, x)
-        elif negatives == "shift" and len(x) > 0 and np.amin(x) < 0:
-            x = x - np.amin(x)
+        elif negatives == "shift":
+            if len(x) > 0 and np.amin(x) < 0:
+                x = x - np.amin(x)
         elif negatives is not None:
             raise ValueError(
                 f"Unknown negatives option {negatives!r}; expected "
@@ -615,16 +965,14 @@ class MicroSeries(pd.Series):
         )
 
     def groupby(self, *args, **kwargs) -> "MicroSeriesGroupBy":
-        gb = super().groupby(*args, **kwargs)
+        gb = pd.Series(self, copy=False).groupby(*args, **kwargs)
         gb.__class__ = MicroSeriesGroupBy
         gb._init()
         gb.weights = pd.Series(self.weights).groupby(*args, **kwargs)
         return gb
 
     def copy(self, deep: Optional[bool] = True):
-        res = super().copy(deep)
-        res = MicroSeries(res, weights=self.weights.copy(deep))
-        return res
+        return super().copy(deep)
 
     def clip(
         self,
@@ -656,106 +1004,63 @@ class MicroSeries(pd.Series):
         equal_weights = self.weights.equals(other.weights)
         return equal_values and equal_weights
 
-    def __getitem__(
-        self, key: Union[str, int, slice, List, np.ndarray]
-    ) -> Union["MicroSeries", pd.Series]:
-        result = super().__getitem__(key)
+    def __getitem__(self, key):
+        if callable(key):
+            key = key(self)
+        result = pd.Series(self, copy=False).__getitem__(key)
         if isinstance(result, pd.Series):
-            weights = self.weights.__getitem__(key)
-            return MicroSeries(result, weights=weights)
+            positions = pd.Series(np.arange(len(self)), index=self.index).__getitem__(
+                key
+            )
+            return MicroSeries(result, weights=self.weights.iloc[np.asarray(positions)])
         return result
+
+    def repeat(self, repeats, axis=None):
+        # Use pandas to validate the repeat counts and axis argument.
+        positions = pd.Series(np.arange(len(self))).repeat(repeats, axis=axis)
+        return self.take(np.asarray(positions))
 
     def __getattr__(self, name: str) -> "MicroSeries":
         return MicroSeries(super().__getattr__(name), weights=self.weights)
 
-    # operators
+    # Explicit reverse overrides give this subclass priority when a plain
+    # pandas Series is on the left. _construct_result retains aligned weights.
+    def __radd__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__radd__(other)
 
-    def __add__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__add__(other), weights=self.weights)
+    def __rsub__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rsub__(other)
 
-    def __sub__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__sub__(other), weights=self.weights)
+    def __rmul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rmul__(other)
 
-    def __mul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__mul__(other), weights=self.weights)
+    def __rfloordiv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rfloordiv__(other)
 
-    def __floordiv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__floordiv__(other), weights=self.weights)
+    def __rtruediv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rtruediv__(other)
 
-    def __truediv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__truediv__(other), weights=self.weights)
+    def __rmod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rmod__(other)
 
-    def __mod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__mod__(other), weights=self.weights)
+    def __rpow__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rpow__(other)
 
-    def __pow__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__pow__(other), weights=self.weights)
+    def __rand__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rand__(other)
 
-    def __xor__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__xor__(other), weights=self.weights)
+    def __ror__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__ror__(other)
 
-    def __and__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__and__(other), weights=self.weights)
-
-    def __or__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__or__(other), weights=self.weights)
+    def __rxor__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
+        return super().__rxor__(other)
 
     def __invert__(self) -> "MicroSeries":
         return MicroSeries(super().__invert__(), weights=self.weights)
 
-    def __radd__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__radd__(other), weights=self.weights)
-
-    def __rsub__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rsub__(other), weights=self.weights)
-
-    def __rmul__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rmul__(other), weights=self.weights)
-
-    def __rfloordiv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rfloordiv__(other), weights=self.weights)
-
-    def __rtruediv__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rtruediv__(other), weights=self.weights)
-
-    def __rmod__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rmod__(other), weights=self.weights)
-
-    def __rpow__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rpow__(other), weights=self.weights)
-
-    def __rand__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rand__(other), weights=self.weights)
-
-    def __ror__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__ror__(other), weights=self.weights)
-
-    def __rxor__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__rxor__(other), weights=self.weights)
-
     def sqrt(self) -> "MicroSeries":
         sqrt_values = np.sqrt(self._values)
         return MicroSeries(sqrt_values, index=self.index, weights=self.weights)
-
-    # comparators
-
-    def __lt__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__lt__(other), weights=self.weights)
-
-    def __le__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__le__(other), weights=self.weights)
-
-    def __eq__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__eq__(other), weights=self.weights)
-
-    def __ne__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__ne__(other), weights=self.weights)
-
-    def __ge__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__ge__(other), weights=self.weights)
-
-    def __gt__(self, other: Union[int, float, pd.Series]) -> "MicroSeries":
-        return MicroSeries(super().__gt__(other), weights=self.weights)
 
     # assignment operators
 
@@ -869,6 +1174,37 @@ class MicroSeriesGroupBy(pd.core.groupby.generic.SeriesGroupBy):
                     or name in MicroSeries.AGNOSTIC_FUNCTIONS
                     and is_array
                 ):
+                    if name in MicroSeries.AGNOSTIC_FUNCTIONS and not df.empty:
+                        # Concatenate values without keys: concat rejects missing
+                        # MultiIndex keys even when groupby(dropna=False) retains
+                        # them. Reuse the grouping levels and codes so missing
+                        # labels keep the same representation as scalar results.
+                        results = [
+                            via_micro_series(row, *args, **kwargs)
+                            for _, row in df.iterrows()
+                        ]
+                        result = pd.concat(results)
+                        group_index = (
+                            df.index
+                            if isinstance(df.index, pd.MultiIndex)
+                            else pd.MultiIndex.from_arrays([df.index])
+                        )
+                        quantile_codes, quantile_levels = result.index.factorize(
+                            sort=False
+                        )
+                        result.index = pd.MultiIndex(
+                            levels=[*group_index.levels, quantile_levels],
+                            codes=[
+                                codes.repeat(len(results[0]))
+                                for codes in group_index.codes
+                            ]
+                            + [quantile_codes],
+                            names=[*df.index.names, result.index.name],
+                            # Existing group codes are valid; checking would
+                            # rewrite their retained missing labels to -1.
+                            verify_integrity=False,
+                        )
+                        return result
                     result = df.apply(
                         lambda row: via_micro_series(row, *args, **kwargs),
                         axis=1,

@@ -1,3 +1,110 @@
+## [1.5.2] - 2026-09-17
+
+### Fixed
+
+- Preserve aligned, independent MicroSeries weights in binary NumPy operations such as maximum and in both results of divmod with a pandas Series on the left, including interoperability with higher-priority Series subclasses that inherit pandas' NumPy handling. Reject unknown or ambiguous row weights before writing explicit output buffers.
+
+
+## [1.5.1] - 2026-09-17
+
+### Fixed
+
+- Preserve label-aligned calling Series weights in binary operators and named arithmetic and comparison methods across pandas versions. Keep DataFrame reset-index weights independently mutable.
+
+
+## [1.5.0] - 2026-09-17
+
+### Added
+
+- Added variance and standard error estimation from replicate weights for scalar statistics, preserving input dtypes and supporting common-factor jackknife, BRR, Fay's BRR, bootstrap and successive-difference schemes with explicit full-sample or replicate-mean centering. Reference-relative centering and scaled accumulation preserve representable variances at extreme magnitudes. Full-sample callbacks receive independent copies so in-place transformations preserve caller data and subsequent replicate inputs. Statistical validity depends on the statistic and survey design; nonsmooth quantiles can require an appropriate replication method or smoothing.
+
+
+## [1.4.1] - 2026-09-16
+
+### Fixed
+
+- Preserve independent, aligned weights through pandas sorting, sampling, row and column selection, index resetting, fillna, and concatenation of Micro objects, including duplicate indexes and mixed MicroDataFrame/MicroSeries inputs. Keep selection weights independently mutable on pandas 2 and 3. Reject conflicting or ambiguous weight propagation, and document the limitation of mixed pandas/Micro concatenation.
+  Preserve unweighted pandas DataFrame covariance and correlation matrices without attaching observation weights to column summaries.
+
+
+## [1.4.0] - 2026-09-16
+
+### Added
+
+- MicroSeries.cov and corr now calculate frequency-weighted covariance and Pearson correlation using aligned observations and the left Series weights. Both support pairwise missing-value handling and minimum observation counts; covariance and correlation accept a degrees-of-freedom adjustment. Centered, scaled calculations preserve small differences around large offsets, retain population moments for subnormal positive weights, and avoid overflowing raw frequency-weighted moments when the result is representable. Unsupported correlation methods raise instead of silently using unweighted results.
+
+
+## [1.3.10] - 2026-09-16
+
+### Fixed
+
+- DataFrame and Series sums accept positional and named axes, skipna and min_count without silently dropping columns, including numeric columns with duplicate labels. DataFrame row sums retain independent observation weights without multiplying them into row values, and empty numeric row sums follow pandas min_count behavior. Explicit axis=None follows the installed pandas version.
+
+
+## [1.3.9] - 2026-09-16
+
+### Fixed
+
+- Restore tests and lint on pushes to main and build the deployed documentation with MyST instead of the retired Jupyter Book command. Include and validate the `.nojekyll` marker so GitHub Pages can publish the prebuilt site.
+
+
+## [1.3.8] - 2026-09-15
+
+### Fixed
+
+- Weights and the weight-column name now survive pickling and
+  to_pickle/read_pickle. Weighted aggregations also remain available on
+  unpickled MicroDataFrames, and weights are preserved by copy.deepcopy.
+  Renaming an object preserves its copied weights instead of sharing mutable
+  weight state with the original object.
+
+
+## [1.3.7] - 2026-09-15
+
+### Fixed
+
+- __version__ is now read from package metadata instead of a hardcoded
+  0.1.0 that had drifted from pyproject.toml.
+
+  Codecov badge, ROADMAP issue link and CLAUDE.md branch name now point at
+  main and the PolicyEngine org.
+
+
+## [1.3.6] - 2026-09-15
+
+### Fixed
+
+- DataFrame-level aggregations now propagate non-TypeError failures instead of silently omitting columns. The documented gini(negatives="shift") option also accepts nonnegative and empty data.
+
+
+## [1.3.5] - 2026-09-15
+
+### Fixed
+
+- Weighted quantile() and median() now skip NaN values by default and accept a skipna argument. Quantiles with skipna=False preserve missing groups, and quantile bounds are validated even when values are missing. Grouped vector quantiles retain missing grouping keys with dropna=False, including for multiple keys and empty quantile requests.
+
+
+## [1.3.4] - 2026-09-15
+
+### Fixed
+
+- MicroDataFrame.nullify_weights and set_weight_col now store weights as an index-aligned Series instead of a bare ndarray, so equals() no longer raises. Selected weight-column values remain independent from the source column.
+
+
+## [1.3.3] - 2026-09-15
+
+### Fixed
+
+- MicroSeries.nullify_weights now aligns weights to the Series index, so aggregations no longer return 0 on a non-default index.
+
+
+## [1.3.2] - 2026-09-15
+
+### Fixed
+
+- README code block formatting so make lint passes with ruff 0.16.
+
+
 ## [1.3.1] - 2026-04-28
 
 No significant changes.
