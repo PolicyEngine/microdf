@@ -1,3 +1,10 @@
+## [1.5.10] - 2026-09-18
+
+### Changed
+
+- Adds an installation snippet and links to the API reference from the documentation landing page, and updates the roadmap.
+
+
 ## [1.5.9] - 2026-09-18
 
 ### Changed
