@@ -50,14 +50,14 @@ The second problem is that weights must stay aligned with the data through every
 
 Several tools compute weighted statistics. `microdf` combines pandas-native structures, a distributional estimator set, and replicate-weight variance without requiring a complex-survey design object.
 
-|  | `microdf` | R `survey` + `convey` [@lumley2004survey; @convey] | `samplics` [@samplics] | `statsmodels` [@seabold2010statsmodels] | pandas, weighted by hand |
+|  | `microdf` | R `survey` + `convey` | `samplics` | `statsmodels` | pandas by hand |
 |---|---|---|---|---|---|
 | Weighted quantiles | Yes | Yes | Yes | `DescrStatsW` only | Hand-written |
-| Inequality and poverty measures | Gini, top and bottom shares, FGT poverty | Yes | No | No | Hand-written |
+| Inequality and poverty measures | Yes | Yes | No | No | Hand-written |
 | pandas-native | Yes | No (R) | Partly | Partly | Yes |
 | Design-based variance | Replicate weights | Yes | Yes | No | No |
 
-R's `survey` package is the reference implementation for design-based survey inference and remains the right tool when standard errors under a complex design are required. `convey` [@convey] adds the inequality and poverty estimators on top of it, and is the closest existing equivalent to what `microdf` provides. Both require a survey design object, and both are in R. `samplics` brings design-based inference to Python, though it is now archived in favour of `svy`; neither implements distributional estimators, and neither returns objects that behave like a `DataFrame` in an existing pandas pipeline. `statsmodels`' `DescrStatsW` covers weighted moments, quantiles and covariance, but is a statistics container rather than a data structure that survives a merge or a groupby. What `microdf` offers that these do not is the combination: distributional estimators on a weighted object that stays a `DataFrame` through the transformations that precede them.
+`microdf` implements the Gini coefficient, top and bottom income shares, and Foster-Greer-Thorbecke poverty measures. R's `survey` [@lumley2004survey] is the reference implementation for design-based survey inference and remains the right tool when standard errors under a complex design are required. `convey` [@convey] adds the same family of inequality and poverty estimators on top of it, and is the closest existing equivalent to what `microdf` provides. Both require a survey design object, and both are in R. `samplics` [@samplics] brings design-based inference to Python, though it is now archived in favour of `svy`; neither implements distributional estimators, and neither returns objects that behave like a `DataFrame` in an existing pandas pipeline. `statsmodels`' `DescrStatsW` [@seabold2010statsmodels] covers weighted moments, quantiles and covariance, but is a statistics container rather than a data structure that survives a merge or a groupby. What `microdf` offers that these do not is the combination: distributional estimators on a weighted object that stays a `DataFrame` through the transformations that precede them.
 
 `microdf` estimates variance from replicate weights. Given the replicate weight matrix that products such as the CPS and ACS publish, it recomputes a statistic once per replicate and scales the spread by the factor for the replication scheme. This needs no analytic formula, so it works for the Gini coefficient and quantiles as readily as for a mean. It does not derive variance from stratum and cluster identifiers, so analysts who need standard errors under a design specification, or who hold no replicate weights, should use `survey`, `convey` or `svy`. The replicate estimators also assume weights as published: weights calibrated to external targets no longer correspond to the original replication scheme.
 
@@ -103,7 +103,7 @@ Statistics that require a decision take it as an explicit argument: `gini` accep
 
 # Research impact statement
 
-`microdf` is part of the foundation PolicyEngine's microsimulation stack is built on. `policyengine` [@policyengine_py] depends on it, so the poverty rates, decile impacts and Gini changes published through PolicyEngine's analyses and at [policyengine.org](https://policyengine.org) are computed through its estimators. It is also used directly in public policy reform analysis in the United Kingdom and the United States. Public since June 2018, it has over 800 commits from eight contributors and averages around 1,700 downloads a day.
+`microdf` is part of the foundation PolicyEngine's microsimulation stack is built on. `policyengine` [@policyengine_py] depends on it, so the poverty rates, decile impacts and Gini changes published through PolicyEngine's analyses and at [policyengine.org](https://policyengine.org) are computed through its estimators. It is also used directly in public policy reform analysis in the United Kingdom and the United States. Public since June 2018, it has over 800 commits from eight contributors and more than 35 releases on PyPI.
 
 # Acknowledgements
 
