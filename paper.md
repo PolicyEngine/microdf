@@ -30,7 +30,7 @@ bibliography: paper.bib
 
 # Summary
 
-`microdf` provides weighted data structures for survey microdata analysis in Python. Survey records carry sampling weights: each row stands for many households, and the weights vary by orders of magnitude within a single file. Statistics that ignore the weights describe the sample, and population figures can differ from them substantially.
+`microdf` provides weighted data structures for survey microdata analysis in Python. Survey records carry sampling weights: each row stands for many households, and the weights vary by orders of magnitude within a single file. Statistics that ignore the weights describe the sample rather than the population the sample was drawn to represent.
 
 The package's central design choice is to store the weight on the data structure itself. `MicroSeries` and `MicroDataFrame` subclass the pandas [@mckinney2010pandas; @pandas2020] structures and carry a weight vector through the operations an analysis pipeline performs. Selection, merging, grouping, reindexing, dropping and type conversion are overridden so that the weight follows the rows it describes, and the aggregations pandas defines are overridden to use it.
 
@@ -38,9 +38,7 @@ On that foundation the package implements the estimators that distributional ana
 
 # Statement of need
 
-Analysts working with survey microdata in Python face two problems. The second causes silent errors.
-
-The first is in the estimators. A weighted median is not the median of the weighted values. A weighted variance requires deciding whether weights are frequencies or precision weights, and the two give different answers. A top-1% share requires deciding what happens to the records straddling the cutoff: assigning them wholly to one side introduces a bias that grows as weights grow coarser. Each is a decision that hand-written code makes implicitly and rarely records, so implementations diverge on exactly the edge cases that matter.
+Analysts working with survey microdata in Python face two problems, and the second causes silent errors. The first is in the estimators. A weighted median is not the median of the weighted values. A weighted variance requires deciding whether weights are frequencies or precision weights, and the two give different answers. A top-1% share requires deciding what happens to the records straddling the cutoff: assigning them wholly to one side introduces a bias that grows as weights grow coarser. Each is a decision that hand-written code makes implicitly and rarely records, so implementations diverge on exactly the edge cases that matter.
 
 The second problem is that weights must stay aligned with the data through every transformation before the estimator runs. Building an analysis dataset means merging administrative variables onto survey records, filtering to a subpopulation, grouping by geography, reindexing after a sort. Each of these can leave the weight vector misaligned with the rows it describes, and nothing raises when it does: the pipeline completes and returns a plausible wrong number. In our experience maintaining microsimulation datasets, this is a more frequent source of error than the estimator formulas, and a harder one to detect.
 
@@ -109,7 +107,7 @@ Statistics that require a decision take it as an explicit argument: `gini` accep
 
 Arnold Ventures [@arnold_ventures], NEO Philanthropy [@neo_philanthropy], the Gerald Huff Fund for Humanity, and the National Science Foundation (NSF POSE Phase I, Award 2518372) [@nsf_pose] funded this work in the US. The Nuffield Foundation has funded the UK work since September 2024 [@nuffield2024grant]. These funders had no involvement in the design, development, or content of this software or paper. All authors are employed by PolicyEngine and may benefit reputationally from the software's adoption; this relationship is disclosed here as a potential conflict of interest.
 
-Max Ghenis created `microdf` in 2018 and wrote most of the estimators and the weight-preserving class machinery. María Juaristi contributed extensively to the estimators, the test suite, and the release infrastructure, including the weight-preservation work described above. Nikhil Woodruff contributed to the pandas integration and the packaging. Vahid Ahmadi contributed the replicate-weight variance estimation and prepared this paper. We thank Anthony Volk and Jason DeBacker for their contributions to the package, and all other contributors to `microdf`. We also thank Thomas Lumley, whose `survey` package provides the reference against which several of the estimators here are checked.
+Max Ghenis created `microdf` in 2018 and wrote most of the estimators and the weight-preserving class machinery; María Juaristi contributed to the estimators, the test suite and the release infrastructure, including the weight preservation described above; Nikhil Woodruff to the pandas integration and the packaging; and Vahid Ahmadi contributed the replicate-weight variance estimation and prepared this paper. We thank Anthony Volk and Jason DeBacker for their contributions to the package, and all other contributors to `microdf`. We also thank Thomas Lumley, whose `survey` package provides the reference against which several of the estimators here are checked.
 
 # AI usage disclosure
 
