@@ -71,11 +71,13 @@ jobs:
         - name: Build package
           run: |
             make build
-        - name: Publish a git tag
-          run: ".github/publish-git-tag.sh"
         - name: Publish to PyPI
           uses: pypa/gh-action-pypi-publish@release/v1
           with:
             user: __token__
             password: ${{ secrets.PYPI }}
             skip-existing: true
+        # After the upload, so a tag failure can never hold back a release.
+        # skip-existing above keeps a rerun safe.
+        - name: Publish a git tag
+          run: ".github/publish-git-tag.sh"
