@@ -82,8 +82,8 @@ df = mdf.MicroDataFrame(
     weights=[800, 1_200, 50],
 )
 
-df.income.median()            # 30000, weighted
-df.income.gini()              # Lorenz-curve Gini over the weighted distribution
+df.income.median()  # 30000, weighted
+df.income.gini()  # Lorenz-curve Gini over the weighted distribution
 df.income.top_10_pct_share()  # proportional split at the cutoff
 df.poverty_rate("income", "threshold")
 
