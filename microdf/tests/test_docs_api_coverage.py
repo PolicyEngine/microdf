@@ -4,13 +4,20 @@ A one-way check lets the page fall behind the code silently, which is how the
 weighted estimators came to be missing from it.
 """
 
-import inspect
 import re
 from pathlib import Path
+
+import pytest
 
 import microdf as mdf
 
 DOCS = Path(__file__).resolve().parents[2] / "docs" / "api.md"
+
+# docs/ is not shipped in the sdist or the wheel, so these cannot run against an
+# installed copy of the package.
+pytestmark = pytest.mark.skipif(
+    not DOCS.exists(), reason="docs/api.md is not present in the installed package"
+)
 
 # Public names that read as internals rather than API a user would call.
 INTERNAL = {
@@ -26,7 +33,7 @@ def documented_names():
     return set(re.findall(r"^\| `(\w+)` \|", DOCS.read_text(), re.M))
 
 
-def public_methods(cls, base=None):
+def public_methods(cls):
     """Public names this class defines itself.
 
     Anything inherited unchanged from pandas is pandas' to document; what

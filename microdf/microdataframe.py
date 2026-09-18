@@ -33,7 +33,7 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         set_weight_col.
 
         :param weights: Array of weights.
-        :type weights: np.array
+        :type weights: np.ndarray
         """
         super().__init__(*args, **kwargs)
         # pandas normalizes mixed-dimensional concat inputs through this
@@ -338,7 +338,7 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         :param weights: Array of weights.
         :param preserve_old: If True, keeps the old weights as a column when
             new weights are provided.
-        :type weights: np.array
+        :type weights: np.ndarray
         """
         if preserve_old and self.weights_col is not None:
             self["old_" + self.weights_col] = self.weights

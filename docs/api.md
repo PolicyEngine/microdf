@@ -25,7 +25,7 @@ These have the same names as their pandas equivalents and return weighted result
 | `count` | `(skipna: bool = True) -> float` | Calculates the weighted count of the MicroSeries. |
 | `mean` | `(skipna: bool = True) -> float` | Calculates the weighted mean of the MicroSeries. |
 | `median` | `(skipna: bool = True) -> float` | Calculates the weighted median of the MicroSeries. |
-| `quantile` | `(q: <built-in function array>, skipna: bool = True) -> pandas.core.series.Series` | Calculates weighted quantiles of the MicroSeries. |
+| `quantile` | `(q: numpy.ndarray, skipna: bool = True) -> pandas.core.series.Series` | Calculates weighted quantiles of the MicroSeries. |
 | `var` | `(ddof: int = 1, skipna: bool = True) -> float` | Calculates the weighted variance of the MicroSeries. |
 | `std` | `(ddof: int = 1, skipna: bool = True) -> float` | Calculates the weighted standard deviation of the MicroSeries. |
 | `cov` | `(other: pandas.core.series.Series, min_periods: Optional[int] = None, ddof: int = 1, *, skipna: bool = True) -> float` | Calculate frequency-weighted covariance with another Series. |
@@ -46,8 +46,8 @@ Operations that change the shape or type of the data, overridden so weights stay
 | `repeat` | `(repeats, axis=None)` | Repeat elements, repeating their weights alongside. |
 | `sqrt` | `() -> 'MicroSeries'` | Element-wise square root, preserving weights. |
 | `copy` | `(deep: Optional[bool] = True)` | Copy the series and its weights. |
-| `equals` | `(other: 'MicroSeries') -> bool` | Compare values; weights are not part of the comparison. |
-| `values` | `()` | Access underlying numpy array. |
+| `equals` | `(other: 'MicroSeries') -> bool` | True when both the values and the weights are equal. |
+| `values` | *attribute* | Access underlying numpy array. |
 | `to_numpy` | `(*args, **kwargs)` | Convert to numpy array. |
 
 ### Inequality and distribution
@@ -88,7 +88,7 @@ the series can compute, including the Gini coefficient and quantiles.
 
 | Method | Signature | Description |
 |---|---|---|
-| `set_weights` | `(weights: <built-in function array>, preserve_old: Optional[bool] = False) -> None` | Sets the weight values. |
+| `set_weights` | `(weights: numpy.ndarray, preserve_old: Optional[bool] = False) -> None` | Sets the weight values. |
 | `nullify_weights` | `() -> None` | Set all weights to 1, effectively making the Series unweighted. |
 | `weight` | `() -> pandas.core.series.Series` | Calculates the weighted value of the MicroSeries. |
 
@@ -99,8 +99,18 @@ the series can compute, including the Gini coefficient and quantiles.
 | Method | Signature | Description |
 |---|---|---|
 | `sum` | `(axis: Union[int, str, NoneType] = 0, skipna: bool = True, numeric_only: bool = False, min_count: int = 0, **kwargs) -> Union[pandas.core.series.Series, microdf.microseries.MicroSeries, float]` | Sum numeric columns, weighting reductions across observations. |
-| `cov` | `(min_periods: 'int \| None' = None, ddof: 'int \| None' = 1, numeric_only: 'bool' = False) -> 'DataFrame'` | Pairwise frequency-weighted covariance of the columns. |
-| `corr` | `(method: 'CorrelationMethod' = 'pearson', min_periods: 'int' = 1, numeric_only: 'bool' = False) -> 'DataFrame'` | Pairwise frequency-weighted Pearson correlation of the columns. |
+
+```{warning}
+`MicroDataFrame.cov()` and `MicroDataFrame.corr()` return pandas' **unweighted**
+results; the weights are ignored. Use `MicroSeries.cov()` and `MicroSeries.corr()`
+on a pair of columns for the frequency-weighted values. See
+[#327](https://github.com/PolicyEngine/microdf/issues/327).
+```
+
+| Method | Signature | Description |
+|---|---|---|
+| `cov` | `(min_periods: 'int \| None' = None, ddof: 'int \| None' = 1, numeric_only: 'bool' = False) -> 'DataFrame'` | Pairwise covariance of the columns, **unweighted**. |
+| `corr` | `(method: 'CorrelationMethod' = 'pearson', min_periods: 'int' = 1, numeric_only: 'bool' = False) -> 'DataFrame'` | Pairwise Pearson correlation of the columns, **unweighted**. |
 
 ### Weight-preserving operations
 
@@ -112,7 +122,7 @@ the series can compute, including the Gini coefficient and quantiles.
 | `drop` | `(labels=None, axis=0, index=None, columns=None, level=None, inplace=False, errors='raise')` | Drop rows or columns, keeping weights aligned to the remaining rows. |
 | `astype` | `(dtype, copy: Optional[bool] = True, errors: Optional[str] = 'raise') -> 'MicroDataFrame'` | Convert MicroDataFrame to specified data type while preserving weights. |
 | `copy` | `(deep: Optional[bool] = True) -> 'MicroDataFrame'` | Copy the frame and its weights. |
-| `equals` | `(other: 'MicroDataFrame') -> bool` | Compare values; weights are not part of the comparison. |
+| `equals` | `(other: 'MicroDataFrame') -> bool` | True when both the values and the weights are equal. |
 
 ### Poverty
 
@@ -129,7 +139,7 @@ the series can compute, including the Gini coefficient and quantiles.
 
 | Method | Signature | Description |
 |---|---|---|
-| `set_weights` | `(weights: Union[numpy.ndarray, str], preserve_old: Optional[bool] = False) -> None` | Sets the weights for the MicroDataFrame. |
+| `set_weights` | `(weights: numpy.ndarray, preserve_old: Optional[bool] = False) -> None` | Sets the weights for the MicroDataFrame. |
 | `set_weight_col` | `(column: str, preserve_old: Optional[bool] = False) -> None` | Sets the weights for the MicroDataFrame by specifying the name of the weight column. |
 | `nullify_weights` | `() -> None` | Set all weights to 1, effectively making the DataFrame unweighted. |
 

@@ -103,13 +103,13 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
     # Keep inherited fallback paths working after overriding that handler.
     _HANDLED_TYPES = pd.Series._HANDLED_TYPES + (pd.Series, pd.DataFrame)
 
-    def __init__(self, *args, weights: np.array = None, **kwargs):
+    def __init__(self, *args, weights: np.ndarray = None, **kwargs):
         """A Series-inheriting class for weighted microdata.
 
         Weights can be provided at initialisation, or using set_weights.
 
         :param weights: Array of weights.
-        :type weights: np.array
+        :type weights: np.ndarray
         """
         super().__init__(*args, **kwargs)
         self.set_weights(weights)
@@ -593,7 +593,7 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         result = np.sum(x * y) / (np.sqrt(x_ss) * np.sqrt(y_ss))
         return float(np.clip(result, -1.0, 1.0))
 
-    def quantile(self, q: np.array, skipna: bool = True) -> pd.Series:
+    def quantile(self, q: np.ndarray, skipna: bool = True) -> pd.Series:
         """Calculates weighted quantiles of the MicroSeries.
 
         Uses the inverse CDF method: the q-th quantile is the smallest
@@ -601,7 +601,7 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         the default behavior of R's survey::svyquantile.
 
         :param q: Quantile(s) to calculate, must be in [0, 1].
-        :type q: float or np.array
+        :type q: float or np.ndarray
         :param skipna: Exclude NaN values (default True). NaN sorts to the
             end of the array, so leaving NaN rows in would let their weight
             inflate the cumulative distribution and push the cutoff upward.
