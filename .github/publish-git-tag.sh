@@ -12,13 +12,16 @@ PYTHON=$(command -v python || command -v python3)
 VERSION=$("$PYTHON" -c "import re, pathlib; print(re.search(r'^version\s*=\s*\"(\d+\.\d+\.\d+)\"', pathlib.Path('pyproject.toml').read_text(), re.M).group(1))")
 TAG="v${VERSION}"
 
-if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
-  echo "Tag ${TAG} already exists locally."
-elif git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+# The remote is the only state that matters here: gh release create
+# --verify-tag reads the tag from the remote, so a tag that exists only
+# locally must still be pushed. Decide on the remote, then make the local
+# tag match and push it.
+if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
   echo "Tag ${TAG} already exists on the remote."
 else
   echo "Tagging ${TAG}"
-  git tag "${TAG}"
+  # Create it only if it is not already here; git tag fails on an existing name.
+  git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null || git tag "${TAG}"
   git push origin "${TAG}"
 fi
 
