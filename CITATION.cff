@@ -6,6 +6,15 @@ url: "https://github.com/PolicyEngine/microdf"
 repository-code: "https://github.com/PolicyEngine/microdf"
 abstract: "Weighted pandas DataFrames and Series for survey microdata, with distributional statistics including weighted quantiles, Gini, income shares and Foster-Greer-Thorbecke poverty measures."
 license: MIT
+version: 1.5.5
+doi: 10.5281/zenodo.22829459
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.22829459
+    description: "Concept DOI, resolving to the latest archived version"
+  - type: doi
+    value: 10.5281/zenodo.22829460
+    description: "Archived version 1.5.5"
 authors:
   - family-names: Ahmadi
     given-names: Vahid
