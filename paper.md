@@ -104,13 +104,13 @@ Statistics requiring a decision take it as an explicit argument rather than choo
 
 # Research Impact Statement
 
-`microdf` has been public since June 2018, with over 750 commits across eight contributors and eleven tagged releases. It is a dependency of `policyengine` [@policyengine_py], and therefore sits in the computational path of the distributional estimates that package produces — the poverty rates, decile impacts, and Gini changes reported through PolicyEngine's analyses and its web application at [policyengine.org](https://policyengine.org). It is also used directly in public policy reform analysis in the United Kingdom and the United States.
+`microdf` has been public since June 2018, with over 800 commits across eight contributors and thirty releases published to PyPI, where it currently averages around 2,200 downloads a day. That figure counts automated installation in continuous integration alongside direct use, so it indicates the package's place in a working toolchain rather than the size of its readership. It is a dependency of `policyengine` [@policyengine_py], and therefore sits in the computational path of the distributional estimates that package produces — the poverty rates, decile impacts, and Gini changes reported through PolicyEngine's analyses and its web application at [policyengine.org](https://policyengine.org). It is also used directly in public policy reform analysis in the United Kingdom and the United States.
 
 # Acknowledgements
 
 Arnold Ventures [@arnold_ventures], NEO Philanthropy [@neo_philanthropy], the Gerald Huff Fund for Humanity, and the National Science Foundation (NSF POSE Phase I, Award 2518372) [@nsf_pose] funded this work in the US. The Nuffield Foundation has funded the UK work since September 2024 [@nuffield2024grant]. These funders had no involvement in the design, development, or content of this software or paper. All authors are employed by PolicyEngine and may benefit reputationally from the software's adoption; this relationship is disclosed here as a potential conflict of interest.
 
-We thank Anthony Volk and Jason DeBacker for their contributions to the package, and all other contributors to `microdf`. We also thank Thomas Lumley, whose `survey` package provides the reference against which several of the estimators here are checked.
+Max Ghenis created `microdf` in 2018 and wrote most of the estimators and the weight-preserving class machinery. María Juaristi contributed extensively to the estimators, the test suite, and the release infrastructure, including the weight-preservation work described above. Nikhil Woodruff contributed to the pandas integration and the packaging. Vahid Ahmadi contributed the replicate-weight variance estimation and prepared this paper. We thank Anthony Volk and Jason DeBacker for their contributions to the package, and all other contributors to `microdf`. We also thank Thomas Lumley, whose `survey` package provides the reference against which several of the estimators here are checked.
 
 # AI Usage Disclosure
 
