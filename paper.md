@@ -50,12 +50,16 @@ The second problem is that weights must stay aligned with the data through every
 
 Several tools compute weighted statistics. `microdf` combines pandas-native structures, a distributional estimator set, and replicate-weight variance without requiring a complex-survey design object.
 
+\renewcommand{\arraystretch}{1.5}
+
 |  | `microdf` | R `survey` + `convey` | `samplics` | `statsmodels` | pandas by hand |
 |---|---|---|---|---|---|
 | Weighted quantiles | Yes | Yes | Yes | `DescrStatsW` only | Hand-written |
 | Inequality and poverty measures | Yes | Yes | No | No | Hand-written |
 | pandas-native | Yes | No (R) | Partly | Partly | Yes |
 | Design-based variance | Replicate weights | Yes | Yes | No | No |
+
+\renewcommand{\arraystretch}{1.0}
 
 `microdf` implements the Gini coefficient, top and bottom income shares, and Foster-Greer-Thorbecke poverty measures. R's `survey` [@lumley2004survey] is the reference implementation for design-based survey inference and remains the right tool when standard errors under a complex design are required. `convey` [@convey] adds the same family of inequality and poverty estimators on top of it, and is the closest existing equivalent to what `microdf` provides. Both require a survey design object, and both are in R. `samplics` [@samplics] brings design-based inference to Python, though it is now archived in favour of `svy`; neither implements distributional estimators, and neither returns objects that behave like a `DataFrame` in an existing pandas pipeline. `statsmodels`' `DescrStatsW` [@seabold2010statsmodels] covers weighted moments, quantiles and covariance, but is a statistics container rather than a data structure that survives a merge or a groupby. What `microdf` offers that these do not is the combination: distributional estimators on a weighted object that stays a `DataFrame` through the transformations that precede them.
 
