@@ -69,9 +69,9 @@ Operations that change the shape or type of the data, overridden so weights stay
 | Method | Signature | Description |
 |---|---|---|
 | `decile_rank` | `(negatives_in_zero: Optional[bool] = False)` | Calculate decile ranks (1-10) with optional zero decile for negatives. |
-| `quintile_rank` | `() -> 'MicroSeries'` |  |
-| `quartile_rank` | `() -> 'MicroSeries'` |  |
-| `percentile_rank` | `() -> 'MicroSeries'` |  |
+| `quintile_rank` | `() -> 'MicroSeries'` | Calculate weighted quintile ranks (1-5). |
+| `quartile_rank` | `() -> 'MicroSeries'` | Calculate weighted quartile ranks (1-4). |
+| `percentile_rank` | `() -> 'MicroSeries'` | Calculate weighted percentile ranks (1-100). |
 
 ### Variance from replicate weights
 
@@ -139,7 +139,7 @@ on a pair of columns for the frequency-weighted values. See
 
 | Method | Signature | Description |
 |---|---|---|
-| `set_weights` | `(weights: numpy.ndarray, preserve_old: Optional[bool] = False) -> None` | Sets the weights for the MicroDataFrame. |
+| `set_weights` | `(weights: Union[numpy.ndarray, str], preserve_old: Optional[bool] = False) -> None` | Sets the weights for the MicroDataFrame. |
 | `set_weight_col` | `(column: str, preserve_old: Optional[bool] = False) -> None` | Sets the weights for the MicroDataFrame by specifying the name of the weight column. |
 | `nullify_weights` | `() -> None` | Set all weights to 1, effectively making the DataFrame unweighted. |
 

@@ -4,6 +4,7 @@ A one-way check lets the page fall behind the code silently, which is how the
 weighted estimators came to be missing from it.
 """
 
+import inspect
 import re
 from pathlib import Path
 
@@ -103,3 +104,47 @@ def test_documented_weight_behaviour_holds():
     # The page says repeat repeats the weights alongside the values.
     repeated = mdf.MicroSeries([1.0, 2.0], weights=[3.0, 4.0]).repeat(2)
     assert list(np.asarray(repeated.weights)) == [3.0, 3.0, 4.0, 4.0]
+
+
+def test_no_row_is_missing_its_description():
+    """Every documented method needs a description.
+
+    A row whose description cell is blank is the signature of a source change
+    that the page was never regenerated for, which happened three times in
+    review before this test existed.
+    """
+    blank = re.findall(
+        r"^\| `(\w+)` \| (?:`[^`]*`|\*attribute\*) \|\s*\|$", DOCS.read_text(), re.M
+    )
+    assert not blank, f"rows with no description: {blank}"
+
+
+def test_signatures_match_the_live_ones():
+    """The rendered signature must be the one the code actually has.
+
+    Rows are attributed to the class whose `## ` heading they fall under, since
+    several names exist on both.
+    """
+    current, mismatches = None, []
+    for line in DOCS.read_text().split("\n"):
+        if line.startswith("## MicroSeries"):
+            current = mdf.MicroSeries
+        elif line.startswith("## MicroDataFrame"):
+            current = mdf.MicroDataFrame
+        elif line.startswith("## "):
+            current = None
+        row = re.match(r"^\| `(\w+)` \| `([^`]*)` \|", line)
+        if not row or current is None:
+            continue
+        name, rendered = row.groups()
+        func = inspect.getattr_static(current, name, None)
+        if func is None or isinstance(func, property):
+            continue
+        try:
+            live = str(inspect.signature(func))
+        except (TypeError, ValueError):
+            continue
+        live = live.replace("(self, ", "(").replace("(self)", "()").replace("|", "\\|")
+        if live != rendered:
+            mismatches.append((current.__name__, name, rendered, live))
+    assert not mismatches, f"page is out of date with the code: {mismatches}"
