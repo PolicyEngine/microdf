@@ -101,7 +101,7 @@ Statistics that require a decision take it as an explicit argument: `gini` accep
 
 # Research impact statement
 
-`microdf` has been public since June 2018, with over 800 commits from eight contributors and more than 35 releases on PyPI, where downloads excluding mirrors averaged about 1,700 a day over the 30 days to 17 September 2026. That figure includes automated installation in continuous integration alongside direct use. It is a dependency of `policyengine` [@policyengine_py], so it sits in the computational path of the distributional estimates that package produces: the poverty rates, decile impacts and Gini changes reported through PolicyEngine's analyses and its web application at [policyengine.org](https://policyengine.org). It is also used directly in public policy reform analysis in the United Kingdom and the United States.
+`microdf` is part of the foundation PolicyEngine's microsimulation stack is built on. `policyengine` [@policyengine_py] depends on it, so the poverty rates, decile impacts and Gini changes published through PolicyEngine's analyses and at [policyengine.org](https://policyengine.org) are computed through its estimators. It is also used directly in public policy reform analysis in the United Kingdom and the United States. Public since June 2018, it has over 800 commits from eight contributors and averages around 1,700 downloads a day.
 
 # Acknowledgements
 
