@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "microdf: Weighted DataFrames and Series for Survey Microdata Analysis"
+url: "https://github.com/PolicyEngine/microdf"
+repository-code: "https://github.com/PolicyEngine/microdf"
+abstract: "Weighted pandas DataFrames and Series for survey microdata, with distributional statistics including weighted quantiles, Gini, income shares and Foster-Greer-Thorbecke poverty measures."
+license: MIT
+version: 1.5.9
+doi: 10.5281/zenodo.22829459
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.22829459
+    description: "Concept DOI, resolving to the latest archived version"
+  - type: doi
+    value: 10.5281/zenodo.22831047
+    description: "Archived version 1.5.9"
+authors:
+  - family-names: Ahmadi
+    given-names: Vahid
+    orcid: "https://orcid.org/0009-0004-1093-6272"
+    affiliation: "PolicyEngine, Washington, DC, United States"
+  - family-names: Ghenis
+    given-names: Max
+    orcid: "https://orcid.org/0000-0002-1335-8277"
+    affiliation: "PolicyEngine, Washington, DC, United States"
+  - family-names: Juaristi
+    given-names: María
+    orcid: "https://orcid.org/0009-0007-4946-2248"
+    affiliation: "PolicyEngine, Washington, DC, United States"
+  - family-names: Woodruff
+    given-names: Nikhil
+    orcid: "https://orcid.org/0009-0009-5004-4910"
+    affiliation: "PolicyEngine, Washington, DC, United States"
+keywords:
+  - survey statistics
+  - microdata
+  - inequality
+  - poverty
+  - pandas
+  - Python

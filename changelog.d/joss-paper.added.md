@@ -1,0 +1,1 @@
+- Added a JOSS paper, a citation file, a code of conduct, and a workflow that builds a draft PDF of the paper.

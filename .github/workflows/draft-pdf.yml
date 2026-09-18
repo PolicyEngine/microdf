@@ -1,0 +1,23 @@
+on:
+  push:
+    paths:
+      - paper.md
+      - paper.bib
+  pull_request:
+    paths:
+      - paper.md
+      - paper.bib
+
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    name: Draft PDF
+    steps:
+      - uses: actions/checkout@v4
+      - uses: openjournals/openjournals-draft-action@master
+        with:
+          journal: joss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paper
+          path: paper.pdf
