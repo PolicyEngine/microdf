@@ -1,7 +1,7 @@
 Examples
 ========
 
-See these rendered Jupyter notebooks for examples of `microdf` usage.
+Worked examples of `microdf` usage. The [Gini coefficient notebook](gini.ipynb) shows the estimator against a known distribution.
 ## Keeping weights through pandas operations
 
 `MicroSeries` and `MicroDataFrame` retain independent copies of their row
