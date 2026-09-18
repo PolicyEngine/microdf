@@ -79,5 +79,7 @@ jobs:
             skip-existing: true
         # After the upload, so a tag failure can never hold back a release.
         # skip-existing above keeps a rerun safe.
-        - name: Publish a git tag
+        - name: Publish a git tag and GitHub release
           run: ".github/publish-git-tag.sh"
+          env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
