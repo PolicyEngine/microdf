@@ -1,3 +1,10 @@
+## [1.5.8] - 2026-09-18
+
+### Changed
+
+- Releases are now created automatically from the tag, so Zenodo archives every version rather than only those released by hand.
+
+
 ## [1.5.7] - 2026-09-18
 
 ### Fixed
