@@ -1,5 +1,6 @@
 [![Build](https://github.com/PolicyEngine/microdf/workflows/Pull%20request/badge.svg)](https://github.com/PolicyEngine/microdf/actions)
 [![Codecov](https://codecov.io/gh/PolicyEngine/microdf/branch/main/graph/badge.svg)](https://codecov.io/gh/PolicyEngine/microdf)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22829459.svg)](https://doi.org/10.5281/zenodo.22829459)
 
 # microdf
 Weighted pandas DataFrames and Series for survey microdata analysis.
