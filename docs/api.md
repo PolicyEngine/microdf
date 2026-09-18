@@ -39,7 +39,7 @@ Operations that change the shape or type of the data, overridden so weights stay
 | Method | Signature | Description |
 |---|---|---|
 | `groupby` | `(*args, **kwargs) -> 'MicroSeriesGroupBy'` | Group into `MicroSeriesGroupBy`, carrying weights into each group. |
-| `cumsum` | `() -> pandas.core.series.Series` | Weighted cumulative sum, i.e. the cumulative sum of value times weight. |
+| `cumsum` | `() -> pandas.core.series.Series` | Cumulative sum of value times weight. Returns a plain `pandas.Series`: the weights have been applied and are not carried forward, so this is the one method here that does not preserve them. |
 | `astype` | `(dtype, copy: Optional[bool] = True, errors: Optional[str] = 'raise') -> 'MicroSeries'` | Convert MicroSeries to specified data type while preserving weights. |
 | `clip` | `(lower: Optional[float] = None, upper: Optional[float] = None, axis: Optional[int] = None, inplace: Optional[bool] = False, *args, **kwargs) -> 'MicroSeries'` | Trim values at the given thresholds, preserving weights. |
 | `round` | `(decimals: Optional[int] = 0, *args, **kwargs) -> 'MicroSeries'` | Round each value, preserving weights. |

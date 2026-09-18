@@ -65,3 +65,41 @@ def test_every_public_method_is_documented():
         assert not missing, (
             f"{cls.__name__} methods missing from docs/api.md: {sorted(missing)}"
         )
+
+
+def test_documented_weight_behaviour_holds():
+    """Pin the claims the page makes that a docstring does not enforce.
+
+    Every error found in review was in a description written by hand rather
+    than taken from a docstring, so the ones that remain are asserted here.
+    """
+    import numpy as np
+    import pandas as pd
+
+    frame = mdf.MicroDataFrame(
+        {"x": [1.0, 2.0, 3.0, 4.0], "y": [1.0, 4.0, 2.0, 8.0]},
+        weights=[1.0, 1.0, 1.0, 5.0],
+    )
+    replicated = pd.DataFrame(
+        {"x": [1.0, 2.0, 3.0] + [4.0] * 5, "y": [1.0, 4.0, 2.0] + [8.0] * 5}
+    )
+
+    # The page says these are unweighted, and points at #327.
+    plain = pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0], "y": [1.0, 4.0, 2.0, 8.0]})
+    assert frame.cov().loc["x", "y"] == pytest.approx(plain.cov().loc["x", "y"])
+    assert frame.corr().loc["x", "y"] == pytest.approx(plain.corr().loc["x", "y"])
+
+    # The page says the MicroSeries versions are frequency-weighted.
+    assert frame.x.cov(frame.y) == pytest.approx(replicated.cov().loc["x", "y"])
+
+    # The page says equals compares weights.
+    light = mdf.MicroSeries([1, 2, 3], weights=[1, 1, 1])
+    heavy = mdf.MicroSeries([1, 2, 3], weights=[9, 9, 9])
+    assert not light.equals(heavy)
+
+    # The page says cumsum drops the weights.
+    assert not hasattr(frame.x.cumsum(), "weights")
+
+    # The page says repeat repeats the weights alongside the values.
+    repeated = mdf.MicroSeries([1.0, 2.0], weights=[3.0, 4.0]).repeat(2)
+    assert list(np.asarray(repeated.weights)) == [3.0, 3.0, 4.0, 4.0]
