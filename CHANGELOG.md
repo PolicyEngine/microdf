@@ -1,3 +1,10 @@
+## [1.5.6] - 2026-09-18
+
+### Changed
+
+- Adds a Zenodo DOI badge to the README.
+
+
 ## [1.5.5] - 2026-09-18
 
 ### Changed
