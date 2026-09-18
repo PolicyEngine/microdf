@@ -66,9 +66,9 @@ R's `survey` package is the reference implementation for design-based survey inf
 
 `MicroSeries` extends `pandas.Series` with a weight vector of equal length; `MicroDataFrame` extends `pandas.DataFrame`, holds a weight column, and exposes each column as a `MicroSeries`.
 
-Pandas methods are classified into three groups. *Scalar* methods return a single weighted statistic and are overridden to use the weights. *Vector* methods return a series aligned to the input and carry the weights through to the result. *Agnostic* methods return either a scalar or a vector depending on their arguments, and are dispatched accordingly. Methods that would need weighting but do not yet implement it, currently `cov` and `corr`, fall through to pandas and emit a warning rather than returning an unweighted number silently. Shape-changing operations — selection, `merge`, `groupby`, `reset_index`, `drop`, `astype` — are overridden so the weight vector follows the rows it describes.
+Pandas methods are classified into three groups. *Scalar* methods return a single weighted statistic and are overridden to use the weights. *Vector* methods return a series aligned to the input and carry the weights through to the result. *Agnostic* methods return either a scalar or a vector depending on their arguments, and are dispatched accordingly. `cov` and `corr` are frequency-weighted on both classes, each cell of the frame matrix being the estimator applied to that pair of columns. Where a method deliberately hands back plain data, as `values` and `to_numpy` do, it warns rather than letting an unweighted result look like a weighted one. Shape-changing operations — selection, `merge`, `groupby`, `reset_index`, `drop`, `astype` — are overridden so the weight vector follows the rows it describes.
 
-The classification is explicit rather than inherited, which is a deliberate trade: a method must be considered before it is supported, and one that has not been is not silently assumed safe.
+The classification among these three groups is a deliberate step: a method must be considered before it is supported, and one that has not been is not silently assumed safe.
 
 ```python
 import microdf as mdf
