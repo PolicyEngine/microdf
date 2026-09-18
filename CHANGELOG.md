@@ -1,3 +1,10 @@
+## [1.5.7] - 2026-09-18
+
+### Fixed
+
+- `MicroDataFrame.cov()` and `.corr()` now return frequency-weighted pairwise matrices using the same estimator as `MicroSeries.cov` and `.corr`, instead of unweighted pandas results. As on `MicroSeries`, `corr` accepts only `method="pearson"`.
+
+
 ## [1.5.6] - 2026-09-18
 
 ### Changed
