@@ -1,3 +1,45 @@
+## [1.5.8] - 2026-09-18
+
+### Changed
+
+- Releases are now created automatically from the tag, so Zenodo archives every version rather than only those released by hand.
+
+
+## [1.5.7] - 2026-09-18
+
+### Fixed
+
+- `MicroDataFrame.cov()` and `.corr()` now return frequency-weighted pairwise matrices using the same estimator as `MicroSeries.cov` and `.corr`, instead of unweighted pandas results. As on `MicroSeries`, `corr` accepts only `method="pearson"`.
+
+
+## [1.5.6] - 2026-09-18
+
+### Changed
+
+- Adds a Zenodo DOI badge to the README.
+
+
+## [1.5.5] - 2026-09-18
+
+### Changed
+
+- Adds .zenodo.json so the Zenodo archive records the paper's author list and title.
+
+
+## [1.5.4] - 2026-09-18
+
+### Changed
+
+- The README now opens with the problem the package solves rather than a description of its classes.
+
+
+## [1.5.3] - 2026-09-18
+
+### Fixed
+
+- Release tagging now works: the tag script reads the version from pyproject.toml rather than a helper that never existed, and fails loudly instead of silently.
+
+
 ## [1.5.2] - 2026-09-17
 
 ### Fixed

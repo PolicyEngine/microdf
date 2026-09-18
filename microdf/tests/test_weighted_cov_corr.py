@@ -341,3 +341,108 @@ def test_cov_corr_center_weight_scaling_preserves_original_frequency_ddof(
     else:
         expected = exact_weighted_moments(x, y, weights, ddof=ddof)
         np.testing.assert_allclose(actual, expected, rtol=3e-15, atol=0)
+
+
+def replicated_frame(data, weights):
+    """Frequency-weight oracle for a frame: repeat each row by its weight."""
+    plain = pd.DataFrame(data)
+    return plain.iloc[np.repeat(np.arange(len(plain)), weights)]
+
+
+@pytest.mark.parametrize("ddof", [0, 1, 2])
+def test_dataframe_cov_corr_match_replicated_frequency_sample(ddof):
+    data = {"x": [1.0, 4.0, 8.0, 2.0], "y": [5.0, 2.0, 9.0, 7.0], "z": [3, 3, 1, 6]}
+    weights = [1, 3, 2, 4]
+    frame = mdf.MicroDataFrame(data, weights=weights)
+    oracle = replicated_frame(data, weights)
+    pd.testing.assert_frame_equal(frame.cov(ddof=ddof), oracle.cov(ddof=ddof))
+    pd.testing.assert_frame_equal(frame.corr(), oracle.corr())
+
+
+def test_dataframe_cov_corr_cells_equal_microseries_results():
+    frame = mdf.MicroDataFrame(
+        {
+            "a": [1.0, 4.0, 8.0, 3.0, 6.0],
+            "b": [5.0, 2.0, 9.0, np.nan, 1.0],
+            "c": [2.0, 2.0, 7.0, 1.0, 1e9],
+        },
+        weights=[1, 3, 2, 0, 0.5],
+    )
+    cov, corr = frame.cov(), frame.corr()
+    for left in frame.columns:
+        for right in frame.columns:
+            assert cov.loc[left, right] == frame[left].cov(frame[right])
+            assert corr.loc[left, right] == frame[left].corr(frame[right])
+            assert cov.loc[left, right] == cov.loc[right, left]
+
+
+def test_dataframe_cov_corr_use_pairwise_complete_rows():
+    frame = mdf.MicroDataFrame(
+        {
+            "x": [1.0, np.nan, 5.0, 9.0, 20.0],
+            "y": [2.0, 4.0, np.nan, 8.0, 30.0],
+            "z": [1.0, 1.0, 2.0, 3.0, 5.0],
+        },
+        weights=[1, 9, 2, 3, 7],
+    )
+    cov, corr = frame.cov(), frame.corr()
+    # x-y keeps rows 0, 3, 4; x-z rows 0, 2, 3, 4; y-z rows 0, 1, 3, 4.
+    cells = {
+        ("x", "y"): replicated_moments([1, 9, 20], [2, 8, 30], [1, 3, 7]),
+        ("x", "z"): replicated_moments([1, 5, 9, 20], [1, 2, 3, 5], [1, 2, 3, 7]),
+        ("y", "z"): replicated_moments([2, 4, 8, 30], [1, 1, 3, 5], [1, 9, 3, 7]),
+    }
+    for (left, right), (expected_cov, expected_corr) in cells.items():
+        assert cov.loc[left, right] == pytest.approx(expected_cov)
+        assert corr.loc[left, right] == pytest.approx(expected_corr)
+
+
+def test_dataframe_cov_corr_omit_zero_weight_rows():
+    frame = mdf.MicroDataFrame(
+        {"x": [1.0, 4.0, 8.0, 1e6], "y": [5.0, 2.0, 9.0, -1e6]}, weights=[1, 3, 2, 0]
+    )
+    expected_cov, expected_corr = replicated_moments([1, 4, 8], [5, 2, 9], [1, 3, 2])
+    assert frame.cov().loc["x", "y"] == pytest.approx(expected_cov)
+    assert frame.corr().loc["x", "y"] == pytest.approx(expected_corr)
+
+
+@pytest.mark.parametrize("weights", [[1, -1, 2], [1, np.inf, 2], [1, np.nan, 2]])
+def test_dataframe_cov_corr_reject_invalid_frequency_weights(weights):
+    frame = mdf.MicroDataFrame(
+        {"x": [1.0, 2.0, 3.0], "y": [3.0, 1.0, 2.0]}, weights=weights
+    )
+    with pytest.raises(ValueError, match="finite and nonnegative"):
+        frame.cov()
+    with pytest.raises(ValueError, match="finite and nonnegative"):
+        frame.corr()
+
+
+def test_dataframe_cov_corr_diagonal_and_constant_columns():
+    frame = mdf.MicroDataFrame(
+        {"x": [1.0, 4.0, 8.0], "c": [2.0, 2.0, 2.0]}, weights=[1, 3, 2]
+    )
+    cov, corr = frame.cov(), frame.corr()
+    assert cov.loc["x", "x"] == pytest.approx(frame.x.var())
+    assert cov.loc["c", "c"] == 0 and cov.loc["x", "c"] == 0
+    assert corr.loc["x", "x"] == 1.0
+    assert np.isnan(corr.loc["c", "c"]) and np.isnan(corr.loc["x", "c"])
+
+
+def test_dataframe_cov_corr_insufficient_weight_total_and_empty_frame():
+    frame = mdf.MicroDataFrame({"x": [1.0, 4.0], "y": [5.0, 2.0]}, weights=[1, 1])
+    assert np.isnan(frame.cov(ddof=2)).all().all()
+    assert np.isfinite(frame.cov(ddof=1)).all().all()
+    empty = mdf.MicroDataFrame({"x": [], "y": []}, weights=[])
+    for result in (empty.cov(), empty.corr()):
+        assert list(result.columns) == ["x", "y"]
+        assert np.isnan(result).all().all()
+
+
+def test_dataframe_cov_corr_validate_options_like_microseries():
+    frame = mdf.MicroDataFrame({"x": [1.0, 2.0], "y": [2.0, 1.0]}, weights=[1, 1])
+    with pytest.raises(TypeError, match="ddof"):
+        frame.cov(ddof=1.5)
+    with pytest.raises(ValueError, match="min_periods"):
+        frame.cov(min_periods=-1)
+    with pytest.raises(ValueError, match="min_periods"):
+        frame.corr(min_periods=-1)
