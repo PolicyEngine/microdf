@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 import microdf as mdf
+from microdf._docs import markdown_signature
 
 DOCS = Path(__file__).resolve().parents[2] / "docs" / "api.md"
 
@@ -122,6 +123,14 @@ def test_no_row_is_missing_its_description():
 def test_signatures_match_the_live_ones():
     """The rendered signature must be the one the code actually has.
 
+    The comparison is structural, not textual: both sides go through
+    `microdf._docs.markdown_signature`, which builds the text from parameter
+    names, kinds and defaults (stable across versions) and normalises the
+    annotations, so `pandas.core.series.Series` under pandas 2 and
+    `pandas.Series` under pandas 3 render alike, as do `Optional[int]` and the
+    `int | None` that Python 3.14 reprs it as. `docs/build_api.py` renders the
+    page with the same function, so the page and this test cannot disagree.
+
     Rows are attributed to the class whose `## ` heading they fall under, since
     several names exist on both.
     """
@@ -141,10 +150,11 @@ def test_signatures_match_the_live_ones():
         if func is None or isinstance(func, property):
             continue
         try:
-            live = str(inspect.signature(func))
+            live = markdown_signature(func)
         except (TypeError, ValueError):
             continue
-        live = live.replace("(self, ", "(").replace("(self)", "()").replace("|", "\\|")
         if live != rendered:
             mismatches.append((current.__name__, name, rendered, live))
-    assert not mismatches, f"page is out of date with the code: {mismatches}"
+    assert not mismatches, (
+        f"page is out of date with the code; rerun docs/build_api.py: {mismatches}"
+    )
