@@ -355,31 +355,51 @@ def test_series_to_dataframe_weights_follow_aligned_rows_and_explicit_override(m
         mdf.MicroDataFrame(data, index=[3, 99])
 
 
+def replicated(data, weights, index=None):
+    """Frequency-weight oracle: the plain frame with each row repeated."""
+    plain = pd.DataFrame(data, index=index)
+    return plain.iloc[np.repeat(np.arange(len(plain)), weights)]
+
+
+def pairwise(oracle, method, *args, **kwargs):
+    """Apply a pandas matrix summary one complete pair at a time.
+
+    pandas honours ``ddof`` only through ``np.cov`` on complete data; once any
+    value is missing it falls back to a kernel that ignores it. Dropping the
+    missing rows per pair keeps the oracle on the ``np.cov`` path.
+    """
+    columns = oracle.columns
+    out = pd.DataFrame(np.nan, index=columns, columns=columns, dtype=float)
+    for i, left in enumerate(columns):
+        for right in columns[i:]:
+            pair = oracle[[left, right]] if left != right else oracle[[left]]
+            cell = getattr(pair.dropna(), method)(*args, **kwargs).iloc[0, -1]
+            out.loc[left, right] = out.loc[right, left] = cell
+    return out
+
+
 @pytest.mark.parametrize("method", ["cov", "corr"])
 @pytest.mark.parametrize("coincident_labels", [False, True])
-def test_dataframe_matrix_summaries_are_plain_and_unweighted(method, coincident_labels):
+def test_dataframe_matrix_summaries_are_plain_and_frequency_weighted(
+    method, coincident_labels
+):
     if coincident_labels:
-        frame = mdf.MicroDataFrame(
-            {"x": [10.0, 20.0], "y": [4.0, 8.0]},
-            index=["x", "y"],
-            weights=[2, 3],
-        )
-        # Sample covariance divides centered cross-products by n - 1.
-        covariance = [[50.0, 20.0], [20.0, 8.0]]
+        data = {"x": [10.0, 20.0], "y": [4.0, 8.0]}
+        weights = [2, 3]
+        frame = mdf.MicroDataFrame(data, index=["x", "y"], weights=weights)
+        # Weighted means x = 16, y = 6.4; sum(w) - 1 = 4 in the denominator.
+        covariance = [[30.0, 12.0], [12.0, 4.8]]
         correlation = [[1.0, 1.0], [1.0, 1.0]]
-    else:
-        frame = mdf.MicroDataFrame(
-            {"x": [10.0, 20.0, 30.0], "y": [4.0, 8.0, 6.0]},
-            weights=[2, 3, 5],
+        expected = pd.DataFrame(
+            covariance if method == "cov" else correlation,
+            index=frame.columns,
+            columns=frame.columns,
         )
-        # Centered x = [-10, 0, 10], y = [-2, 2, 0]; n - 1 = 2.
-        covariance = [[100.0, 10.0], [10.0, 4.0]]
-        correlation = [[1.0, 0.5], [0.5, 1.0]]
-    expected = pd.DataFrame(
-        covariance if method == "cov" else correlation,
-        index=frame.columns,
-        columns=frame.columns,
-    )
+    else:
+        data = {"x": [10.0, 20.0, 30.0], "y": [4.0, 8.0, 6.0]}
+        weights = [2, 3, 5]
+        frame = mdf.MicroDataFrame(data, weights=weights)
+        expected = getattr(replicated(data, weights), method)()
 
     result = getattr(frame, method)()
 
@@ -395,17 +415,15 @@ def test_dataframe_matrix_summaries_are_plain_and_unweighted(method, coincident_
     [
         ("cov", (), {}),
         ("cov", (2, 0), {}),
-        ("cov", (), {"min_periods": 4, "ddof": 2}),
+        ("cov", (), {"min_periods": 2, "ddof": 2}),
         ("cov", (), {"min_periods": 2, "ddof": 0, "numeric_only": True}),
         ("corr", (), {}),
         ("corr", ("pearson", 2, True), {}),
-        ("corr", (), {"method": "spearman", "min_periods": 2}),
-        ("corr", (), {"min_periods": 4}),
-        ("corr", (), {"method": lambda x, y: np.dot(x, y), "min_periods": 2}),
+        ("corr", (), {"min_periods": 2}),
     ],
 )
 @pytest.mark.parametrize("missing", [False, True])
-def test_dataframe_matrix_summaries_preserve_pandas_arguments(
+def test_dataframe_matrix_summaries_follow_pandas_arguments(
     method, args, kwargs, missing
 ):
     data = {
@@ -413,8 +431,11 @@ def test_dataframe_matrix_summaries_preserve_pandas_arguments(
         "y": [4.0, 8.0, np.nan if missing else 6.0, 9.0],
         "flag": [True, False, True, True],
     }
-    frame = mdf.MicroDataFrame(data, index=[7, 7, 3, 9], weights=[2, 3, 5, 7])
-    expected = getattr(pd.DataFrame(data, index=frame.index), method)(*args, **kwargs)
+    weights = [2, 3, 5, 7]
+    # Duplicate labels: weights follow row position, never labels.
+    frame = mdf.MicroDataFrame(data, index=[7, 7, 3, 9], weights=weights)
+    oracle = replicated(data, weights, index=frame.index)
+    expected = pairwise(oracle, method, *args, **kwargs)
 
     result = getattr(frame, method)(*args, **kwargs)
 
@@ -424,11 +445,37 @@ def test_dataframe_matrix_summaries_preserve_pandas_arguments(
 
 
 @pytest.mark.parametrize("method", ["cov", "corr"])
+def test_dataframe_matrix_summaries_min_periods_counts_usable_rows(method):
+    data = {"x": [10.0, 20.0, 30.0, 40.0], "y": [4.0, 8.0, np.nan, 9.0]}
+    frame = mdf.MicroDataFrame(data, weights=[20, 30, 50, 70])
+    # x and y share three usable rows, whatever their weight total.
+    assert np.isfinite(getattr(frame, method)(min_periods=3).loc["x", "y"])
+    result = getattr(frame, method)(min_periods=4)
+    assert np.isnan(result.loc["x", "y"]) and np.isnan(result.loc["y", "x"])
+    assert np.isfinite(result.loc["x", "x"])
+
+
+@pytest.mark.parametrize(
+    "method", ["spearman", "kendall", lambda x, y: float(np.dot(x, y))]
+)
+def test_dataframe_correlation_rejects_other_methods(method):
+    frame = mdf.MicroDataFrame(
+        {"x": [10.0, 20.0, 30.0], "y": [4.0, 8.0, 6.0]}, weights=[2, 3, 5]
+    )
+    with pytest.raises(ValueError, match="pearson") as frame_error:
+        frame.corr(method=method)
+    with pytest.raises(ValueError) as series_error:
+        frame.x.corr(frame.y, method=method)
+    assert str(frame_error.value) == str(series_error.value)
+
+
+@pytest.mark.parametrize("method", ["cov", "corr"])
 def test_dataframe_matrix_summaries_preserve_numeric_only_and_errors(method):
     data = {"x": [10.0, 20.0, 30.0], "y": [4.0, 8.0, 6.0], "label": ["a", "b", "c"]}
-    frame = mdf.MicroDataFrame(data, weights=[2, 3, 5])
+    weights = [2, 3, 5]
+    frame = mdf.MicroDataFrame(data, weights=weights)
     plain = pd.DataFrame(data)
-    expected = getattr(plain, method)(numeric_only=True)
+    expected = getattr(replicated(data, weights), method)(numeric_only=True)
 
     result = getattr(frame, method)(numeric_only=True)
 
@@ -442,37 +489,25 @@ def test_dataframe_matrix_summaries_preserve_numeric_only_and_errors(method):
         assert str(microdf_error.value) == str(pandas_error.value)
 
 
-def test_dataframe_correlation_preserves_optional_kendall_support():
-    data = {"x": [10.0, 20.0, 30.0], "y": [4.0, 8.0, 6.0]}
-    frame = mdf.MicroDataFrame(data, weights=[2, 3, 5])
-    try:
-        expected = pd.DataFrame(data).corr(method="kendall")
-    except ImportError as pandas_error:
-        # Kendall requires scipy; delegation preserves pandas' dependency error.
-        with pytest.raises(type(pandas_error)) as microdf_error:
-            frame.corr(method="kendall")
-        assert str(microdf_error.value) == str(pandas_error)
-    else:
-        result = frame.corr(method="kendall")
-        assert type(result) is pd.DataFrame
-        pd.testing.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize("method", ["cov", "corr"])
 def test_dataframe_matrix_summaries_preserve_pandas_metadata(method):
     data = {"x": [10.0, 20.0, 30.0], "y": [4.0, 8.0, 6.0]}
-    frame = mdf.MicroDataFrame(data, weights=[2, 3, 5])
-    plain = pd.DataFrame(data)
-    for source in [frame, plain]:
-        source.attrs = {"survey": {"year": 2026}}
-        source.flags.allows_duplicate_labels = False
-        source.columns.name = "measure"
-    expected = getattr(plain, method)()
+    weights = [2, 3, 5]
+    frame = mdf.MicroDataFrame(data, weights=weights)
+    frame.attrs = {"survey": {"year": 2026}}
+    frame.flags.allows_duplicate_labels = False
+    frame.columns.name = "measure"
+    expected = getattr(replicated(data, weights), method)()
 
     result = getattr(frame, method)()
 
     assert type(result) is pd.DataFrame
-    pd.testing.assert_frame_equal(result, expected)
-    assert result.attrs == expected.attrs
+    pd.testing.assert_frame_equal(
+        result, expected, check_flags=False, check_names=False
+    )
+    assert result.attrs == {"survey": {"year": 2026}}
+    assert result.flags.allows_duplicate_labels is False
+    assert result.index.name == "measure" and result.columns.name == "measure"
+    # attrs are copied, not shared, with the source frame.
     result.attrs["survey"]["year"] = 2025
     assert frame.attrs["survey"]["year"] == 2026
