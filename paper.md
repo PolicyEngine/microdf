@@ -50,13 +50,12 @@ The second problem is that weights must stay aligned with the data through every
 
 Several tools compute weighted statistics. `microdf` combines pandas-native structures, a distributional estimator set, and replicate-weight variance without requiring a complex-survey design object.
 
-| Tool | Weighted quantiles | Inequality and poverty measures | pandas-native | Design-based variance |
-|---|---|---|---|---|
-| `microdf` | Yes | Gini, top and bottom shares, FGT poverty | Yes | Replicate weights |
-| `samplics` [@samplics] | Yes | No | Partly | Yes |
-| `statsmodels` [@seabold2010statsmodels] | `DescrStatsW` only | No | Partly | No |
-| R `survey` [@lumley2004survey] | Yes | Limited | No (R) | Yes |
-| pandas + manual weighting | Hand-written | Hand-written | Yes | No |
+|  | `microdf` | `samplics` [@samplics] | `statsmodels` [@seabold2010statsmodels] | R `survey` [@lumley2004survey] | pandas, weighted by hand |
+|---|---|---|---|---|---|
+| Weighted quantiles | Yes | Yes | `DescrStatsW` only | Yes | Hand-written |
+| Inequality and poverty measures | Gini, top and bottom shares, FGT poverty | No | No | Limited | Hand-written |
+| pandas-native | Yes | Partly | Partly | No (R) | Yes |
+| Design-based variance | Replicate weights | Yes | No | Yes | No |
 
 R's `survey` package is the reference implementation for design-based survey inference and remains the right tool when standard errors under a complex design are required. `samplics` brings much of that machinery to Python, also centred on sampling design. Neither implements the inequality and poverty estimators that distributional policy analysis reports, and neither returns objects that behave like a `DataFrame` in an existing pandas pipeline.
 
