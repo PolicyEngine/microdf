@@ -1,3 +1,10 @@
+## [1.5.5] - 2026-09-18
+
+### Changed
+
+- Adds .zenodo.json so the Zenodo archive records the paper's author list and title.
+
+
 ## [1.5.4] - 2026-09-18
 
 ### Changed
