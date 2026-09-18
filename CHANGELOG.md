@@ -1,3 +1,10 @@
+## [1.5.3] - 2026-09-18
+
+### Fixed
+
+- Release tagging now works: the tag script reads the version from pyproject.toml rather than a helper that never existed, and fails loudly instead of silently.
+
+
 ## [1.5.2] - 2026-09-17
 
 ### Fixed
