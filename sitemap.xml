@@ -10,4 +10,7 @@
   <url>
     <loc>http://localhost:3000/gini</loc>
   </url>
+  <url>
+    <loc>http://localhost:3000/api</loc>
+  </url>
 </urlset>
