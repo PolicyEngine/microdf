@@ -44,9 +44,9 @@ OVERRIDES = {
     ("MicroSeries", "sqrt"): "Element-wise square root, preserving weights.",
     ("MicroSeries", "copy"): "Copy the series and its weights.",
     ("MicroSeries", "equals"): "True when both the values and the weights are equal.",
-    ("MicroDataFrame", "cov"): "Pairwise covariance of the columns, **unweighted**.",
+    ("MicroDataFrame", "cov"): "Pairwise frequency-weighted covariance of the columns.",
     ("MicroDataFrame", "corr"): (
-        "Pairwise Pearson correlation of the columns, **unweighted**."
+        "Pairwise frequency-weighted Pearson correlation of the columns."
     ),
     ("MicroDataFrame", "merge"): (
         "Database-style join that carries the weight column through."
@@ -202,16 +202,7 @@ the series can compute, including the Gini coefficient and quantiles.
 
 ### Weighted aggregation
 
-{table(FRAME, ["sum"])}
-
-```{{warning}}
-`MicroDataFrame.cov()` and `MicroDataFrame.corr()` return pandas' **unweighted**
-results; the weights are ignored. Use `MicroSeries.cov()` and `MicroSeries.corr()`
-on a pair of columns for the frequency-weighted values. See
-[#327](https://github.com/PolicyEngine/microdf/issues/327).
-```
-
-{table(FRAME, ["cov", "corr"])}
+{table(FRAME, ["sum", "cov", "corr"])}
 
 ### Weight-preserving operations
 

@@ -86,12 +86,12 @@ def test_documented_weight_behaviour_holds():
         {"x": [1.0, 2.0, 3.0] + [4.0] * 5, "y": [1.0, 4.0, 2.0] + [8.0] * 5}
     )
 
-    # The page says these are unweighted, and points at #327.
-    plain = pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0], "y": [1.0, 4.0, 2.0, 8.0]})
-    assert frame.cov().loc["x", "y"] == pytest.approx(plain.cov().loc["x", "y"])
-    assert frame.corr().loc["x", "y"] == pytest.approx(plain.corr().loc["x", "y"])
+    # The page says these are frequency-weighted, as of #330.
+    assert frame.cov().loc["x", "y"] == pytest.approx(replicated.cov().loc["x", "y"])
+    assert frame.corr().loc["x", "y"] == pytest.approx(replicated.corr().loc["x", "y"])
 
-    # The page says the MicroSeries versions are frequency-weighted.
+    # Each frame cell is the corresponding MicroSeries value.
+    assert frame.cov().loc["x", "y"] == pytest.approx(frame.x.cov(frame.y))
     assert frame.x.cov(frame.y) == pytest.approx(replicated.cov().loc["x", "y"])
 
     # The page says equals compares weights.

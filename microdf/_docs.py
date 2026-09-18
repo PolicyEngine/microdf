@@ -1,10 +1,10 @@
 """Version-stable rendering of signatures for the API reference.
 
 `str(inspect.signature(...))` is not stable across versions: pandas 2 renders a
-Series annotation as ``pandas.core.series.Series`` and pandas 3 renders the same
-annotation as ``pandas.Series``, and from Python 3.14 ``Optional[int]`` reprs as
-``int | None``.  Generating ``docs/api.md`` from one of those and testing it
-against another is a guaranteed CI failure on some job.
+Series annotation as ``pandas.core.series.Series`` and pandas 3 renders the
+same annotation as ``pandas.Series``, and from Python 3.14 ``Optional[int]``
+reprs as ``int | None``.  Generating ``docs/api.md`` from one of those and
+testing it against another is a guaranteed CI failure on some job.
 
 So the page and its test both render signatures through the functions here,
 which strip module qualifiers and put unions into a single form.  There is one
