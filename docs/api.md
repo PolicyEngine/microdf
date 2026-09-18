@@ -15,6 +15,41 @@ df.income.gini()
 
 ## MicroSeries
 
+### Weighted aggregation
+
+These have the same names as their pandas equivalents and return weighted results.
+
+| Method | Signature | Description |
+|---|---|---|
+| `sum` | `(axis: Union[int, str, NoneType] = 0, skipna: bool = True, numeric_only: bool = False, min_count: int = 0, **kwargs) -> float` | Calculates the weighted sum of the MicroSeries. |
+| `count` | `(skipna: bool = True) -> float` | Calculates the weighted count of the MicroSeries. |
+| `mean` | `(skipna: bool = True) -> float` | Calculates the weighted mean of the MicroSeries. |
+| `median` | `(skipna: bool = True) -> float` | Calculates the weighted median of the MicroSeries. |
+| `quantile` | `(q: <built-in function array>, skipna: bool = True) -> pandas.core.series.Series` | Calculates weighted quantiles of the MicroSeries. |
+| `var` | `(ddof: int = 1, skipna: bool = True) -> float` | Calculates the weighted variance of the MicroSeries. |
+| `std` | `(ddof: int = 1, skipna: bool = True) -> float` | Calculates the weighted standard deviation of the MicroSeries. |
+| `cov` | `(other: pandas.core.series.Series, min_periods: Optional[int] = None, ddof: int = 1, *, skipna: bool = True) -> float` | Calculate frequency-weighted covariance with another Series. |
+| `corr` | `(other: pandas.core.series.Series, method: str = 'pearson', min_periods: Optional[int] = None, *, ddof: int = 1, skipna: bool = True) -> float` | Calculate frequency-weighted Pearson correlation. |
+| `rank` | `(pct: Optional[bool] = False) -> pandas.core.series.Series` | Weighted rank of each element. |
+
+### Weight-preserving operations
+
+Operations that change the shape or type of the data, overridden so weights stay aligned with their rows.
+
+| Method | Signature | Description |
+|---|---|---|
+| `groupby` | `(*args, **kwargs) -> 'MicroSeriesGroupBy'` | Group into `MicroSeriesGroupBy`, carrying weights into each group. |
+| `cumsum` | `() -> pandas.core.series.Series` | Weighted cumulative sum, i.e. the cumulative sum of value times weight. |
+| `astype` | `(dtype, copy: Optional[bool] = True, errors: Optional[str] = 'raise') -> 'MicroSeries'` | Convert MicroSeries to specified data type while preserving weights. |
+| `clip` | `(lower: Optional[float] = None, upper: Optional[float] = None, axis: Optional[int] = None, inplace: Optional[bool] = False, *args, **kwargs) -> 'MicroSeries'` | Trim values at the given thresholds, preserving weights. |
+| `round` | `(decimals: Optional[int] = 0, *args, **kwargs) -> 'MicroSeries'` | Round each value, preserving weights. |
+| `repeat` | `(repeats, axis=None)` | Repeat elements, repeating their weights alongside. |
+| `sqrt` | `() -> 'MicroSeries'` | Element-wise square root, preserving weights. |
+| `copy` | `(deep: Optional[bool] = True)` | Copy the series and its weights. |
+| `equals` | `(other: 'MicroSeries') -> bool` | Compare values; weights are not part of the comparison. |
+| `values` | `()` | Access underlying numpy array. |
+| `to_numpy` | `(*args, **kwargs)` | Convert to numpy array. |
+
 ### Inequality and distribution
 
 | Method | Signature | Description |
@@ -58,6 +93,26 @@ the series can compute, including the Gini coefficient and quantiles.
 | `weight` | `() -> pandas.core.series.Series` | Calculates the weighted value of the MicroSeries. |
 
 ## MicroDataFrame
+
+### Weighted aggregation
+
+| Method | Signature | Description |
+|---|---|---|
+| `sum` | `(axis: Union[int, str, NoneType] = 0, skipna: bool = True, numeric_only: bool = False, min_count: int = 0, **kwargs) -> Union[pandas.core.series.Series, microdf.microseries.MicroSeries, float]` | Sum numeric columns, weighting reductions across observations. |
+| `cov` | `(min_periods: 'int \| None' = None, ddof: 'int \| None' = 1, numeric_only: 'bool' = False) -> 'DataFrame'` | Pairwise frequency-weighted covariance of the columns. |
+| `corr` | `(method: 'CorrelationMethod' = 'pearson', min_periods: 'int' = 1, numeric_only: 'bool' = False) -> 'DataFrame'` | Pairwise frequency-weighted Pearson correlation of the columns. |
+
+### Weight-preserving operations
+
+| Method | Signature | Description |
+|---|---|---|
+| `groupby` | `(by: Union[str, List], *args, **kwargs) -> 'MicroDataFrameGroupBy'` | Returns a GroupBy object with MicroSeriesGroupBy objects for each column. |
+| `merge` | `(right, how='inner', on=None, left_on=None, right_on=None, left_index=False, right_index=False, sort=False, suffixes=('_x', '_y'), copy=True, indicator=False, validate=None)` | Database-style join that carries the weight column through. |
+| `reset_index` | `(level: Optional[int] = None, drop: Optional[bool] = False, inplace: Optional[bool] = False, col_level: Optional[int] = 0, col_fill: Optional[str] = '', allow_duplicates: Optional[bool] = None, names: Optional[List[str]] = None) -> Optional[ForwardRef('MicroDataFrame')]` | Reset the index, keeping weights aligned to their rows. |
+| `drop` | `(labels=None, axis=0, index=None, columns=None, level=None, inplace=False, errors='raise')` | Drop rows or columns, keeping weights aligned to the remaining rows. |
+| `astype` | `(dtype, copy: Optional[bool] = True, errors: Optional[str] = 'raise') -> 'MicroDataFrame'` | Convert MicroDataFrame to specified data type while preserving weights. |
+| `copy` | `(deep: Optional[bool] = True) -> 'MicroDataFrame'` | Copy the frame and its weights. |
+| `equals` | `(other: 'MicroDataFrame') -> bool` | Compare values; weights are not part of the comparison. |
 
 ### Poverty
 
