@@ -1,4 +1,3 @@
-import copy
 import logging
 import warnings
 from functools import wraps
@@ -21,6 +20,7 @@ from microdf._weights import (
     aligned_weights,
     finalize_weights,
     weight_series,
+    require_equal_weights,
 )
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         weight_source = args[0] if args else kwargs.get("data")
         if isinstance(weight_source, dict) and len(weight_source) == 1:
             weight_source = next(iter(weight_source.values()))
-        if weights is None and isinstance(weight_source, MicroSeries):
+        if weights is None and isinstance(weight_source, (MicroSeries, MicroDataFrame)):
             weights = aligned_weights(weight_source, self.index)
         self.weights = weight_series(np.ones(len(self)), self.index)
         self.weights_col = None
@@ -81,6 +81,134 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         previous = self.__dict__.get("weights")
         super().__finalize__(other, method=method, **kwargs)
         return finalize_weights(self, other, method, previous)
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        for value in inputs:
+            if value is not self:
+                require_equal_weights(self, value)
+        if method != "__call__":
+            raise NotImplementedError(
+                "Use a weighted frame reduction or pd.DataFrame(df) explicitly"
+            )
+        result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
+
+        def restore(value):
+            if isinstance(value, pd.DataFrame):
+                return self._weighted_result(value, aligned_weights(self, value.index))
+            return value
+
+        return (
+            tuple(restore(value) for value in result)
+            if isinstance(result, tuple)
+            else restore(result)
+        )
+
+    def apply(self, func, axis=0, raw=False, result_type=None, args=(), **kwargs):
+        """Apply row functions while retaining row weights on the result."""
+        if self._get_axis_number(axis) != 1:
+            # Column callbacks must receive the weighted series.
+            if raw or result_type is not None or not callable(func):
+                raise NotImplementedError("Use pd.DataFrame(df) for this apply form")
+            return pd.Series(
+                {col: func(self[col], *args, **kwargs) for col in self.columns}
+            )
+        result = pd.DataFrame(self).apply(
+            func, axis=1, raw=raw, result_type=result_type, args=args, **kwargs
+        )
+        cls = MicroSeries if isinstance(result, pd.Series) else MicroDataFrame
+        return cls(result, weights=self.weights)
+
+    def dropna(
+        self,
+        *,
+        axis=0,
+        how=None,
+        thresh=None,
+        subset=None,
+        inplace=False,
+        ignore_index=False,
+    ):
+        """Drop missing observations and their weights using row positions."""
+        plain = pd.DataFrame(self).copy(deep=False)
+        axis = self._get_axis_number(axis)
+        original_index = plain.index
+        plain.index = pd.RangeIndex(len(plain))
+        options = {"axis": axis}
+        if subset is not None:
+            if axis == 1:
+                raise NotImplementedError(
+                    "dropna(axis=1, subset=...) requires pd.DataFrame(df)"
+                )
+            options["subset"] = subset
+        if how is not None:
+            options["how"] = how
+        if thresh is not None:
+            options["thresh"] = thresh
+        result = plain.dropna(**options)
+        positions = np.asarray(result.index, dtype=int)
+        result.index = (
+            pd.RangeIndex(len(result))
+            if ignore_index
+            else original_index.take(positions)
+        )
+        return self._finish_row_operation(result, positions, inplace)
+
+    def pivot_table(
+        self,
+        values=None,
+        index=None,
+        columns=None,
+        aggfunc="mean",
+        fill_value=None,
+        margins=False,
+        dropna=True,
+        margins_name="All",
+        observed=True,
+        sort=True,
+        **kwargs,
+    ):
+        """Build a pivot table by applying estimators to weighted groups."""
+        plain = pd.DataFrame(self).reset_index(drop=True)
+
+        def wrap(func):
+            if isinstance(func, dict):
+                return {key: wrap(value) for key, value in func.items()}
+            if isinstance(func, (list, tuple)):
+                return [wrap(value) for value in func]
+
+            def aggregate(series):
+                positions = np.asarray(series.index, dtype=int)
+                weighted = MicroSeries(
+                    series.to_numpy(),
+                    index=self.index.take(positions),
+                    name=series.name,
+                    weights=self.weights.iloc[positions],
+                )
+                return (
+                    getattr(weighted, func)(**kwargs)
+                    if isinstance(func, str)
+                    else func(weighted, **kwargs)
+                )
+
+            aggregate.__name__ = (
+                func
+                if isinstance(func, str)
+                else getattr(func, "__name__", "aggregate")
+            )
+            return aggregate
+
+        return plain.pivot_table(
+            values=values,
+            index=index,
+            columns=columns,
+            aggfunc=wrap(aggfunc),
+            fill_value=fill_value,
+            margins=margins,
+            dropna=dropna,
+            margins_name=margins_name,
+            observed=observed,
+            sort=sort,
+        )
 
     def cov(
         self,
@@ -255,19 +383,19 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         """
 
         def fn(*args, **kwargs) -> pd.Series:
-            results = {}
-            for col in self.columns:
-                if pd.api.types.is_numeric_dtype(self[col]):
-                    try:
-                        results[col] = getattr(self[col], name)(*args, **kwargs)
-                    except TypeError as exc:
-                        # Skip columns whose dtype can't take this aggregation.
-                        # Deliberately narrow: catching every Exception here also
-                        # swallowed real errors (e.g. the ValueError from
-                        # gini(negatives=...)) and returned a silently truncated
-                        # result instead of raising.
-                        logger.debug("skipping column %s in %s: %s", col, name, exc)
-            return pd.Series(results)
+            kwargs.pop("numeric_only", None)
+            axis = kwargs.pop("axis", 0)
+            if axis not in (0, "index"):
+                raise NotImplementedError(
+                    f"Weighted {name} only supports axis=0; use pd.DataFrame(df)"
+                )
+            return pd.Series(
+                {
+                    col: getattr(self[col], name)(*args, **kwargs)
+                    for col in self.columns
+                    if pd.api.types.is_numeric_dtype(self[col])
+                }
+            )
 
         return fn
 
@@ -717,7 +845,6 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         equal_weights = self.weights.equals(other.weights)
         return equal_values and equal_weights
 
-    @get_args_as_micro_series()
     def groupby(self, by: Union[str, List], *args, **kwargs) -> "MicroDataFrameGroupBy":
         """Returns a GroupBy object with MicroSeriesGroupBy objects for each
         column.
@@ -734,23 +861,21 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         # DataFrame — any later ``df.sum()`` or ``list(df.columns)``
         # would then include it.
         staged = pd.DataFrame(self).copy()
+        if "__tmp_weights" in staged.columns:
+            raise ValueError("Rename the reserved __tmp_weights column before grouping")
         staged["__tmp_weights"] = np.asarray(self.weights.values, dtype=float)
         gb = staged.groupby(by, *args, **kwargs)
-        weights = copy.deepcopy(gb["__tmp_weights"])
-        for col in staged.columns:  # df.groupby(...)[col]s use weights
-            res = gb[col]
-            res.__class__ = MicroSeriesGroupBy
-            res._init()
-            res.weights = weights
-            setattr(gb, col, res)
         gb.__class__ = MicroDataFrameGroupBy
         gb._init(by)
         return gb
 
     @get_args_as_micro_series()
     def poverty_rate(self, income: str, threshold: str) -> float:
-        """Calculate poverty rate, i.e., the population share with income below
-        their poverty threshold.
+        """Return the weighted headcount share strictly below the poverty
+        threshold.
+
+        Divide the weight of people in poverty by total population weight. This
+        is the Foster-Greer-Thorbecke (FGT) headcount index, FGT(0).
 
         :param income: Column indicating income.
         :type income: str
@@ -764,8 +889,10 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
 
     @get_args_as_micro_series()
     def deep_poverty_rate(self, income: str, threshold: str) -> float:
-        """Calculate deep poverty rate, i.e., the population share with income
-        below half their poverty threshold.
+        """Return the weighted headcount share strictly below half the
+        threshold.
+
+        Divide the weight of people in deep poverty by total population weight.
 
         :param income: Column indicating income.
         :type income: str
@@ -779,14 +906,16 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
 
     @get_args_as_micro_series()
     def poverty_gap(self, income: str, threshold: str) -> float:
-        """Calculate poverty gap, i.e., the total gap between income and
-        poverty thresholds for all people in poverty.
+        """Return the weighted aggregate poverty gap in income currency units.
+
+        Sum weight times (threshold - income) over people strictly below their
+        threshold. This aggregate is not the normalised FGT(1) index.
 
         :param income: Column indicating income.
         :type income: str
         :param threshold: Column indicating threshold.
         :type threshold: str
-        :return: Poverty gap.
+        :return: Weighted aggregate gap in income currency units.
         :rtype: float
         """
         gaps = (threshold - income)[threshold > income]
@@ -794,14 +923,17 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
 
     @get_args_as_micro_series()
     def deep_poverty_gap(self, income: str, threshold: str) -> float:
-        """Calculate deep poverty gap, i.e., the total gap between income and
-        half of poverty thresholds for all people in deep poverty.
+        """Return the weighted aggregate deep poverty gap in income currency
+        units.
+
+        Sum weight times (threshold / 2 - income) over people strictly below
+        half their threshold.
 
         :param income: Column indicating income.
         :type income: str
         :param threshold: Column indicating threshold.
         :type threshold: str
-        :return: Deep poverty gap.
+        :return: Weighted aggregate deep gap in income currency units.
         :rtype: float
         """
         deep_threshold = threshold / 2
@@ -810,15 +942,17 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
 
     @get_args_as_micro_series()
     def squared_poverty_gap(self, income: str, threshold: str) -> float:
-        """Calculate squared poverty gap, i.e., the total squared gap between
-        income and poverty thresholds for all people in poverty. Also known as
-        the poverty severity index.
+        """Return the weighted aggregate squared gap in squared currency units.
+
+        Sum weight times (threshold - income) squared over people strictly
+        below their threshold. This aggregate is not the normalised FGT(2)
+        poverty severity index.
 
         :param income: Column indicating income.
         :type income: str
         :param threshold: Column indicating threshold.
         :type threshold: str
-        :return: Squared poverty gap.
+        :return: Weighted aggregate squared gap in squared income currency units.
         :rtype: float
         """
         gaps = (threshold - income)[threshold > income]
@@ -874,161 +1008,111 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
 
 
 class MicroDataFrameGroupBy(pd.core.groupby.generic.DataFrameGroupBy):
-    def _init(self, by: Union[str, List]):
+    def _init(self, by, columns=None, weights=None):
         self._by = by
-        self.columns = list(self.obj.columns)
-        if isinstance(by, list):
-            for column in by:
-                self.columns.remove(column)
-        elif isinstance(by, str):
-            self.columns.remove(by)
-        self.columns.remove("__tmp_weights")
-        # Filter to only numeric columns
+        self.columns = (
+            columns
+            if columns is not None
+            else [
+                col
+                for col in self.obj.columns
+                if col != "__tmp_weights" and col not in self.exclusions
+            ]
+        )
         self.numeric_columns = [
             col for col in self.columns if pd.api.types.is_numeric_dtype(self.obj[col])
         ]
-        # Store reference to weights groupby for column selection
-        self._weights_groupby = copy.deepcopy(super().__getitem__("__tmp_weights"))
-        for fn_name in MicroSeries.SCALAR_FUNCTIONS:
+        self._weights_groupby = (
+            weights if weights is not None else self._gotitem("__tmp_weights", ndim=1)
+        )
+        for name in MicroSeries.FUNCTIONS + [
+            "sem",
+            "skew",
+            "kurt",
+            "kurtosis",
+            "prod",
+            "product",
+            "idxmax",
+            "idxmin",
+            "rolling",
+            "expanding",
+            "ewm",
+            "mode",
+            "value_counts",
+        ]:
 
-            def get_fn(name):
-                def fn(*args, **kwargs):
-                    results = {}
-                    for col in self.numeric_columns:
-                        try:
-                            results[col] = getattr(getattr(self, col), name)(
-                                *args, **kwargs
-                            )
-                        except TypeError as exc:
-                            # Skip columns whose dtype can't take this aggregation.
-                            # Deliberately narrow: catching every Exception here also
-                            # swallowed real errors (e.g. the ValueError from
-                            # gini(negatives=...)) and returned a silently truncated
-                            # result instead of raising.
-                            logger.debug("skipping column %s in %s: %s", col, name, exc)
-                    # Return plain DataFrame - aggregated results don't have
-                    # per-row weights (weights were already applied)
-                    return pd.DataFrame(results) if results else pd.DataFrame()
+            def reduction(*args, _name=name, **kwargs):
+                kwargs.pop("numeric_only", None)
+                result = pd.DataFrame(
+                    {
+                        col: getattr(self[col], _name)(*args, **kwargs)
+                        for col in self.numeric_columns
+                    }
+                )
+                return result if self.as_index else result.reset_index()
 
-                return fn
+            setattr(self, name, reduction)
 
-            setattr(self, fn_name, get_fn(fn_name))
-        for fn_name in MicroSeries.VECTOR_FUNCTIONS:
-
-            def get_fn(name) -> Callable:
-                def fn(*args, **kwargs) -> Union[pd.Series, pd.DataFrame]:
-                    results = {}
-                    for col in self.numeric_columns:
-                        try:
-                            results[col] = getattr(getattr(self, col), name)(
-                                *args, **kwargs
-                            )
-                        except TypeError as exc:
-                            # Skip columns whose dtype can't take this aggregation.
-                            # Deliberately narrow: catching every Exception here also
-                            # swallowed real errors (e.g. the ValueError from
-                            # gini(negatives=...)) and returned a silently truncated
-                            # result instead of raising.
-                            logger.debug("skipping column %s in %s: %s", col, name, exc)
-                    # Return plain DataFrame - aggregated results don't have
-                    # per-row weights (weights were already applied)
-                    return pd.DataFrame(results) if results else pd.DataFrame()
-
-                return fn
-
-            setattr(self, fn_name, get_fn(fn_name))
-
-    def __getitem__(
-        self, key: Union[str, List]
-    ) -> Union["MicroSeriesGroupBy", "MicroDataFrameGroupBy"]:
-        """Select columns from the groupby object while preserving weights.
-
-        This ensures that operations like groupby(col)["y"].sum() or
-        groupby(col)[["y"]].sum() use weighted aggregation.
-
-        :param key: Column name or list of column names
-        :return: MicroSeriesGroupBy for single column, MicroDataFrameGroupBy
-            for multiple columns
-        """
-        if isinstance(key, str):
-            # Single column - return MicroSeriesGroupBy
+    def __getitem__(self, key):
+        if pd.api.types.is_hashable(key):
+            if key not in self.columns:
+                raise KeyError(key)
+            result = self._gotitem(key, ndim=1)
+        else:
             result = super().__getitem__(key)
+        if isinstance(result, pd.core.groupby.generic.SeriesGroupBy):
             result.__class__ = MicroSeriesGroupBy
             result._init()
             result.weights = self._weights_groupby
-            return result
         else:
-            # Multiple columns - return a new MicroDataFrameGroupBy
-            # with only the selected columns
-            result = super().__getitem__(key)
             result.__class__ = MicroDataFrameGroupBy
-            # Re-initialize with the subset of columns
-            result._by = self._by
-            result.columns = list(key) if hasattr(key, "__iter__") else [key]
-            result.numeric_columns = [
-                col
-                for col in result.columns
-                if pd.api.types.is_numeric_dtype(result.obj[col])
-            ]
-            result._weights_groupby = self._weights_groupby
-            # Set up the column attributes as MicroSeriesGroupBy
-            for col in result.columns:
-                col_gb = super().__getitem__(col)
-                col_gb.__class__ = MicroSeriesGroupBy
-                col_gb._init()
-                col_gb.weights = self._weights_groupby
-                setattr(result, col, col_gb)
-            # Set up the scalar and vector functions
-            for fn_name in MicroSeries.SCALAR_FUNCTIONS:
+            result._init(self._by, list(key), self._weights_groupby)
+        return result
 
-                def get_scalar_fn(name, res):
-                    def fn(*args, **kwargs):
-                        results = {}
-                        for col in res.numeric_columns:
-                            try:
-                                results[col] = getattr(getattr(res, col), name)(
-                                    *args, **kwargs
-                                )
-                            except TypeError as exc:
-                                # Skip columns whose dtype can't take this aggregation.
-                                # Deliberately narrow: catching every Exception here also
-                                # swallowed real errors (e.g. the ValueError from
-                                # gini(negatives=...)) and returned a silently truncated
-                                # result instead of raising.
-                                logger.debug(
-                                    "skipping column %s in %s: %s", col, name, exc
-                                )
-                        # Return plain DataFrame - aggregated results don't
-                        # have per-row weights (weights were already applied)
-                        return pd.DataFrame(results) if results else pd.DataFrame()
+    def aggregate(self, func=None, *args, **kwargs):
+        """Apply named, dictionary, list and callable weighted aggregations."""
+        if func is not None and (
+            kwargs.get("engine") is not None or "engine_kwargs" in kwargs
+        ):
+            raise NotImplementedError(
+                "Weighted aggregation does not support engine overrides"
+            )
+        numeric_only = kwargs.pop("numeric_only", False) if func is not None else False
+        if func is None:
+            if not kwargs or not all(
+                isinstance(value, tuple) and len(value) == 2
+                for value in kwargs.values()
+            ):
+                raise TypeError("Named aggregation requires output=(column, function)")
+            results = {
+                label: self[column].agg(reducer, *args)
+                for label, (column, reducer) in kwargs.items()
+            }
+        elif isinstance(func, dict):
+            results = {
+                column: self[column].agg(reducer, *args, **kwargs)
+                for column, reducer in func.items()
+            }
+        else:
+            columns = (
+                self.numeric_columns
+                if numeric_only or isinstance(func, str)
+                else self.columns
+            )
+            results = {
+                column: self[column].agg(func, *args, **kwargs) for column in columns
+            }
+        if any(isinstance(value, pd.DataFrame) for value in results.values()):
+            # pandas uses a second level for all columns when any reducer is a list.
+            tables = {
+                key: value
+                if isinstance(value, pd.DataFrame)
+                else value.to_frame(func[key] if isinstance(func, dict) else func)
+                for key, value in results.items()
+            }
+            result = pd.concat(tables, axis=1)
+        else:
+            result = pd.DataFrame(results)
+        return result if self.as_index else result.reset_index()
 
-                    return fn
-
-                setattr(result, fn_name, get_scalar_fn(fn_name, result))
-            for fn_name in MicroSeries.VECTOR_FUNCTIONS:
-
-                def get_vector_fn(name, res):
-                    def fn(*args, **kwargs):
-                        results = {}
-                        for col in res.numeric_columns:
-                            try:
-                                results[col] = getattr(getattr(res, col), name)(
-                                    *args, **kwargs
-                                )
-                            except TypeError as exc:
-                                # Skip columns whose dtype can't take this aggregation.
-                                # Deliberately narrow: catching every Exception here also
-                                # swallowed real errors (e.g. the ValueError from
-                                # gini(negatives=...)) and returned a silently truncated
-                                # result instead of raising.
-                                logger.debug(
-                                    "skipping column %s in %s: %s", col, name, exc
-                                )
-                        # Return plain DataFrame - aggregated results don't
-                        # have per-row weights (weights were already applied)
-                        return pd.DataFrame(results) if results else pd.DataFrame()
-
-                    return fn
-
-                setattr(result, fn_name, get_vector_fn(fn_name, result))
-            return result
+    agg = aggregate

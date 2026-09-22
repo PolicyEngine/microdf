@@ -26,11 +26,17 @@ jobs:
         run: make lint
 
   test:
-    name: Test Python ${{ matrix.python-version }}
+    name: Test Python ${{ matrix.python-version }} / pandas ${{ matrix.pandas-version }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        pandas-version: ["latest"]
+        include:
+          - python-version: "3.13"
+            pandas-version: "2"
+          - python-version: "3.13"
+            pandas-version: "3"
     
     steps:
       - uses: actions/checkout@v6
@@ -46,6 +52,9 @@ jobs:
       - name: Install dependencies
         run: |
           uv pip install -e ".[dev]" --system
+      - name: Select pandas major version
+        if: matrix.pandas-version != 'latest'
+        run: uv pip install --system "pandas==${{ matrix.pandas-version }}.*"
       - name: Run tests with coverage
         run: make test
       - name: Upload coverage to Codecov

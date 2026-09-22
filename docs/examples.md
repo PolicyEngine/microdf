@@ -41,14 +41,24 @@ new Micro object with appropriate weights when that choice is intentional.
 A single DataFrame row is a plain pandas `Series`, because its entries are
 columns rather than weighted observations.
 
-`MicroDataFrame.cov()` and `.corr()` retain pandas' unweighted calculations
-and return plain pandas `DataFrame` matrices. Their rows describe columns,
-so observation weights do not apply to the result or subsequent operations
-such as `.sum()`. These methods accept the installed pandas version's
-arguments and defaults, including missing-value handling and correlation
-methods.
+`MicroDataFrame.cov()` computes frequency-weighted covariance, and `.corr()`
+computes frequency-weighted Pearson correlation. Each matrix cell applies the
+corresponding `MicroSeries` estimator to the pair of columns, excluding missing
+pairs and zero-weight rows. Integer weights agree with the replicated sample.
+Both methods return plain pandas `DataFrame` matrices: their rows describe
+columns, so subsequent matrix operations have no observation weights. Other
+correlation methods are unsupported. The example below returns the covariance
+matrix `[[8/3, 4/3], [4/3, 2]]`.
 
-Use Micro objects for **every input** to `pd.concat`. A mixed concat raises
+```python
+import numpy as np
+
+xy = MicroDataFrame({"x": [1, 3, 5], "y": [2, 5, 4]}, weights=[1, 2, 1])
+assert np.allclose(xy.cov(), np.cov(xy.to_numpy().T, fweights=[1, 2, 1]))
+```
+
+Use `microdf.concat` to reject plain pandas inputs in either order, or use Micro
+objects for **every input** to `pd.concat`. A mixed concat raises
 `ValueError` when pandas calls the Micro object's hooks. If a plain pandas
 object comes first, pandas can bypass those hooks and return an unweighted
 object; microdf cannot intercept that dispatch. Convert each input to
