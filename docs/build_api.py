@@ -106,7 +106,8 @@ def build():
 vector; `MicroDataFrame` is a `pandas.DataFrame` carrying a weight column. Both
 behave like their pandas counterparts, and the methods below either add a
 weighted estimator or preserve weights through an operation that would otherwise
-drop them.
+drop them. The [support matrix](support.md) lists tested operations and explicit
+rejections; arbitrary pandas operations do not necessarily preserve weights.
 
 ```python
 import microdf as mdf
@@ -135,6 +136,8 @@ These have the same names as their pandas equivalents and return weighted result
                 "cov",
                 "corr",
                 "rank",
+                "value_counts",
+                "mode",
             ],
         )
     }
@@ -153,6 +156,7 @@ Operations that change the shape or type of the data, overridden so weights stay
                 "clip",
                 "round",
                 "repeat",
+                "explode",
                 "sqrt",
                 "copy",
                 "equals",
@@ -202,14 +206,24 @@ the series can compute, including the Gini coefficient and quantiles.
 
 ### Weighted aggregation
 
-{table(FRAME, ["sum", "cov", "corr"])}
+{table(FRAME, ["sum", "cov", "corr", "pivot_table"])}
 
 ### Weight-preserving operations
 
 {
         table(
             FRAME,
-            ["groupby", "merge", "reset_index", "drop", "astype", "copy", "equals"],
+            [
+                "groupby",
+                "merge",
+                "reset_index",
+                "drop",
+                "dropna",
+                "apply",
+                "astype",
+                "copy",
+                "equals",
+            ],
         )
     }
 
@@ -229,6 +243,12 @@ the series can compute, including the Gini coefficient and quantiles.
         )
     }
 
+The gap methods return currency totals. Normalised FGT(1) (poverty gap index)
+and FGT(2) (poverty severity index) are outside this API's scope. In those
+indices, divide each positive gap by that row's threshold before raising to
+the first or second power, then take the population-weighted mean. People at
+the threshold contribute zero, and people with zero weight do not contribute.
+
 ### Weights
 
 {table(FRAME, ["set_weights", "set_weight_col", "nullify_weights"])}
@@ -237,6 +257,7 @@ the series can compute, including the Gini coefficient and quantiles.
 
 | Function | Description |
 |---|---|
+| `microdf.concat` | Concatenate Micro objects; reject plain pandas inputs in either order. |
 | `microdf.replicate_variance` | Variance of a statistic from replicate weights. |
 | `microdf.replicate_standard_error` | Square root of the above. |
 
