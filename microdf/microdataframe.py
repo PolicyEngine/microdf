@@ -167,7 +167,24 @@ class MicroDataFrame(WeightPropagationMixin, pd.DataFrame):
         sort=True,
         **kwargs,
     ):
-        """Build a pivot table by applying estimators to weighted groups."""
+        """Build a pivot table by applying estimators to weighted column
+        groups.
+
+        Grouping keys must name columns. External Series, callables and index
+        level groupers require an explicit conversion to a plain DataFrame.
+        """
+        for keys in (index, columns):
+            if keys is None:
+                continue
+            keys = keys if isinstance(keys, list) else [keys]
+            if any(
+                not pd.api.types.is_hashable(key) or key not in self.columns
+                for key in keys
+            ):
+                raise NotImplementedError(
+                    "Weighted pivot_table grouping keys must name columns; "
+                    "use pd.DataFrame(df) for other grouping forms"
+                )
         plain = pd.DataFrame(self).reset_index(drop=True)
 
         def wrap(func):

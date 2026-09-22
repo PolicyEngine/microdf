@@ -212,6 +212,10 @@ def support_matrix():
         "",
     ]
     rows += [
+        "`pivot_table` grouping keys must name columns; external Series, callable",
+        "groupers and index-level groupers raise. Weighted `Series.value_counts` and",
+        "`Series.mode` return plain summary Series; frame and grouped variants raise.",
+        "",
         "`microdf.concat` rejects mixed weighted/plain inputs in either order. Direct",
         "`pd.concat` still bypasses microdf when its first input is plain pandas; the",
         "regression suite records this upstream dispatch limitation as an expected failure.",
@@ -368,3 +372,10 @@ def test_row_apply_expansion_retains_weights():
     result = survey().apply(lambda r: [r.x, 2 * r.x], axis=1, result_type="expand")
     assert isinstance(result, mdf.MicroDataFrame)
     assert result.mean().tolist() == [19, 38]
+
+
+@pytest.mark.parametrize("keys", [pd.Series(["a", "a"], index=[5, 6]), lambda row: row])
+def test_pivot_rejects_groupers_without_positional_provenance(keys):
+    d = mdf.MicroDataFrame({"x": [10.0, 100.0]}, index=[5, 6], weights=[9, 1])
+    with pytest.raises(NotImplementedError, match="grouping keys must name columns"):
+        d.pivot_table(values="x", index=keys, aggfunc=lambda s: s.mean())

@@ -105,7 +105,7 @@ the series can compute, including the Gini coefficient and quantiles.
 | `sum` | `(axis: Union[int, str, NoneType] = 0, skipna: bool = True, numeric_only: bool = False, min_count: int = 0, **kwargs) -> Union[Series, MicroSeries, float]` | Sum numeric columns, weighting reductions across observations. |
 | `cov` | `(min_periods: Optional[int] = None, ddof: int = 1, numeric_only: bool = False) -> DataFrame` | Pairwise frequency-weighted covariance of the columns. |
 | `corr` | `(method: str = 'pearson', min_periods: int = 1, numeric_only: bool = False) -> DataFrame` | Pairwise frequency-weighted Pearson correlation of the columns. |
-| `pivot_table` | `(values=None, index=None, columns=None, aggfunc='mean', fill_value=None, margins=False, dropna=True, margins_name='All', observed=True, sort=True, **kwargs)` | Build a pivot table by applying estimators to weighted groups. |
+| `pivot_table` | `(values=None, index=None, columns=None, aggfunc='mean', fill_value=None, margins=False, dropna=True, margins_name='All', observed=True, sort=True, **kwargs)` | Build a pivot table by applying estimators to weighted column groups. |
 
 ### Weight-preserving operations
 

@@ -44,6 +44,10 @@ The regression suite checks these contracts on pandas 2 and 3. Aggregated result
 
 `pd.cut` and `pd.qcut` retain row weights, but choose bin edges using pandas' unweighted rules. Supply explicit bin edges for weighted quantile bins.
 
+`pivot_table` grouping keys must name columns; external Series, callable
+groupers and index-level groupers raise. Weighted `Series.value_counts` and
+`Series.mode` return plain summary Series; frame and grouped variants raise.
+
 `microdf.concat` rejects mixed weighted/plain inputs in either order. Direct
 `pd.concat` still bypasses microdf when its first input is plain pandas; the
 regression suite records this upstream dispatch limitation as an expected failure.
