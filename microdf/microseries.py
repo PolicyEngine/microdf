@@ -1,7 +1,8 @@
+import inspect
 import logging
 import warnings
 from functools import wraps
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -11,6 +12,7 @@ from microdf._weights import (
     aligned_weights,
     finalize_weights,
     weight_series,
+    require_equal_weights,
 )
 
 logger = logging.getLogger(__name__)
@@ -190,11 +192,24 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
         :type weights: np.ndarray
         """
         super().__init__(*args, **kwargs)
+        source = args[0] if args else kwargs.get("data")
+        if weights is None and isinstance(source, MicroSeries):
+            weights = aligned_weights(source, self.index)
         self.set_weights(weights)
 
     @property
     def _constructor(self):
-        return MicroSeries
+        def construct(*args, **kwargs):
+            result = MicroSeries(*args, **kwargs)
+            # pandas.cut/qcut/to_numeric reconstruct from arrays with an
+            # explicit row index, without calling __finalize__ afterwards.
+            if result.index.equals(self.index) and (
+                "index" in kwargs or (len(args) > 1 and args[1] is self.index)
+            ):
+                result.weights = weight_series(self.weights, result.index)
+            return result
+
+        return construct
 
     @property
     def _constructor_expanddim(self):
@@ -228,6 +243,9 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
                     else:
                         return NotImplemented
 
+        for value in inputs:
+            if value is not self:
+                require_equal_weights(self, value)
         out = kwargs.get("out")
         has_output = out is not None and any(value is not None for value in out)
         if (
@@ -265,6 +283,123 @@ class MicroSeries(WeightPropagationMixin, pd.Series):
                 return tuple(restore_weights(value) for value in result)
             return restore_weights(result)
         return super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
+
+    def __array_function__(self, func, types, args, kwargs):
+        """Dispatch NumPy reductions without discarding observation weights."""
+        reductions = {
+            np.mean: "mean",
+            np.median: "median",
+            np.sum: "sum",
+            np.var: "var",
+            np.std: "std",
+        }
+        if func is np.average:
+            options = inspect.signature(func).bind(*args, **kwargs).arguments
+            if options.get("axis") not in (None, 0):
+                raise ValueError("MicroSeries has only axis 0")
+            if options.get("keepdims", False):
+                raise NotImplementedError("np.average keepdims is not supported")
+            weights = options.get("weights")
+            if weights is not None and not np.array_equal(weights, self.weights):
+                raise ValueError(
+                    "np.average weights must match the MicroSeries weights"
+                )
+            value = self.mean(skipna=False)
+            return (
+                (value, self.weights.sum()) if options.get("returned", False) else value
+            )
+        if func in reductions:
+            options = inspect.signature(func).bind(*args, **kwargs).arguments
+            options.pop("a", None)
+            axis = options.pop("axis", None)
+            if axis not in (None, 0):
+                raise ValueError("MicroSeries has only axis 0")
+            for name in (
+                "out",
+                "overwrite_input",
+                "keepdims",
+                "dtype",
+                "where",
+                "initial",
+                "mean",
+                "correction",
+            ):
+                if name in options:
+                    value = options.pop(name)
+                    if value is not None and value is not False:
+                        raise NotImplementedError(
+                            f"{func.__name__} {name} is not supported on weighted data"
+                        )
+            if func in (np.var, np.std):
+                options.setdefault("ddof", 0)
+            return getattr(self, reductions[func])(skipna=False, **options)
+        # Shape queries and equality checks do not estimate a statistic.
+        if func is np.putmask and not isinstance(args[0], MicroSeries):
+            # pandas' ufunc out= machinery writes weighted values into a caller's
+            # explicitly supplied ndarray. No weighted object is reconstructed.
+            return np.putmask(
+                *(np.asarray(a) if isinstance(a, MicroSeries) else a for a in args),
+                **kwargs,
+            )
+        if func in (
+            np.shape,
+            np.ndim,
+            np.size,
+            np.array_equal,
+            np.allclose,
+            np.isclose,
+        ):
+            plain = tuple(
+                np.asarray(a) if isinstance(a, MicroSeries) else a for a in args
+            )
+            return func(*plain, **kwargs)
+        raise NotImplementedError(
+            f"{func.__name__} is not supported on weighted data; use pd.Series(s) "
+            "for an explicitly unweighted operation."
+        )
+
+    def explode(self, ignore_index: bool = False) -> "MicroSeries":
+        """Expand list entries, repeating each observation's weight."""
+        plain = pd.Series(self).reset_index(drop=True).explode()
+        positions = np.asarray(plain.index, dtype=int)
+        plain.index = (
+            pd.RangeIndex(len(plain)) if ignore_index else self.index.take(positions)
+        )
+        return self._weighted_result(plain, self.weights.iloc[positions])
+
+    def value_counts(
+        self, normalize=False, sort=True, ascending=False, bins=None, dropna=True
+    ) -> pd.Series:
+        """Sum weights by value; optionally divide by the included weight
+        total."""
+        if bins is not None:
+            raise NotImplementedError(
+                "Weighted value_counts bins are unsupported; use pd.Series(s)"
+            )
+        values = pd.Series(self, copy=False)
+        weights = np.asarray(self.weights)
+        _validate_frequency_weights(weights)
+        result = (
+            pd.Series(weights)
+            .groupby(
+                values.reset_index(drop=True), dropna=dropna, observed=False, sort=False
+            )
+            .sum()
+        )
+        result.index.name = self.name
+        result.name = "proportion" if normalize else "count"
+        if normalize:
+            result = result / result.sum()
+        if sort:
+            result = result.sort_values(ascending=ascending, kind="stable")
+        return result
+
+    def mode(self, dropna: bool = True) -> pd.Series:
+        """Return values with the greatest positive total weight as a plain
+        Series."""
+        counts = self.value_counts(sort=False, dropna=dropna)
+        modes = counts.index[(counts == counts.max()) & (counts > 0)]
+        return pd.Series(modes, name=self.name).sort_values(ignore_index=True)
 
     def __rdivmod__(self, other) -> tuple["MicroSeries", "MicroSeries"]:
         # An explicit override gives the weighted subclass priority over a
@@ -1191,6 +1326,36 @@ MicroSeries.FUNCTIONS = sum(
 
 
 class MicroSeriesGroupBy(pd.core.groupby.generic.SeriesGroupBy):
+    def aggregate(self, func=None, *args, **kwargs):
+        """Apply named or callable estimators to weighted groups."""
+        if isinstance(func, str):
+            if func in MicroSeries.FUNCTIONS:
+                return getattr(self, func)(*args, **kwargs)
+            # Unsupported inherited reductions must never reach pandas kernels.
+            func_name = func
+            func = lambda series, *a, **k: getattr(series, func_name)(*a, **k)
+        if isinstance(func, (list, tuple)):
+            return pd.concat(
+                [self.aggregate(f, *args, **kwargs) for f in func],
+                axis=1,
+                keys=[f if isinstance(f, str) else f.__name__ for f in func],
+            )
+        if not callable(func):
+            raise TypeError("Weighted SeriesGroupBy.agg requires a name or callable")
+        grouper = self._grouper if hasattr(self, "_grouper") else self.grouper
+        positions = pd.Series(np.arange(len(self.obj)), index=self.obj.index).groupby(
+            grouper
+        )
+
+        def apply_group(rows):
+            ids = np.asarray(rows, dtype=int)
+            series = MicroSeries(self.obj.iloc[ids], weights=self.weights.obj.iloc[ids])
+            return func(series, *args, **kwargs)
+
+        return positions.agg(apply_group)
+
+    agg = aggregate
+
     def _init(self):
         def _weighted_agg(name) -> Callable:
             def via_micro_series(row, *args, **kwargs):
@@ -1200,6 +1365,11 @@ class MicroSeriesGroupBy(pd.core.groupby.generic.SeriesGroupBy):
 
             @wraps(fn)
             def _weighted_agg_fn(*args, **kwargs) -> Union[pd.Series, pd.DataFrame]:
+                kwargs.pop("numeric_only", None)
+                if name in MicroSeries.SCALAR_FUNCTIONS:
+                    return self.aggregate(
+                        lambda series: getattr(series, name)(*args, **kwargs)
+                    )
                 arrays = self.apply(np.array)
                 weights = self.weights.apply(np.array)
                 df = pd.DataFrame(dict(a=arrays, w=weights))
@@ -1260,3 +1430,25 @@ class MicroSeriesGroupBy(pd.core.groupby.generic.SeriesGroupBy):
 
         for fn_name in MicroSeries.FUNCTIONS:
             setattr(self, fn_name, _weighted_agg(fn_name))
+        for name in (
+            "sem",
+            "skew",
+            "kurt",
+            "kurtosis",
+            "prod",
+            "product",
+            "idxmax",
+            "idxmin",
+            "rolling",
+            "expanding",
+            "ewm",
+            "value_counts",
+            "mode",
+        ):
+
+            def reject(*args, _name=name, **kwargs):
+                raise NotImplementedError(
+                    f"Weighted GroupBy.{_name} is unsupported; use pd.Series(s).groupby(...)"
+                )
+
+            setattr(self, name, reject)

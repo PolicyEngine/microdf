@@ -61,7 +61,10 @@ def test_binary_operators_align_weights_with_labels(method, weighted_other):
 def test_named_binary_methods_use_calling_series_weights(method, permuted):
     source = MicroSeries([10, 20], index=["b", "a"], weights=[1, 9], name="x")
     other = MicroSeries(
-        [2, 1], index=["a", "b"] if permuted else ["b", "a"], weights=[5, 7], name="x"
+        [2, 1],
+        index=["a", "b"] if permuted else ["b", "a"],
+        weights=[9, 1] if permuted else [1, 9],
+        name="x",
     )
     expected = getattr(pd.Series(source), method)(pd.Series(other))
 
@@ -77,7 +80,7 @@ def test_named_binary_methods_use_calling_series_weights(method, permuted):
 @pytest.mark.parametrize("method", [f"__{op}__" for op in COMPARISONS])
 def test_comparison_operators_keep_calling_series_weights_and_pandas_errors(method):
     source = MicroSeries([10, 20], index=["b", "a"], weights=[1, 9])
-    other = MicroSeries([20, 10], index=source.index, weights=[5, 7])
+    other = MicroSeries([20, 10], index=source.index, weights=[1, 9])
     expected = getattr(pd.Series(source), method)(pd.Series(other))
     assert_weighted_result(getattr(source, method)(other), expected, source)
 
@@ -100,7 +103,7 @@ def test_scalar_and_array_binary_operands_keep_weights(method, operand):
 @pytest.mark.parametrize("method", ["__add__", "__rsub__", "add", "rsub", "lt"])
 def test_matching_duplicate_indexes_keep_positional_weights(method):
     source = MicroSeries([10, 20, 30], index=["a", "a", "b"], weights=[1, 9, 3])
-    other = MicroSeries([2, 1, 4], index=source.index, weights=[5, 7, 11])
+    other = MicroSeries([2, 1, 4], index=source.index, weights=[1, 9, 3])
     expected = getattr(pd.Series(source), method)(pd.Series(other))
     assert_weighted_result(getattr(source, method)(other), expected, source)
 
@@ -108,7 +111,7 @@ def test_matching_duplicate_indexes_keep_positional_weights(method):
 @pytest.mark.parametrize("method", ["__divmod__", "__rdivmod__", "divmod", "rdivmod"])
 def test_divmod_results_keep_calling_series_weights(method):
     source = MicroSeries([10, 20], index=["b", "a"], weights=[1, 9])
-    other = MicroSeries([3, 4], index=["a", "b"], weights=[5, 7])
+    other = MicroSeries([3, 4], index=["a", "b"], weights=[9, 1])
     expected = getattr(pd.Series(source), method)(pd.Series(other))
     result = getattr(source, method)(other)
     assert isinstance(result, tuple)
@@ -193,3 +196,17 @@ def test_plain_series_left_expressions_preserve_weighted_dispatch(operation, ind
     np.testing.assert_array_equal(source.weights, [1, 9])
     source.weights.iloc[1] = 200
     assert result.weights.iloc[0] == 100
+
+
+@pytest.mark.parametrize(
+    "method",
+    ARITHMETIC
+    + [f"r{op}" for op in ARITHMETIC]
+    + COMPARISONS
+    + ["div", "rdiv", "divmod", "rdivmod"],
+)
+def test_named_methods_reject_conflicting_weights(method):
+    source = MicroSeries([10, 20], index=["b", "a"], weights=[1, 9])
+    other = MicroSeries([2, 1], index=["a", "b"], weights=[5, 7])
+    with pytest.raises(ValueError, match="weights"):
+        getattr(source, method)(other)

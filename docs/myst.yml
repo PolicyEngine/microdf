@@ -21,6 +21,7 @@ project:
       children:
         - file: gini.ipynb
     - file: api.md
+    - file: support.md
 site:
   options:
     logo: microdf_logo.png

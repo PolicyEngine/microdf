@@ -31,9 +31,15 @@ the two ways to get a believable-looking wrong answer.
 ## Key Features
 - **MicroDataFrame**: A pandas DataFrame with an integrated weight column
 - **MicroSeries**: A pandas Series with integrated weights
-- **Weighted operations**: All aggregations (sum, mean, median, etc.) automatically use weights
+- **Weighted operations**: Supported aggregations (sum, mean, median, etc.) use weights; unsupported estimators raise
 - **Inequality metrics**: Built-in Gini coefficient calculation
 - **Poverty analysis**: Integrated poverty rate and gap calculations
+
+Weight preservation is limited to the tested operations in the
+[support matrix](docs/support.md). Convert explicitly to `pd.Series(s)` or
+`pd.DataFrame(df)` to request unweighted pandas behaviour. Use `microdf.concat`
+to reject mixed weighted and plain inputs regardless of their order; pandas can
+bypass microdf's checks when a plain input comes first in `pd.concat`.
 
 ## Installation
 Install with:
@@ -57,7 +63,7 @@ df = pd.DataFrame(
 # Create a MicroDataFrame
 mdf_df = mdf.MicroDataFrame(df, weights="weights")
 
-# All operations are weight-aware
+# Supported estimators use the row weights
 print(mdf_df.income.mean())  # Weighted mean
 print(mdf_df.income.gini())  # Gini coefficient
 ```
