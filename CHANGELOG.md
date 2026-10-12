@@ -1,3 +1,10 @@
+## [1.5.12] - 2026-10-12
+
+### Changed
+
+- Publish to PyPI with trusted publishing (OIDC) instead of a stored API token.
+
+
 ## [1.5.11] - 2026-09-28
 
 ### Changed
