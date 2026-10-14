@@ -1,5 +1,6 @@
 from importlib.metadata import PackageNotFoundError, version
 
+from .concat import concat
 from .microdataframe import MicroDataFrame, MicroDataFrameGroupBy
 from .microseries import MicroSeries, MicroSeriesGroupBy
 from .replication import replicate_standard_error, replicate_variance
@@ -14,6 +15,7 @@ except PackageNotFoundError:  # pragma: no cover - running from a source tree
     __version__ = "unknown"
 
 __all__ = [
+    "concat",
     # microseries.py
     "MicroSeries",
     "MicroSeriesGroupBy",

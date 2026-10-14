@@ -23,6 +23,30 @@ def aligned_weights(source, index):
     )
 
 
+def require_equal_weights(left, right):
+    """Reject conflicting weights before pandas discards operand metadata."""
+    if isinstance(right, WeightPropagationMixin):
+        other = aligned_weights(right, left.index)
+        if not np.array_equal(left.weights, other, equal_nan=True):
+            raise ValueError("Arithmetic requires equal row weights on both operands.")
+
+
+def unsupported_weighted(name):
+    """Build an explicit escape hatch for operations without weighted
+    semantics."""
+
+    def method(self, *args, **kwargs):
+        plain = "pd.Series(s)" if self.ndim == 1 else "pd.DataFrame(df)"
+        raise NotImplementedError(
+            f"{name} has no supported weighted definition; use {plain} "
+            "for an explicitly unweighted operation."
+        )
+
+    method.__name__ = name
+    method.__doc__ = f"Reject {name}; convert to plain pandas for unweighted behaviour."
+    return method
+
+
 def finalize_weights(result, source, method, previous_weights):
     """Propagate row weights after pandas has finalized its own metadata."""
     if method == "transpose" and result.ndim == 2:
@@ -123,6 +147,46 @@ def concat_weights(result, objects, axis):
 
 class WeightPropagationMixin:
     """Use positional provenance for pandas operations that select rows."""
+
+    mode = unsupported_weighted("mode")
+    value_counts = unsupported_weighted("value_counts")
+    rolling = unsupported_weighted("rolling")
+    expanding = unsupported_weighted("expanding")
+    ewm = unsupported_weighted("ewm")
+    sem = unsupported_weighted("sem")
+    skew = unsupported_weighted("skew")
+    kurt = unsupported_weighted("kurt")
+    kurtosis = unsupported_weighted("kurtosis")
+    prod = unsupported_weighted("prod")
+    product = unsupported_weighted("product")
+    idxmax = unsupported_weighted("idxmax")
+    idxmin = unsupported_weighted("idxmin")
+
+    def _arith_method(self, other, op):
+        require_equal_weights(self, other)
+        return super()._arith_method(other, op)
+
+    def _logical_method(self, other, op):
+        require_equal_weights(self, other)
+        return super()._logical_method(other, op)
+
+    def _cmp_method(self, other, op):
+        if isinstance(other, pd.Series) and not self.index.equals(other.index):
+            return super()._cmp_method(other, op)
+        require_equal_weights(self, other)
+        return super()._cmp_method(other, op)
+
+    def _binop(self, other, func, *args, **kwargs):
+        require_equal_weights(self, other)
+        return super()._binop(other, func, *args, **kwargs)
+
+    def _flex_arith_method(self, other, op, *args, **kwargs):
+        require_equal_weights(self, other)
+        return super()._flex_arith_method(other, op, *args, **kwargs)
+
+    def _flex_cmp_method(self, other, op, *args, **kwargs):
+        require_equal_weights(self, other)
+        return super()._flex_cmp_method(other, op, *args, **kwargs)
 
     def _plain(self):
         return (
